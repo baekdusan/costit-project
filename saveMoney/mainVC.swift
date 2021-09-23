@@ -289,8 +289,10 @@ extension mainVC: UICollectionViewDelegate, UICollectionViewDataSource {
         }
         
         cell.updateUI(filteredList, indexPath.section, indexPath.row)
+        cell.makeShadow()
         cell.dismiss.tag = indexPath.section * 1000 + indexPath.row
         cell.dismiss.addTarget(self, action: #selector(cancelButtonAction(sender:)), for: .touchUpInside)
+        
         return cell
     }
     
@@ -372,6 +374,13 @@ class finCell: UICollectionViewCell {
         when.text = model[section][row].when.toString(false)
         towhat.text = model[section][row].towhat
         how.text = "- " + model[section][row].how.toDecimal() + " 원"
+    }
+    
+    func makeShadow() {
+        layer.shadowColor = UIColor.black.cgColor
+        layer.shadowOpacity = 0.16
+        layer.shadowOffset = CGSize(width: 0, height: 6)
+        layer.masksToBounds = false
     }
 }
 
