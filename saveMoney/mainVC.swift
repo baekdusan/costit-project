@@ -14,37 +14,36 @@ class mainVC: UIViewController, sendFinData, FODelegate {
         id = profile(nickName: nickName, outLay: pm, period: salary)
         UserDefaults.standard.set(try? PropertyListEncoder().encode(id), forKey: "profile")
         
-        // 레이아웃 셋팅 (닉네임, 남은 금액, 목표 기간 셋팅)
+        // 레이아웃
         
+        // 1. 닉네임
         self.nickName.text = id.nickName + ","
         
+        // 2. 기준일
         salaryData.startDate = setSalaryDate(salary).startDate
         salaryData.endDate = setSalaryDate(salary).endDate
         UserDefaults.standard.set(try? PropertyListEncoder().encode(salaryData), forKey: "salarydata")
         navigationItem.title = salaryData.startDate.toString(false) + " - " + salaryData.endDate.toString(false)
         
-        filteredbyMonth(salaryData.startDate, salaryData.endDate) // 이번 달에 맞춰서 filteredList 할당
-        balance.text = Int(id.outLay - updateThisMonthTotalCost()).toDecimal() + " 원" // 남은 금액 = 목표 금액 - 이번 달 총 지출 비용
-        if Int(id.outLay - updateThisMonthTotalCost()) < 0 {
-            balanceCondition.text = "망했어요"
-        }
-        
-        collectionView.reloadData() // 콜렉션 뷰 filteredFinList로 갱신
-        towidget()
+        // 3. 남은 금액 및 상태
+        updateLayout()
     }
     
     // 데이터 추가 뷰에서 넘겨받는 프로토콜
-    func sendFinanceSource(_ controller: addFinVC, _ data: finData) {
+    func sendFinanceSource(_ controller: addFinVC, _ originData: finData, _ revisedData: finData) {
         
-        finList.append(data) // finList에 추가
-        filteredbyMonth(salaryData.startDate, salaryData.endDate) // 이번 달에 맞춰서 filteredList 할당
-        balance.text = Int(id.outLay - updateThisMonthTotalCost()).toDecimal() + " 원" // 남은 금액 = 목표 금액 - 이번 달 총 지출 비용
-        if Int(id.outLay - updateThisMonthTotalCost()) < 0 {
-            balanceCondition.text = "망했어요."
+        // 일반적인 추가
+        if originData == revisedData {
+            finList.append(revisedData)
+        
+        // 수정일 때 -> 원래 데이터 삭제 후, 새로운 데이터 추가
+        } else {
+            let removedData = originData
+            finList.remove(at: finList.firstIndex(where: {$0 == removedData})!)
+            finList.append(revisedData)
         }
         
-        collectionView.reloadData() // 콜렉션 뷰 filteredFinList로 갱신
-        towidget()
+        updateLayout()
     }
     
     @IBOutlet weak var nickName: UILabel! // 닉네임 라벨
@@ -55,8 +54,10 @@ class mainVC: UIViewController, sendFinData, FODelegate {
     @IBOutlet weak var addFinBorder: UIButton!
     
     // 전체 가계부
-    var finList: [finData] = [] {
+    var finList: [finData] = [finData(when: Date(), towhat: "코스트잇 다운로드 🥳", how: 500)] {
         didSet {
+            
+            // 가계부 데이터 변경시마다 저장 및 상태 변경
             UserDefaults.standard.set(try? PropertyListEncoder().encode(finList), forKey:"finlist")
             if Int(id.outLay - updateThisMonthTotalCost()) < 0 {
                 balanceCondition.text = "망했어요."
@@ -65,8 +66,8 @@ class mainVC: UIViewController, sendFinData, FODelegate {
     }
     var salaryData = salaryDate() // 급여 날짜 저장
     var id = profile() // 프로필 담기
-    var isFirstOpen: Bool!
-    var filteredList: [[finData]] = []
+    var isFirstOpen: Bool! // 앱 첫실행 감지
+    var filteredList: [[finData]] = [] // 필터링된 가계부 데이터
     
     // 스크롤 효과 최대, 최소 높이 (보류)
     var MaxTopHeight: CGFloat!
@@ -97,11 +98,8 @@ class mainVC: UIViewController, sendFinData, FODelegate {
     
     override func viewDidLoad() {
         super.viewDidLoad()
-        
-//        MaxTopHeight = collectionView.frame.origin.y - (period.layer.bounds.height + 40) - view.safeAreaInsets.top
-//        MinTopHeight = (period.layer.bounds.height + 40) + view.safeAreaInsets.top
-//        viewTopHeight.constant = MaxTopHeight
 
+        
         // 가계부 작성 버튼 곡률, 그림자 layout
         addFinBorder.layer.cornerRadius = 32
         addFinBorder.layer.shadowColor = UIColor.black.cgColor
@@ -197,6 +195,21 @@ class mainVC: UIViewController, sendFinData, FODelegate {
             }
         }
     }
+    
+    // 이번 달 기준으로 리스트 필터링, 남은 금액, 그리고 재정 상태 표시
+    func updateLayout() {
+        filteredbyMonth(salaryData.startDate, salaryData.endDate) // 이번 달에 맞춰서 filteredList 할당
+        balance.text = Int(id.outLay - updateThisMonthTotalCost()).toDecimal() + " 원" // 남은 금액 = 목표 금액 - 이번 달 총 지출 비용
+        if Int(id.outLay - updateThisMonthTotalCost()) < 0 {
+            balanceCondition.text = "망했어요."
+        } else {
+            balanceCondition.text = "이만큼 더 쓸 수 있어요."
+        }
+        
+        // 콜렉션뷰 갱신, 위젯 갱신
+        collectionView.reloadData()
+        towidget()
+    }
 
     // 이번 달의 전체 지출 비용
     func updateThisMonthTotalCost() -> Int {
@@ -248,12 +261,29 @@ class mainVC: UIViewController, sendFinData, FODelegate {
             
             balance.text = Int(id.outLay - updateThisMonthTotalCost()).toDecimal() + " 원"
             if Int(id.outLay - updateThisMonthTotalCost()) < 0 {
-                balanceCondition.text = "망했어요."
+                balanceCondition.text = "망했어요"
             } else {
                 balanceCondition.text = "이만큼 더 쓸 수 있어요."
             }
             towidget()
         }, completion: { [self] _ in collectionView.reloadData()})
+    }
+    
+    // 수정 버튼(꾹 누르는 제스처)
+    @objc func longPress(_ longPressGestureRecognizer: UILongPressGestureRecognizer) {
+
+        if longPressGestureRecognizer.state == UIGestureRecognizer.State.began {
+            let touchPoint = longPressGestureRecognizer.location(in: collectionView)
+            if let index = collectionView.indexPathForItem(at: touchPoint) {
+                let section = index[0]
+                let row = index[1]
+                print(filteredList[section][row])
+                guard let vc = self.storyboard?.instantiateViewController(withIdentifier: "addFinData") as? addFinVC else { return }
+                vc.originData = filteredList[section][row]
+                vc.delegate = self
+                self.present(vc, animated: true, completion: nil)
+            }
+        }
     }
     
     // 위젯으로 데이터 전송
@@ -267,6 +297,8 @@ class mainVC: UIViewController, sendFinData, FODelegate {
         } else {
         }
     }
+    
+    
 }
 
 extension mainVC: UICollectionViewDelegate, UICollectionViewDataSource {
@@ -284,6 +316,8 @@ extension mainVC: UICollectionViewDelegate, UICollectionViewDataSource {
     // 컬렉션 뷰 레이아웃
     func collectionView(_ collectionView: UICollectionView, cellForItemAt indexPath: IndexPath) -> UICollectionViewCell {
         
+        let deepTouchGesture = UILongPressGestureRecognizer(target: self, action: #selector(longPress(_:)))
+        
         guard let cell = collectionView.dequeueReusableCell(withReuseIdentifier: "fincell", for: indexPath) as? finCell else {
             return UICollectionViewCell()
         }
@@ -292,6 +326,7 @@ extension mainVC: UICollectionViewDelegate, UICollectionViewDataSource {
         cell.makeShadow()
         cell.dismiss.tag = indexPath.section * 1000 + indexPath.row
         cell.dismiss.addTarget(self, action: #selector(cancelButtonAction(sender:)), for: .touchUpInside)
+        cell.border.addGestureRecognizer(deepTouchGesture)
         
         return cell
     }
@@ -309,6 +344,7 @@ extension mainVC: UICollectionViewDelegate, UICollectionViewDataSource {
         
         return UICollectionReusableView()
     }
+    
     
 //    func scrollViewDidScroll(_ scrollView: UIScrollView) {
 //        let y: CGFloat = scrollView.contentOffset.y

@@ -1,8 +1,9 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<document type="com.apple.InterfaceBuilder3.CocoaTouch.Storyboard.XIB" version="3.0" toolsVersion="18122" targetRuntime="iOS.CocoaTouch" propertyAccessControl="none" useAutolayout="YES" useTraitCollections="YES" useSafeAreas="YES" colorMatched="YES" initialViewController="Cwc-BL-R1y">
+<document type="com.apple.InterfaceBuilder3.CocoaTouch.Storyboard.XIB" version="3.0" toolsVersion="19162" targetRuntime="iOS.CocoaTouch" propertyAccessControl="none" useAutolayout="YES" useTraitCollections="YES" useSafeAreas="YES" colorMatched="YES" initialViewController="Cwc-BL-R1y">
     <device id="retina6_1" orientation="portrait" appearance="light"/>
     <dependencies>
-        <plugIn identifier="com.apple.InterfaceBuilder.IBCocoaTouchPlugin" version="18093"/>
+        <deployment identifier="iOS"/>
+        <plugIn identifier="com.apple.InterfaceBuilder.IBCocoaTouchPlugin" version="19144"/>
         <capability name="Image references" minToolsVersion="12.0"/>
         <capability name="Named colors" minToolsVersion="9.0"/>
         <capability name="Safe area layout guides" minToolsVersion="9.0"/>
@@ -59,7 +60,7 @@
                                 <inset key="separatorInset" minX="0.0" minY="0.0" maxX="0.0" maxY="0.0"/>
                                 <prototypes>
                                     <tableViewCell userInteractionEnabled="NO" contentMode="scaleToFill" preservesSuperviewLayoutMargins="YES" selectionStyle="default" indentationWidth="0.0" reuseIdentifier="daily" rowHeight="80" id="3Ek-pL-9ig" customClass="dailyOutLay" customModule="saveMoney" customModuleProvider="target">
-                                        <rect key="frame" x="0.0" y="24.5" width="416" height="80"/>
+                                        <rect key="frame" x="0.0" y="44.5" width="416" height="80"/>
                                         <autoresizingMask key="autoresizingMask"/>
                                         <tableViewCellContentView key="contentView" opaque="NO" clipsSubviews="YES" multipleTouchEnabled="YES" contentMode="center" preservesSuperviewLayoutMargins="YES" insetsLayoutMarginsFromSafeArea="NO" tableViewCell="3Ek-pL-9ig" id="ZSS-y6-UaC">
                                             <rect key="frame" x="0.0" y="0.0" width="416" height="80"/>
@@ -280,11 +281,11 @@
                             <collectionView clipsSubviews="YES" multipleTouchEnabled="YES" contentMode="scaleToFill" showsHorizontalScrollIndicator="NO" showsVerticalScrollIndicator="NO" dataMode="prototypes" translatesAutoresizingMaskIntoConstraints="NO" id="6C8-fl-DhC">
                                 <rect key="frame" x="0.0" y="247.5" width="414" height="614.5"/>
                                 <color key="backgroundColor" white="0.0" alpha="0.0" colorSpace="custom" customColorSpace="genericGamma22GrayColorSpace"/>
-                                <collectionViewFlowLayout key="collectionViewLayout" minimumLineSpacing="18" minimumInteritemSpacing="10" id="JkV-aj-3o0">
+                                <collectionViewFlowLayout key="collectionViewLayout" minimumLineSpacing="12" minimumInteritemSpacing="10" id="JkV-aj-3o0">
                                     <size key="itemSize" width="185" height="185"/>
                                     <size key="headerReferenceSize" width="0.0" height="80"/>
                                     <size key="footerReferenceSize" width="0.0" height="0.0"/>
-                                    <inset key="sectionInset" minX="20" minY="0.0" maxX="20" maxY="0.0"/>
+                                    <inset key="sectionInset" minX="20" minY="0.0" maxX="20" maxY="20"/>
                                 </collectionViewFlowLayout>
                                 <cells>
                                     <collectionViewCell opaque="NO" clipsSubviews="YES" multipleTouchEnabled="YES" contentMode="center" reuseIdentifier="fincell" id="4ny-sQ-5HB" customClass="finCell" customModule="saveMoney" customModuleProvider="target">
@@ -385,7 +386,7 @@
                                 <nil key="highlightedColor"/>
                             </label>
                             <button opaque="NO" contentMode="scaleToFill" contentHorizontalAlignment="center" contentVerticalAlignment="center" lineBreakMode="middleTruncation" translatesAutoresizingMaskIntoConstraints="NO" id="v5z-xx-rEi">
-                                <rect key="frame" x="315" y="783" width="64" height="64"/>
+                                <rect key="frame" x="320" y="768" width="64" height="64"/>
                                 <color key="backgroundColor" name="HeaderColor"/>
                                 <constraints>
                                     <constraint firstAttribute="width" secondItem="v5z-xx-rEi" secondAttribute="height" multiplier="1:1" id="gj8-bm-ggE"/>
@@ -409,7 +410,7 @@
                             <constraint firstItem="6C8-fl-DhC" firstAttribute="top" secondItem="jdP-V7-Xso" secondAttribute="top" constant="5" id="6PT-PL-SIQ"/>
                             <constraint firstItem="yRY-8j-YdZ" firstAttribute="bottom" secondItem="99s-XD-Kig" secondAttribute="bottom" constant="-40" id="90i-Yn-2mR"/>
                             <constraint firstItem="6Tk-OE-BBY" firstAttribute="trailing" secondItem="6C8-fl-DhC" secondAttribute="trailing" id="AiU-YE-OIx"/>
-                            <constraint firstItem="6Tk-OE-BBY" firstAttribute="bottom" secondItem="v5z-xx-rEi" secondAttribute="bottom" constant="15" id="Byn-zt-oer"/>
+                            <constraint firstItem="6Tk-OE-BBY" firstAttribute="bottom" secondItem="v5z-xx-rEi" secondAttribute="bottom" constant="30" id="Byn-zt-oer"/>
                             <constraint firstItem="99s-XD-Kig" firstAttribute="leading" secondItem="6Tk-OE-BBY" secondAttribute="leading" id="CIj-Ex-QfS"/>
                             <constraint firstItem="yRY-8j-YdZ" firstAttribute="top" secondItem="mge-4l-Ftl" secondAttribute="bottom" constant="4" id="CkN-xT-g3E"/>
                             <constraint firstItem="yRY-8j-YdZ" firstAttribute="centerX" secondItem="6Tk-OE-BBY" secondAttribute="centerX" id="EX6-gP-Jso"/>
@@ -420,7 +421,7 @@
                             <constraint firstItem="6Tk-OE-BBY" firstAttribute="trailing" secondItem="99s-XD-Kig" secondAttribute="trailing" id="YB6-kG-oMR"/>
                             <constraint firstItem="6Tk-OE-BBY" firstAttribute="bottom" secondItem="6C8-fl-DhC" secondAttribute="bottom" id="bCd-Gz-6h4"/>
                             <constraint firstItem="jdP-V7-Xso" firstAttribute="top" secondItem="99s-XD-Kig" secondAttribute="bottom" constant="-5" id="cpL-bD-9GS"/>
-                            <constraint firstItem="6Tk-OE-BBY" firstAttribute="trailing" secondItem="v5z-xx-rEi" secondAttribute="trailing" constant="35" id="jQX-kM-SRK"/>
+                            <constraint firstItem="6Tk-OE-BBY" firstAttribute="trailing" secondItem="v5z-xx-rEi" secondAttribute="trailing" constant="30" id="jQX-kM-SRK"/>
                             <constraint firstItem="M3j-RO-Qrj" firstAttribute="centerX" secondItem="6Tk-OE-BBY" secondAttribute="centerX" id="tdV-ZS-cTb"/>
                             <constraint firstItem="6C8-fl-DhC" firstAttribute="leading" secondItem="6Tk-OE-BBY" secondAttribute="leading" id="xjw-aT-boS"/>
                         </constraints>
@@ -457,7 +458,7 @@
         <!--Add FinVC-->
         <scene sceneID="ejr-OT-BPo">
             <objects>
-                <viewController id="swU-1T-EKX" customClass="addFinVC" customModule="saveMoney" customModuleProvider="target" sceneMemberID="viewController">
+                <viewController storyboardIdentifier="addFinData" useStoryboardIdentifierAsRestorationIdentifier="YES" id="swU-1T-EKX" customClass="addFinVC" customModule="saveMoney" customModuleProvider="target" sceneMemberID="viewController">
                     <view key="view" contentMode="scaleToFill" id="KMx-Ff-zsZ">
                         <rect key="frame" x="0.0" y="0.0" width="414" height="842"/>
                         <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
