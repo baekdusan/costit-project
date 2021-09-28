@@ -45,13 +45,14 @@ struct widgetEntryView : View {
                    Color("HeaderColor")
                        .opacity(0.25)
                    VStack(alignment: .trailing) {
+                       
                        Text(wdata[0])
                            .font(.system(size: 12, weight: .bold))
                            .frame(height: geometry.size.height * 0.1)
                            .foregroundColor(Color("customLabel"))
                        Text(wdata[1])
                            .font(.system(size: 24, weight: .bold))
-                           .frame(height: geometry.size.height * 0.2)
+                           .frame(height: geometry.size.height * 0.1)
                            .opacity(0.72)
                        Text(wdata[2])
                            .font(.system(size: 12, weight: .bold))

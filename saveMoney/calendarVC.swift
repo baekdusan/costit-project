@@ -105,7 +105,7 @@ extension calendarVC: FSCalendarDelegate, FSCalendarDataSource, FSCalendarDelega
     func percent(_ date: Date) -> [Int] {
         filter(date)
         let standard = Int(Double(purpose) / Double(Date().endOfMonth.onlydate())!)
-        return [Int(Double(standard) * 0.83), Int(Double(standard) * 1.17)]
+        return [Int(Double(standard)), Int(Double(standard) * 1.5)]
     }
     func calendar(_ calendar: FSCalendar, numberOfEventsFor date: Date) -> Int {
         let format = DateFormatter()
