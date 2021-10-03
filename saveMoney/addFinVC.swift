@@ -139,7 +139,6 @@ class addFinVC: UIViewController, UITextFieldDelegate {
     @objc func donePressed() {
         if !whenTextField.text!.isEmpty && !towhatTextField.text!.isEmpty && !howTextField.text!.isEmpty {
             let writenData = finData(when: when, towhat: towhatTextField.text, how: outlay)
-            
             // 수정하기로 열었을 때
             if let originData = originData {
                 // 데이터를 수정 안하고 붙인다면 그냥 뷰를 닫기

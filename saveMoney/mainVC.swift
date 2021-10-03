@@ -52,6 +52,7 @@ class mainVC: UIViewController, sendFinData, FODelegate {
     
     @IBOutlet weak var collectionView: UICollectionView! // 콜렉션뷰
     @IBOutlet weak var addFinBorder: UIButton!
+    @IBOutlet weak var fixedOutLay: UIButton! // 고정 지출
     
     // 전체 가계부
     var finList: [finData] = [finData(when: Date(), towhat: "코스트잇 다운로드 🥳", how: 500)] {
@@ -101,12 +102,8 @@ class mainVC: UIViewController, sendFinData, FODelegate {
 
         
         // 가계부 작성 버튼 곡률, 그림자 layout
-        addFinBorder.layer.cornerRadius = 32
-        addFinBorder.layer.shadowColor = UIColor.black.cgColor
-        addFinBorder.layer.shadowOffset = CGSize(width: 0, height: 4)
-        addFinBorder.layer.shadowRadius = 5
-        addFinBorder.layer.shadowOpacity = 0.2
-        addFinBorder.layer.masksToBounds = false
+        fixedOutLay.btnLayout()
+        addFinBorder.btnLayout()
         
         // 가계부 정보 받아오기
         if let fData = UserDefaults.standard.value(forKey:"finlist") as? Data {
@@ -297,8 +294,6 @@ class mainVC: UIViewController, sendFinData, FODelegate {
         } else {
         }
     }
-    
-    
 }
 
 extension mainVC: UICollectionViewDelegate, UICollectionViewDataSource {
@@ -389,7 +384,7 @@ extension mainVC: UICollectionViewDelegate, UICollectionViewDataSource {
 extension mainVC: UICollectionViewDelegateFlowLayout {
     func collectionView(_ collectionView: UICollectionView, layout collectionViewLayout: UICollectionViewLayout, sizeForItemAt indexPath: IndexPath) -> CGSize {
         
-        let width = (view.bounds.width - 50) * 0.5
+        let width = (view.bounds.width - 48) * 0.5
         let height = width
         
         return CGSize(width: width, height: height)

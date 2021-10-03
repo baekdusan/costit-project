@@ -149,3 +149,15 @@ extension Int {
         return nf.string(from: nsnum)!
     }
 }
+
+extension UIButton {
+    func btnLayout() {
+        self.layer.cornerRadius = 32
+//        btn.layer.shadowColor = UIColor.black.cgColor
+//        btn.layer.shadowOffset = CGSize(width: 0, height: 4)
+//        btn.layer.shadowRadius = 5
+//        btn.layer.shadowOpacity = 0.2
+//        btn.layer.masksToBounds = false
+        self.alpha = 0.8
+    }
+}
