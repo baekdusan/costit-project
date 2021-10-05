@@ -165,10 +165,16 @@ class addFinVC: UIViewController, UITextFieldDelegate {
         howTextField.becomeFirstResponder()
     }
     
-    // 최대 글자수는 15로 제한
+    // 금액 최대 글자수는 15로 제한, 메모는 30자
     func textField(_ textField: UITextField, shouldChangeCharactersIn range: NSRange, replacementString string: String) -> Bool {
             let newLength = (textField.text?.count)! + string.count - range.length
+        
+        if textField == howTextField {
             return !(newLength > 15)
+        } else {
+            return !(newLength > 30)
+        }
+            
     }
     
     // 지출 키보드에서 실시간으로 반점 찍어주기

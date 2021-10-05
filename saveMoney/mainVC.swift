@@ -104,6 +104,7 @@ class mainVC: UIViewController, sendFinData, FODelegate {
         // 가계부 작성 버튼 곡률, 그림자 layout
         fixedOutLay.btnLayout()
         addFinBorder.btnLayout()
+        fixedOutLay.alpha = 0
         
         // 가계부 정보 받아오기
         if let fData = UserDefaults.standard.value(forKey:"finlist") as? Data {
@@ -165,6 +166,16 @@ class mainVC: UIViewController, sendFinData, FODelegate {
     
     @IBAction func addFinbtn(_ sender: Any) {
     }
+    
+    @IBAction func toFixedOutLayVC(_ sender: UIButton) {
+        
+        guard let vc = storyboard?.instantiateViewController(withIdentifier: "FixedOutLayVC") as? FixedOutLayVC else { return }
+        
+        vc.modalPresentationStyle = .fullScreen
+        vc.modalTransitionStyle = .crossDissolve
+        present(vc, animated: true, completion: nil)
+    }
+    
     
     
     // 급여일을 설정했을 때 그걸 바탕으로 한달의 지출 기간을 셋팅
