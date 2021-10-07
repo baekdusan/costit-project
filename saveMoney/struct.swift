@@ -158,6 +158,19 @@ extension UIButton {
 //        btn.layer.shadowRadius = 5
 //        btn.layer.shadowOpacity = 0.2
 //        btn.layer.masksToBounds = false
-        self.alpha = 0.8
+        self.alpha = 0.78
     }
+}
+
+class revenue {
+    static let shared = revenue()
+    var rFinList: [finData]!
+    private init() { }
+}
+
+class expense {
+    static let shared = expense()
+    var eFinList: [finData]!
+    var purpose: Int!
+    private init() { }
 }

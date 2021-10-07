@@ -10,19 +10,17 @@ class mainVC: UIViewController, sendFinData, FODelegate {
         isFirstOpen = true
         UserDefaults.standard.setValue(isFirstOpen, forKey: "firstOpen")
         
-        // 프로필 셋팅 및 저장
+        // 프로필 셋팅
         id = profile(nickName: nickName, outLay: pm, period: salary)
-        UserDefaults.standard.set(try? PropertyListEncoder().encode(id), forKey: "profile")
         
         // 레이아웃
         
         // 1. 닉네임
-        self.nickName.text = id.nickName + ","
+        self.nickName.text = "\(id.nickName) 님의 잔액은"
         
         // 2. 기준일
         salaryData.startDate = setSalaryDate(salary).startDate
         salaryData.endDate = setSalaryDate(salary).endDate
-        UserDefaults.standard.set(try? PropertyListEncoder().encode(salaryData), forKey: "salarydata")
         navigationItem.title = salaryData.startDate.toString(false) + " - " + salaryData.endDate.toString(false)
         
         // 3. 남은 금액 및 상태
@@ -48,7 +46,7 @@ class mainVC: UIViewController, sendFinData, FODelegate {
     
     @IBOutlet weak var nickName: UILabel! // 닉네임 라벨
     @IBOutlet weak var balance: UILabel! // 남은 금액
-    @IBOutlet weak var balanceCondition: UILabel! // "남았어요.", "망했어요."
+    @IBOutlet weak var balanceCondition: UILabel! // "목표 금액"
     
     @IBOutlet weak var collectionView: UICollectionView! // 콜렉션뷰
     @IBOutlet weak var addFinBorder: UIButton!
@@ -57,16 +55,26 @@ class mainVC: UIViewController, sendFinData, FODelegate {
     // 전체 가계부
     var finList: [finData] = [finData(when: Date(), towhat: "코스트잇 다운로드 🥳", how: 500)] {
         didSet {
-            
+            // 데이터 보내고
+            expense.shared.eFinList = finList
             // 가계부 데이터 변경시마다 저장 및 상태 변경
             UserDefaults.standard.set(try? PropertyListEncoder().encode(finList), forKey:"finlist")
-            if Int(id.outLay - updateThisMonthTotalCost()) < 0 {
-                balanceCondition.text = "망했어요."
-            }
+            balanceCondition.text = "목표 금액 : \(id.outLay.toDecimal()) 원"
         }
     }
-    var salaryData = salaryDate() // 급여 날짜 저장
-    var id = profile() // 프로필 담기
+    var salaryData = salaryDate() {
+        // 급여 날짜 저장
+        didSet {
+            UserDefaults.standard.set(try? PropertyListEncoder().encode(salaryData), forKey: "salarydata")
+        }
+    }
+    var id = profile() {
+        // 프로필 담기
+        didSet {
+            expense.shared.purpose = id.outLay
+            UserDefaults.standard.set(try? PropertyListEncoder().encode(id), forKey: "profile")
+        }
+    }
     var isFirstOpen: Bool! // 앱 첫실행 감지
     var filteredList: [[finData]] = [] // 필터링된 가계부 데이터
     
@@ -104,7 +112,6 @@ class mainVC: UIViewController, sendFinData, FODelegate {
         // 가계부 작성 버튼 곡률, 그림자 layout
         fixedOutLay.btnLayout()
         addFinBorder.btnLayout()
-        fixedOutLay.alpha = 0
         
         // 가계부 정보 받아오기
         if let fData = UserDefaults.standard.value(forKey:"finlist") as? Data {
@@ -132,11 +139,9 @@ class mainVC: UIViewController, sendFinData, FODelegate {
         filteredbyMonth(salaryData.startDate, salaryData.endDate)
         
         // 레이아웃 셋팅 (이름, 남은 금액, 목표 기간)
-        nickName.text = id.nickName + ","
+        nickName.text = "\(id.nickName) 님의 잔액은"
         balance.text = Int(id.outLay - updateThisMonthTotalCost()).toDecimal() + " 원"
-        if Int(id.outLay - updateThisMonthTotalCost()) < 0 {
-            balanceCondition.text = "망했어요."
-        }
+        balanceCondition.text = "목표 금액 : \(id.outLay.toDecimal()) 원"
     }
     
     override func viewWillAppear(_ animated: Bool) {
@@ -167,12 +172,15 @@ class mainVC: UIViewController, sendFinData, FODelegate {
     @IBAction func addFinbtn(_ sender: Any) {
     }
     
-    @IBAction func toFixedOutLayVC(_ sender: UIButton) {
+    @IBAction func toRevenueVC(_ sender: UIButton) {
         
-        guard let vc = storyboard?.instantiateViewController(withIdentifier: "FixedOutLayVC") as? FixedOutLayVC else { return }
+        guard let vc = storyboard?.instantiateViewController(withIdentifier: "revenueVC") as? revenueVC else { return }
         
         vc.modalPresentationStyle = .fullScreen
         vc.modalTransitionStyle = .crossDissolve
+        vc.nickname = id.nickName
+        vc.start = salaryData.startDate
+        vc.end = salaryData.endDate
         present(vc, animated: true, completion: nil)
     }
     
@@ -208,11 +216,7 @@ class mainVC: UIViewController, sendFinData, FODelegate {
     func updateLayout() {
         filteredbyMonth(salaryData.startDate, salaryData.endDate) // 이번 달에 맞춰서 filteredList 할당
         balance.text = Int(id.outLay - updateThisMonthTotalCost()).toDecimal() + " 원" // 남은 금액 = 목표 금액 - 이번 달 총 지출 비용
-        if Int(id.outLay - updateThisMonthTotalCost()) < 0 {
-            balanceCondition.text = "망했어요."
-        } else {
-            balanceCondition.text = "이만큼 더 쓸 수 있어요."
-        }
+        balanceCondition.text = "목표 금액 : \(id.outLay.toDecimal()) 원"
         
         // 콜렉션뷰 갱신, 위젯 갱신
         collectionView.reloadData()
@@ -268,11 +272,7 @@ class mainVC: UIViewController, sendFinData, FODelegate {
             finList.remove(at: finList.firstIndex(where: {$0 == removedStr})!)
             
             balance.text = Int(id.outLay - updateThisMonthTotalCost()).toDecimal() + " 원"
-            if Int(id.outLay - updateThisMonthTotalCost()) < 0 {
-                balanceCondition.text = "망했어요"
-            } else {
-                balanceCondition.text = "이만큼 더 쓸 수 있어요."
-            }
+            balanceCondition.text = "목표 금액 : \(id.outLay.toDecimal()) 원"
             towidget()
         }, completion: { [self] _ in collectionView.reloadData()})
     }
@@ -350,45 +350,6 @@ extension mainVC: UICollectionViewDelegate, UICollectionViewDataSource {
         
         return UICollectionReusableView()
     }
-    
-    
-//    func scrollViewDidScroll(_ scrollView: UIScrollView) {
-//        let y: CGFloat = scrollView.contentOffset.y
-//
-//                //변경될 최상단 뷰의 높이
-//                let ModifiedTopHeight: CGFloat = viewTopHeight.constant - y
-//
-//                // *** 변경될 높이가 최댓값을 초과함
-//                if(ModifiedTopHeight >= MaxTopHeight)
-//                {
-//                    //현재 최상단뷰의 높이를 최댓값(250)으로 설정
-//                    viewTopHeight.constant = MaxTopHeight
-//                    nickName.alpha = 1
-//                    balanceCondition.alpha = 1
-//                    balance.alpha = 1
-//                }// *** 변경될 높이가 최솟값 미만임
-//                else if(ModifiedTopHeight < MinTopHeight)
-//                {
-//                    //현재 최상단뷰의 높이를 최솟값(50+상태바높이)으로 설정
-//                    viewTopHeight.constant = MinTopHeight
-//                }// *** 변경될 높이가 최솟값(50+상태바높이)과 최댓값(250) 사이임
-//                else
-//                {
-//                    //현재 최상단 뷰 높이를 변경함
-//                    viewTopHeight.constant = ModifiedTopHeight
-//                    scrollView.contentOffset.y = 0
-//
-//                    // 알파값 변경
-//                    let alpha = { [self] in
-//                        return (ModifiedTopHeight - MinTopHeight) / MaxTopHeight
-//                    }
-//                    nickName.alpha = alpha()
-//                    balanceCondition.alpha = alpha()
-//                    balance.alpha = alpha()
-//                }
-//
-//    }
-    
 }
 
 // 컬렉션 뷰 크기, 위치

@@ -3,6 +3,9 @@ import UIKit
 protocol sendFinData {
     func sendFinanceSource(_ controller: addFinVC, _ originData: finData, _ revisedData: finData)
 }
+protocol sendRevenueFinData {
+    func sendRevenueData(_ controller: addFinVC, _ originData: finData, _ revisedData: finData)
+}
 
 class addFinVC: UIViewController, UITextFieldDelegate {
 
@@ -11,13 +14,17 @@ class addFinVC: UIViewController, UITextFieldDelegate {
     @IBOutlet weak var howTextField: UITextField!
     @IBOutlet weak var memoPaper: UIImageView!
     
-    var delegate: sendFinData! // 메인으로 보내는 대리자
+    var delegate: sendFinData! // 지출화면으로 보내는 대리자
+    var rDelegate: sendRevenueFinData! // 수입화면으로 보내는 대리자
+    
     var datepick = UIDatePicker() // 데이트 피커
     var when: Date! // 가계부 데이터에 넣을 시간(화면 표시와 달라서 따로 저장 후 추가나 변경 시에 사용)
     var outlay: Int! // 지출액
     var start: Date!
     var end: Date!
     let formatter = DateFormatter()
+    
+    var fromRevenue: Bool = false
     
     var originData: finData! // 수정할 때 잠시 담아두는 데이터
     
@@ -143,15 +150,28 @@ class addFinVC: UIViewController, UITextFieldDelegate {
             if let originData = originData {
                 // 데이터를 수정 안하고 붙인다면 그냥 뷰를 닫기
                 if originData != writenData {
-                    if let delegate = delegate {
-                        delegate.sendFinanceSource(self, originData, writenData)
+                    if fromRevenue == true {
+                        if let delegate = rDelegate {
+                            delegate.sendRevenueData(self, originData, writenData)
+                        }
+                    } else {
+                        if let delegate = delegate {
+                            delegate.sendFinanceSource(self, originData, writenData)
+                        }
                     }
+                    
                 } else {
                 }
             // 그냥 열었을 때
             } else {
-                if let delegate = delegate {
-                    delegate.sendFinanceSource(self, writenData, writenData)
+                if fromRevenue == true {
+                    if let delegate = rDelegate {
+                        delegate.sendRevenueData(self, writenData, writenData)
+                    }
+                } else {
+                    if let delegate = delegate {
+                        delegate.sendFinanceSource(self, writenData, writenData)
+                    }
                 }
             }
             dismiss(animated: true, completion: nil)
