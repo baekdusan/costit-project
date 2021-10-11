@@ -82,7 +82,7 @@ class revenueVC: UIViewController, sendRevenueFinData {
         filteredbyMonth(start, end)
         
         // 뷰 셋팅
-        nickName.text = "\(nickname) 님의 소득은"
+        nickName.text = "\(nickname) 님의 수입은"
         totalRevenue.text = totalMoney().toDecimal() + " 원"
     }
     
