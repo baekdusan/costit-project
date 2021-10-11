@@ -1,15 +1,20 @@
 import UIKit
 
+protocol shareRevenueFinList {
+    func sendRFinList(_ viewController: revenueVC, _ rFinList: [finData])
+}
+
 class revenueVC: UIViewController, sendRevenueFinData {
+    // 수입 데이터 추가 프로토콜
     func sendRevenueData(_ controller: addFinVC, _ originData: finData, _ revisedData: finData) {
         // 일반적인 추가
         if originData == revisedData {
-            revenueFinList.append(revisedData)
+            rfinList.append(revisedData)
         // 수정일 때 -> 원래 데이터 삭제 후, 새로운 데이터 추가
         } else {
             let removedData = originData
-            revenueFinList.remove(at: revenueFinList.firstIndex(where: {$0 == removedData})!)
-            revenueFinList.append(revisedData)
+            rfinList.remove(at: rfinList.firstIndex(where: {$0 == removedData})!)
+            rfinList.append(revisedData)
         }
         updateLayout()
     }
@@ -22,18 +27,20 @@ class revenueVC: UIViewController, sendRevenueFinData {
     @IBOutlet weak var dismissLayOut: UIButton! // to 지출 화면
     @IBOutlet weak var addBtnLayOut: UIButton! // 소득 추가 버튼
     
-    var revenueFinList: [finData] = [] {
+    var rfinList: [finData] = [] {
         didSet {
-            // 데이터 보내고
-            revenue.shared.rFinList = revenueFinList
-            // 바뀌면 저장
-            UserDefaults.standard.set(try? PropertyListEncoder().encode(revenueFinList), forKey:"finRlist")
+            if let delegate = rdelegate {
+                delegate.sendRFinList(self, rfinList)
+            }
         }
     }
+    var efinList: [finData] = []
     var filteredRList: [[finData]] = [] // 필터링된 소득 가계부 데이터
     var nickname : String = "User" // 닉네임 default 값은 User
     var start: Date!
     var end: Date!
+    var purpose: Int!
+    var rdelegate: shareRevenueFinList!
     
     override func prepare(for segue: UIStoryboardSegue, sender: Any?) {
         if segue.identifier == "addRevenueFinData" {
@@ -71,13 +78,6 @@ class revenueVC: UIViewController, sendRevenueFinData {
         dismissLayOut.btnLayout()
         addBtnLayOut.btnLayout()
         
-        // 소득 데이터는 따로 받아오기
-        if let fData = UserDefaults.standard.value(forKey:"finRlist") as? Data {
-            revenueFinList = try! PropertyListDecoder().decode([finData].self, from: fData)
-        }
-        
-        NotificationCenter.default.post(name: Notification.Name("RFinList"), object: ["revenue": revenueFinList])
-        
         // 지출 뷰에서 받아온 기간으로 가계부 데이터 필터링
         filteredbyMonth(start, end)
         
@@ -101,7 +101,7 @@ class revenueVC: UIViewController, sendRevenueFinData {
     // 콜렉션 뷰에 넣을 데이터대로 셋팅 (섹션, 로우 나누고 정렬)
     func filteredbyMonth(_ startDate: Date, _ endDate: Date) {
         
-        let filtered = revenueFinList.filter { $0.when >= startDate && $0.when <= endDate}
+        let filtered = rfinList.filter { $0.when >= startDate && $0.when <= endDate}
         var day: Set<String> = []
         
         for i in filtered {
@@ -136,6 +136,9 @@ class revenueVC: UIViewController, sendRevenueFinData {
         vc.modalPresentationStyle = .fullScreen
         vc.modalTransitionStyle = .crossDissolve
         vc.period = salaryDate(startDate: start, endDate: end)
+        vc.purpose = purpose
+        vc.efinList = efinList
+        vc.rfinList = rfinList
         present(vc, animated: true, completion: nil)
     }
     
@@ -148,7 +151,7 @@ class revenueVC: UIViewController, sendRevenueFinData {
             
             collectionView.deleteItems(at: [IndexPath.init(row: row, section: section)])
             let removedStr = filteredRList[section].remove(at: row)
-            revenueFinList.remove(at: revenueFinList.firstIndex(where: {$0 == removedStr})!)
+            rfinList.remove(at: rfinList.firstIndex(where: {$0 == removedStr})!)
             
             totalRevenue.text = totalMoney().toDecimal() + " 원"
         }, completion: { [self] _ in collectionView.reloadData()})

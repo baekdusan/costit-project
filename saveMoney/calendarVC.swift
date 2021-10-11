@@ -8,47 +8,17 @@ class calendarVC: UIViewController {
     @IBOutlet weak var pickDate: UILabel!
     @IBOutlet weak var todayTotalCost: UILabel!
     @IBOutlet weak var todayTotalRCost: UILabel!
+    @IBOutlet weak var calendarCorner: UIView!
     
-    var finList: [finData] = []
-    var finRList: [finData] = []
+    var efinList: [finData] = []
+    var rfinList: [finData] = []
     var filtered: [finData] = []
     let dateFormatter = DateFormatter()
     var period = salaryDate()
     var purpose : Int = 0
     
-    override func traitCollectionDidChange(_ previousTraitCollection: UITraitCollection?) {
-        tableView.layer.borderColor = UIColor.systemGray5.cgColor
-    }
-    
     override func viewDidLoad() {
         super.viewDidLoad()
-        
-        // 싱글톤으로 수입 내역 받기
-        if let rData = UserDefaults.standard.value(forKey:"rFinList") as? Data {
-            finRList = try! PropertyListDecoder().decode([finData].self, from: rData)
-        }
-        if let shared = revenue.shared.rFinList {
-            finRList = shared
-        }
-        UserDefaults.standard.set(try? PropertyListEncoder().encode(finRList), forKey:"rFinList")
-        
-        // 싱글톤으로 지출 내역 받기
-        if let eData = UserDefaults.standard.value(forKey:"eFinList") as? Data {
-            finList = try! PropertyListDecoder().decode([finData].self, from: eData)
-        }
-        if let shared = expense.shared.eFinList {
-            finList = shared
-        }
-        UserDefaults.standard.set(try? PropertyListEncoder().encode(finList), forKey:"eFinList")
-        
-        // 싱글톤으로 목표 금액 받기
-        if let pp = UserDefaults.standard.value(forKey: "purpose") as? Int {
-            purpose = pp
-        }
-        if let shared = expense.shared.purpose {
-            purpose = shared
-        }
-        UserDefaults.standard.setValue(purpose, forKey: "purpose")
         
         // 캘린더 디자인 셋팅
         calendarView.appearance.headerTitleFont = UIFont.systemFont(ofSize: 16, weight: .medium)
@@ -57,20 +27,20 @@ class calendarVC: UIViewController {
         calendarView.locale = Locale(identifier: "ko_KR")
         dateFormatter.dateFormat = "yyyy-MM-dd"
         calendarView.appearance.todayColor = UIColor.clear
-        calendarView.appearance.titleDefaultColor = UIColor(named: "customLabel")
-        calendarView.appearance.eventDefaultColor = #colorLiteral(red: 0.3518846035, green: 0.6747873425, blue: 0.622913003, alpha: 1)
-        calendarView.appearance.eventSelectionColor = #colorLiteral(red: 0.3518846035, green: 0.6747873425, blue: 0.622913003, alpha: 1)
         calendarView.appearance.subtitleTodayColor = .label
         calendarView.appearance.subtitleFont = UIFont.systemFont(ofSize: 10, weight: .bold)
-        selectDate(Date())
+        calendarCorner.layer.borderWidth = 1
+        calendarCorner.layer.cornerRadius = 24
+        calendarCorner.layer.maskedCorners = [.layerMaxXMinYCorner, .layerMinXMinYCorner]
+        calendarCorner.layer.borderColor = UIColor.systemGray5.cgColor
         
-        // 테이블 뷰 디자인 셋팅
-        tableView.layer.borderWidth = 0.5
-        tableView.layer.borderColor = UIColor.systemGray5.cgColor
+        selectDate(Date())
     }
     
     func filter(_ today: Date) {
-        filtered = (finList + finRList).filter { dateFormatter.string(from: $0.when) == dateFormatter.string(from: today)  }
+        let format = DateFormatter()
+        format.dateFormat = "yyyyMMdd"
+        filtered = (efinList + rfinList).filter { format.string(from: $0.when) == format.string(from: today) }
         filtered.sort(by: { $0.when > $1.when })
     }
     
@@ -82,9 +52,9 @@ class calendarVC: UIViewController {
             return [0, 0]
         } else {
             for i in filtered {
-                if finList.contains(i) {
+                if efinList.contains(i) {
                     etotal += i.how
-                } else if finRList.contains(i) {
+                } else if rfinList.contains(i) {
                     rtotal += i.how
                 }
             }
@@ -93,16 +63,14 @@ class calendarVC: UIViewController {
     }
     
     func selectDate(_ date: Date) {
-        pickDate.text = date.toString(false)
+        pickDate.text = date.onlydate()
         filter(date)
+        updateThisMonthTotalCost()[0] == 0 ? (todayTotalCost.alpha = 0) : (todayTotalCost.alpha = 0.72)
+        updateThisMonthTotalCost()[1] == 0 ? (todayTotalRCost.alpha = 0) : (todayTotalRCost.alpha = 0.72)
+        
         todayTotalCost.text = "- " + updateThisMonthTotalCost()[0].toDecimal() + " 원"
         todayTotalRCost.text = "+ " + updateThisMonthTotalCost()[1].toDecimal() + " 원"
         tableView.reloadData()
-    }
-    
-    override func viewWillAppear(_ animated: Bool) {
-        super .viewWillAppear(animated)
-        tableView.tableFooterView = UIView.init(frame: .zero)
     }
     
     @IBAction func dismiss(_ sender: Any) {
@@ -119,17 +87,50 @@ extension calendarVC: FSCalendarDelegate, FSCalendarDataSource, FSCalendarDelega
     }
     
     func calendar(_ calendar: FSCalendar, appearance: FSCalendarAppearance, eventDefaultColorsFor date: Date) -> [UIColor]? {
+        filter(date)
+        
+        let format = DateFormatter()
+        format.dateFormat = "yyyyMMdd"
+        var eDates: [String] = []
+        for i in efinList {
+            eDates.append(format.string(from: i.when))
+        }
+        var rDates: [String] = []
+        for i in rfinList {
+            rDates.append(format.string(from: i.when))
+        }
+        var eventNum: [Int] = [0, 0]
+        if rDates.contains(format.string(from: date)) {
+            eventNum[0] = 1
+        }
+        if eDates.contains(format.string(from: date)) {
+            eventNum[1] = 1
+        }
+        
+        switch eventNum {
+        case [1, 1]:
+            return [#colorLiteral(red: 0.1764705926, green: 0.4980392158, blue: 0.7568627596, alpha: 1), event(date)]
+        case [0, 1] :
+            return [event(date)]
+        case [1, 0]:
+            return [#colorLiteral(red: 0.1764705926, green: 0.4980392158, blue: 0.7568627596, alpha: 1)]
+        default:
+            return [event(date)]
+        }
+    }
+    
+    func event(_ date: Date) -> UIColor {
         if date.toFullString() >= period.startDate.toFullString() && date.toFullString() <= period.endDate.toFullString() {
-            filter(date)
+            
             if updateThisMonthTotalCost()[0] > percent(date)[1] {
-                return [#colorLiteral(red: 0.8259984851, green: 0, blue: 0, alpha:  1), #colorLiteral(red: 0.2392156869, green: 0.6745098233, blue: 0.9686274529, alpha: 1)]
+                return #colorLiteral(red: 0.8259984851, green: 0, blue: 0, alpha:  1)
             } else if updateThisMonthTotalCost()[0] > percent(date)[0] {
-                return [#colorLiteral(red: 0.9756903052, green: 0.4849535823, blue: 0.5627821684, alpha: 1), #colorLiteral(red: 0.2392156869, green: 0.6745098233, blue: 0.9686274529, alpha: 1)]
+                return #colorLiteral(red: 0.9756903052, green: 0.4849535823, blue: 0.5627821684, alpha: 1)
             } else {
-                return [#colorLiteral(red: 0.9300299287, green: 0.8275253177, blue: 0.8353049159, alpha: 1), #colorLiteral(red: 0.2392156869, green: 0.6745098233, blue: 0.9686274529, alpha: 1)]
+                return #colorLiteral(red: 0.9300299287, green: 0.8275253177, blue: 0.8353049159, alpha: 1)
             }
         } else {
-            return [#colorLiteral(red: 0.3333333433, green: 0.3333333433, blue: 0.3333333433, alpha: 1)]
+            return #colorLiteral(red: 0.2549019754, green: 0.2745098174, blue: 0.3019607961, alpha: 1)
         }
     }
     
@@ -138,34 +139,35 @@ extension calendarVC: FSCalendarDelegate, FSCalendarDataSource, FSCalendarDelega
         let standard = Int(Double(purpose) / Double(Date().endOfMonth.onlydate())!)
         return [Int(Double(standard)), Int(Double(standard) * 1.5)]
     }
+    
     func calendar(_ calendar: FSCalendar, numberOfEventsFor date: Date) -> Int {
         let format = DateFormatter()
         format.dateFormat = "yyyyMMdd"
-        
         var eDates: [String] = []
-        for i in finList {
+        for i in efinList {
             eDates.append(format.string(from: i.when))
         }
         var rDates: [String] = []
-        for i in finRList {
+        for i in rfinList {
             rDates.append(format.string(from: i.when))
         }
-        
-        if eDates.contains(format.string(from: date)) && rDates.contains(format.string(from: date)) {
-            return 2
-        } else if eDates.contains(format.string(from: date)) || rDates.contains(format.string(from: date)) {
-            return 1
-        } else {
-            return 0
+        var eventNum: Int = 0
+        if eDates.contains(format.string(from: date)) {
+            eventNum += 1
         }
+        if rDates.contains(format.string(from: date)) {
+            eventNum += 1
+        }
+        return eventNum
     }
     
     func calendar(_ calendar: FSCalendar, titleFor date: Date) -> String? {
+        
         switch date.toFullString() {
         case period.startDate.toFullString():
-            return "\(date.onlydate().toInt())일"
+            return "시작"
         case period.endDate.toFullString():
-            return "\(date.onlydate().toInt())일"
+            return "끝"
         case Date().toFullString():
             return "오늘"
         default:
@@ -173,35 +175,40 @@ extension calendarVC: FSCalendarDelegate, FSCalendarDataSource, FSCalendarDelega
         }
     }
     
-    
     func calendar(_ calendar: FSCalendar, appearance: FSCalendarAppearance, eventSelectionColorsFor date: Date) -> [UIColor]? {
-        if date.toFullString() >= period.startDate.toFullString() && date.toFullString() <= period.endDate.toFullString() {
-            filter(date)
-            if updateThisMonthTotalCost()[0] > percent(date)[1] {
-                return [#colorLiteral(red: 0.8259984851, green: 0, blue: 0, alpha:  1), #colorLiteral(red: 0.2392156869, green: 0.6745098233, blue: 0.9686274529, alpha: 1)]
-            } else if updateThisMonthTotalCost()[0] > percent(date)[0] {
-                return [#colorLiteral(red: 0.9756903052, green: 0.4849535823, blue: 0.5627821684, alpha: 1), #colorLiteral(red: 0.2392156869, green: 0.6745098233, blue: 0.9686274529, alpha: 1)]
-            } else {
-                return [#colorLiteral(red: 0.9300299287, green: 0.8275253177, blue: 0.8353049159, alpha: 1), #colorLiteral(red: 0.2392156869, green: 0.6745098233, blue: 0.9686274529, alpha: 1)]
-            }
-        } else {
-            return [#colorLiteral(red: 0.3333333433, green: 0.3333333433, blue: 0.3333333433, alpha: 1)]
+        filter(date)
+        
+        let format = DateFormatter()
+        format.dateFormat = "yyyyMMdd"
+        var eDates: [String] = []
+        for i in efinList {
+            eDates.append(format.string(from: i.when))
+        }
+        var rDates: [String] = []
+        for i in rfinList {
+            rDates.append(format.string(from: i.when))
+        }
+        var eventNum: [Int] = [0, 0]
+        if rDates.contains(format.string(from: date)) {
+            eventNum[0] = 1
+        }
+        if eDates.contains(format.string(from: date)) {
+            eventNum[1] = 1
+        }
+        
+        switch eventNum {
+        case [1, 1]:
+            return [#colorLiteral(red: 0.1764705926, green: 0.4980392158, blue: 0.7568627596, alpha: 1), event(date)]
+        case [0, 1] :
+            return [event(date)]
+        case [1, 0]:
+            return [#colorLiteral(red: 0.1764705926, green: 0.4980392158, blue: 0.7568627596, alpha: 1)]
+        default:
+            return [event(date)]
         }
     }
     
-    func calendar(_ calendar: FSCalendar, appearance: FSCalendarAppearance, borderDefaultColorFor date: Date) -> UIColor? {
-        
-        switch date.toFullString() {
-        case period.startDate.toFullString():
-            return UIColor(named: "toolbar")
-        case period.endDate.toFullString():
-            return UIColor(named: "toolbar")
-        case Date().toFullString():
-            return UIColor(named: "toolbar")
-        default:
-            return nil
-        }
-    }
+  
 }
 
 extension calendarVC: UITableViewDelegate, UITableViewDataSource {
@@ -210,16 +217,17 @@ extension calendarVC: UITableViewDelegate, UITableViewDataSource {
     }
     
     func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
+        
         guard let cell = tableView.dequeueReusableCell(withIdentifier: "daily", for: indexPath) as? dailyOutLay else {
             return UITableViewCell()
         }
         
-        cell.setList(indexPath.row, filtered, finRList)
+        cell.setList(indexPath.row, filtered, rfinList)
         return cell
     }
     
     func tableView(_ tableView: UITableView, heightForRowAt indexPath: IndexPath) -> CGFloat {
-        return 72
+        return 60
     }
 }
 

@@ -39,7 +39,7 @@ class firstOpenVC: UIViewController, UIPickerViewDelegate, UIPickerViewDataSourc
         super.viewDidLoad()
         
         self.navigationController?.navigationBar.topItem?.title = ""
-        self.navigationController?.navigationBar.tintColor = UIColor(named: "customLabel")
+        self.navigationController?.navigationBar.tintColor = UIColor(named: "HeaderColor")
         
         datepick.delegate = self
         datepick.dataSource = self

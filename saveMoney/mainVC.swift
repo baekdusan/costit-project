@@ -1,7 +1,7 @@
 import UIKit
 import WidgetKit
 
-class mainVC: UIViewController, sendFinData, FODelegate {
+class mainVC: UIViewController, sendFinData, shareRevenueFinList, FODelegate {
     
     // 앱 첫 오픈시에 데이터 입력을 넘겨받는 프로토콜
     func initialData(_ controller: firstOpenVC, _ nickName: String, _ pm: Int, _ salary: String) {
@@ -9,20 +9,16 @@ class mainVC: UIViewController, sendFinData, FODelegate {
         // 첫 실행 저장
         isFirstOpen = true
         UserDefaults.standard.setValue(isFirstOpen, forKey: "firstOpen")
-        
         // 프로필 셋팅
         id = profile(nickName: nickName, outLay: pm, period: salary)
         
         // 레이아웃
-        
         // 1. 닉네임
         self.nickName.text = "\(id.nickName) 님의 잔액은"
-        
         // 2. 기준일
         salaryData.startDate = setSalaryDate(salary).startDate
         salaryData.endDate = setSalaryDate(salary).endDate
         navigationItem.title = salaryData.startDate.toString(false) + " - " + salaryData.endDate.toString(false)
-        
         // 3. 남은 금액 및 상태
         updateLayout()
     }
@@ -32,16 +28,19 @@ class mainVC: UIViewController, sendFinData, FODelegate {
         
         // 일반적인 추가
         if originData == revisedData {
-            finList.append(revisedData)
-        
+            efinList.append(revisedData)
         // 수정일 때 -> 원래 데이터 삭제 후, 새로운 데이터 추가
         } else {
             let removedData = originData
-            finList.remove(at: finList.firstIndex(where: {$0 == removedData})!)
-            finList.append(revisedData)
+            efinList.remove(at: efinList.firstIndex(where: {$0 == removedData})!)
+            efinList.append(revisedData)
         }
-        
         updateLayout()
+    }
+    
+    // 수입 가계부에서 받는 프로토콜
+    func sendRFinList(_ viewController: revenueVC, _ rFinList: [finData]) {
+        rfinList = rFinList
     }
     
     @IBOutlet weak var nickName: UILabel! // 닉네임 라벨
@@ -52,14 +51,19 @@ class mainVC: UIViewController, sendFinData, FODelegate {
     @IBOutlet weak var addFinBorder: UIButton!
     @IBOutlet weak var fixedOutLay: UIButton! // 고정 지출
     
-    // 전체 가계부
-    var finList: [finData] = [finData(when: Date(), towhat: "코스트잇 다운로드 🥳", how: 500)] {
+    // 지출 가계부
+    var efinList: [finData] = [finData(when: Date(), towhat: "코스트잇 다운로드 🥳", how: 500)] {
         didSet {
-            // 데이터 보내고
-            expense.shared.eFinList = finList
             // 가계부 데이터 변경시마다 저장 및 상태 변경
-            UserDefaults.standard.set(try? PropertyListEncoder().encode(finList), forKey:"finlist")
+            UserDefaults.standard.set(try? PropertyListEncoder().encode(efinList), forKey:"finlist")
             balanceCondition.text = "목표 금액 : \(id.outLay.toDecimal()) 원"
+        }
+    }
+    // 수입 가계부
+    var rfinList: [finData] = [] {
+        didSet {
+            // 가계부 데이터 변경시마다 저장 및 상태 변경
+            UserDefaults.standard.set(try? PropertyListEncoder().encode(rfinList), forKey:"rfinList")
         }
     }
     var salaryData = salaryDate() {
@@ -71,16 +75,11 @@ class mainVC: UIViewController, sendFinData, FODelegate {
     var id = profile() {
         // 프로필 담기
         didSet {
-            expense.shared.purpose = id.outLay
             UserDefaults.standard.set(try? PropertyListEncoder().encode(id), forKey: "profile")
         }
     }
     var isFirstOpen: Bool! // 앱 첫실행 감지
     var filteredList: [[finData]] = [] // 필터링된 가계부 데이터
-    
-    // 스크롤 효과 최대, 최소 높이 (보류)
-    var MaxTopHeight: CGFloat!
-    var MinTopHeight: CGFloat!
     
     // segue시 데이터 전달
     override func prepare(for segue: UIStoryboardSegue, sender: Any?) {
@@ -90,9 +89,19 @@ class mainVC: UIViewController, sendFinData, FODelegate {
             vc.start = salaryData.startDate
             vc.end = salaryData.endDate
             vc.delegate = self
+        } else if segue.identifier == "toRevenueVC" {
+            let vc = segue.destination as! revenueVC
+            vc.rdelegate = self
+            vc.nickname = id.nickName
+            vc.rfinList = rfinList
+            vc.efinList = efinList
+            vc.purpose = id.outLay
+            vc.start = salaryData.startDate
+            vc.end = salaryData.endDate
         } else if segue.identifier == "calendar" {
             let vc = segue.destination as! calendarVC
-            vc.finList = finList
+            vc.efinList = efinList
+            vc.rfinList = rfinList
             vc.purpose = id.outLay
             vc.period = salaryData
         } else if segue.identifier == "firstOpen" {
@@ -108,21 +117,24 @@ class mainVC: UIViewController, sendFinData, FODelegate {
     override func viewDidLoad() {
         super.viewDidLoad()
 
+        self.modalPresentationStyle = .overFullScreen
         
         // 가계부 작성 버튼 곡률, 그림자 layout
         fixedOutLay.btnLayout()
         addFinBorder.btnLayout()
         
-        // 가계부 정보 받아오기
+        // 지출 가계부 정보 받아오기
         if let fData = UserDefaults.standard.value(forKey:"finlist") as? Data {
-            finList = try! PropertyListDecoder().decode([finData].self, from: fData)
+            efinList = try! PropertyListDecoder().decode([finData].self, from: fData)
         }
-        
+        // 수입 가계부 정보 받아오기
+        if let rfData = UserDefaults.standard.value(forKey: "rfinList") as? Data {
+            rfinList = try! PropertyListDecoder().decode([finData].self, from: rfData)
+        }
         // 프로필 데이터 받아오기
         if let pData = UserDefaults.standard.value(forKey: "profile") as? Data {
             id = try! PropertyListDecoder().decode(profile.self, from: pData)
         }
-        
         // 급여 날짜 받아오기
         if let sData = UserDefaults.standard.value(forKey: "salarydata") as? Data {
             salaryData = try! PropertyListDecoder().decode(salaryDate.self, from: sData)
@@ -173,15 +185,6 @@ class mainVC: UIViewController, sendFinData, FODelegate {
     }
     
     @IBAction func toRevenueVC(_ sender: UIButton) {
-        
-        guard let vc = storyboard?.instantiateViewController(withIdentifier: "revenueVC") as? revenueVC else { return }
-        
-        vc.modalPresentationStyle = .fullScreen
-        vc.modalTransitionStyle = .crossDissolve
-        vc.nickname = id.nickName
-        vc.start = salaryData.startDate
-        vc.end = salaryData.endDate
-        present(vc, animated: true, completion: nil)
     }
     
     
@@ -242,7 +245,7 @@ class mainVC: UIViewController, sendFinData, FODelegate {
     // 현재 급여기간에 담아서 filteredList에 담는 메서드
     func filteredbyMonth(_ startDate: Date, _ endDate: Date) {
         
-        let filtered = finList.filter { $0.when >= startDate && $0.when <= endDate}
+        let filtered = efinList.filter { $0.when >= startDate && $0.when <= endDate}
         var day: Set<String> = []
         
         for i in filtered {
@@ -269,7 +272,7 @@ class mainVC: UIViewController, sendFinData, FODelegate {
             
             collectionView.deleteItems(at: [IndexPath.init(row: row, section: section)])
             let removedStr = filteredList[section].remove(at: row)
-            finList.remove(at: finList.firstIndex(where: {$0 == removedStr})!)
+            efinList.remove(at: efinList.firstIndex(where: {$0 == removedStr})!)
             
             balance.text = Int(id.outLay - updateThisMonthTotalCost()).toDecimal() + " 원"
             balanceCondition.text = "목표 금액 : \(id.outLay.toDecimal()) 원"

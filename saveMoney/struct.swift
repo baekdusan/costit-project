@@ -107,8 +107,11 @@ extension Date {
     func onlydate() -> String {
         let dateFormatter = DateFormatter()
         dateFormatter.dateFormat = "dd"
-        
-        return dateFormatter.string(from: self)
+        let text = dateFormatter.string(from: self).map { String($0) }
+        if text[0] == "0" {
+            return text[1]
+        }
+        return text[0] + text[1]
     }
 }
 
@@ -153,24 +156,6 @@ extension Int {
 extension UIButton {
     func btnLayout() {
         self.layer.cornerRadius = 32
-//        btn.layer.shadowColor = UIColor.black.cgColor
-//        btn.layer.shadowOffset = CGSize(width: 0, height: 4)
-//        btn.layer.shadowRadius = 5
-//        btn.layer.shadowOpacity = 0.2
-//        btn.layer.masksToBounds = false
         self.alpha = 0.78
     }
-}
-
-class revenue {
-    static let shared = revenue()
-    var rFinList: [finData]!
-    private init() { }
-}
-
-class expense {
-    static let shared = expense()
-    var eFinList: [finData]!
-    var purpose: Int!
-    private init() { }
 }
