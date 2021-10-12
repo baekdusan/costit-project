@@ -17,23 +17,32 @@ class calendarVC: UIViewController {
     var period = salaryDate()
     var purpose : Int = 0
     
+    // 다크 라이트 전환시 적용
+    override func traitCollectionDidChange(_ previousTraitCollection: UITraitCollection?) {
+        super.traitCollectionDidChange(previousTraitCollection)
+        calendarView.appearance.selectionColor = UIColor(named: "toolbar")
+        calendarCorner.layer.borderColor = UIColor.systemGray5.cgColor
+    }
+    
     override func viewDidLoad() {
         super.viewDidLoad()
         
-        // 캘린더 디자인 셋팅
-        calendarView.appearance.headerTitleFont = UIFont.systemFont(ofSize: 16, weight: .medium)
-        calendarView.appearance.titleFont = UIFont.systemFont(ofSize: 14, weight: .semibold)
-        calendarView.appearance.weekdayFont = UIFont.systemFont(ofSize: 18, weight: .semibold)
-        calendarView.locale = Locale(identifier: "ko_KR")
         dateFormatter.dateFormat = "yyyy-MM-dd"
-        calendarView.appearance.todayColor = UIColor.clear
-        calendarView.appearance.subtitleTodayColor = .label
-        calendarView.appearance.subtitleFont = UIFont.systemFont(ofSize: 10, weight: .bold)
+        
+        // 캘린더 디자인 셋팅
+        calendarView.locale = Locale(identifier: "ko_KR")
+        
+        calendarView.appearance.headerDateFormat = "yyyy년 MM월"
+        calendarView.appearance.headerTitleFont = UIFont.systemFont(ofSize: 16, weight: .medium)
+        calendarView.appearance.weekdayFont = UIFont.systemFont(ofSize: 18, weight: .semibold)
+        calendarView.appearance.titleFont = UIFont.systemFont(ofSize: 14, weight: .semibold)
+        
         calendarCorner.layer.borderWidth = 1
         calendarCorner.layer.cornerRadius = 24
         calendarCorner.layer.maskedCorners = [.layerMaxXMinYCorner, .layerMinXMinYCorner]
         calendarCorner.layer.borderColor = UIColor.systemGray5.cgColor
         
+        // 오픈시 오늘 날짜로 뷰 셋팅
         selectDate(Date())
     }
     

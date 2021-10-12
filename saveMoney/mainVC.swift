@@ -52,7 +52,7 @@ class mainVC: UIViewController, sendFinData, shareRevenueFinList, FODelegate {
     @IBOutlet weak var fixedOutLay: UIButton! // 고정 지출
     
     // 지출 가계부
-    var efinList: [finData] = [finData(when: Date(), towhat: "코스트잇 다운로드 🥳", how: 500)] {
+    var efinList: [finData] = [finData(when: Date(), towhat: "코스트잇 다운로드😎", how: 1200)] {
         didSet {
             // 가계부 데이터 변경시마다 저장 및 상태 변경
             UserDefaults.standard.set(try? PropertyListEncoder().encode(efinList), forKey:"finlist")

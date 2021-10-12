@@ -45,6 +45,12 @@
                                     <userDefinedRuntimeAttribute type="color" keyPath="weekdayTextColor">
                                         <color key="value" name="customLabel"/>
                                     </userDefinedRuntimeAttribute>
+                                    <userDefinedRuntimeAttribute type="color" keyPath="todayColor">
+                                        <color key="value" white="0.0" alpha="0.0" colorSpace="custom" customColorSpace="genericGamma22GrayColorSpace"/>
+                                    </userDefinedRuntimeAttribute>
+                                    <userDefinedRuntimeAttribute type="color" keyPath="subtitleTodayColor">
+                                        <color key="value" systemColor="labelColor"/>
+                                    </userDefinedRuntimeAttribute>
                                 </userDefinedRuntimeAttributes>
                                 <connections>
                                     <outlet property="dataSource" destination="gQO-nb-ve8" id="gTm-i1-xxW"/>
@@ -64,28 +70,28 @@
                                 </connections>
                             </button>
                             <view contentMode="scaleToFill" translatesAutoresizingMaskIntoConstraints="NO" id="dIk-b4-jkf">
-                                <rect key="frame" x="0.0" y="411.5" width="414" height="450.5"/>
+                                <rect key="frame" x="-1" y="411.5" width="416" height="450.5"/>
                                 <subviews>
                                     <tableView clipsSubviews="YES" contentMode="scaleToFill" showsHorizontalScrollIndicator="NO" showsVerticalScrollIndicator="NO" dataMode="prototypes" style="plain" separatorStyle="none" rowHeight="-1" estimatedRowHeight="-1" sectionHeaderHeight="28" sectionFooterHeight="28" translatesAutoresizingMaskIntoConstraints="NO" id="gLX-Vz-Wf5">
-                                        <rect key="frame" x="20" y="64" width="374" height="320"/>
+                                        <rect key="frame" x="20" y="64" width="376" height="320"/>
                                         <color key="backgroundColor" white="0.0" alpha="0.0" colorSpace="custom" customColorSpace="genericGamma22GrayColorSpace"/>
                                         <inset key="separatorInset" minX="0.0" minY="0.0" maxX="0.0" maxY="0.0"/>
                                         <prototypes>
                                             <tableViewCell userInteractionEnabled="NO" contentMode="scaleToFill" preservesSuperviewLayoutMargins="YES" selectionStyle="default" indentationWidth="0.0" reuseIdentifier="daily" rowHeight="80" id="3Ek-pL-9ig" customClass="dailyOutLay" customModule="saveMoney" customModuleProvider="target">
-                                                <rect key="frame" x="0.0" y="44.5" width="374" height="80"/>
+                                                <rect key="frame" x="0.0" y="44.5" width="376" height="80"/>
                                                 <autoresizingMask key="autoresizingMask"/>
                                                 <tableViewCellContentView key="contentView" opaque="NO" clipsSubviews="YES" multipleTouchEnabled="YES" contentMode="center" preservesSuperviewLayoutMargins="YES" insetsLayoutMarginsFromSafeArea="NO" tableViewCell="3Ek-pL-9ig" id="ZSS-y6-UaC">
-                                                    <rect key="frame" x="0.0" y="0.0" width="374" height="80"/>
+                                                    <rect key="frame" x="0.0" y="0.0" width="376" height="80"/>
                                                     <autoresizingMask key="autoresizingMask"/>
                                                     <subviews>
                                                         <label opaque="NO" userInteractionEnabled="NO" contentMode="left" horizontalHuggingPriority="251" verticalHuggingPriority="251" text="넷플릭스" lineBreakMode="middleTruncation" numberOfLines="0" baselineAdjustment="alignBaselines" minimumFontSize="12" translatesAutoresizingMaskIntoConstraints="NO" id="ncz-FQ-L5V" userLabel="what">
-                                                            <rect key="frame" x="0.0" y="30.5" width="168.5" height="19.5"/>
+                                                            <rect key="frame" x="0.0" y="30.5" width="169" height="19.5"/>
                                                             <fontDescription key="fontDescription" type="system" weight="medium" pointSize="16"/>
                                                             <color key="textColor" name="customLabel"/>
                                                             <nil key="highlightedColor"/>
                                                         </label>
                                                         <label opaque="NO" userInteractionEnabled="NO" contentMode="left" horizontalHuggingPriority="251" verticalHuggingPriority="251" text="14,500 원" textAlignment="right" lineBreakMode="tailTruncation" baselineAdjustment="alignBaselines" minimumFontSize="12" translatesAutoresizingMaskIntoConstraints="NO" id="1Dk-JZ-KDs" userLabel="how">
-                                                            <rect key="frame" x="205.5" y="29.5" width="168.5" height="21.5"/>
+                                                            <rect key="frame" x="207" y="29.5" width="169" height="21.5"/>
                                                             <fontDescription key="fontDescription" type="system" weight="medium" pointSize="18"/>
                                                             <color key="textColor" name="customLabel"/>
                                                             <nil key="highlightedColor"/>
@@ -119,13 +125,13 @@
                                         <nil key="highlightedColor"/>
                                     </label>
                                     <label opaque="NO" userInteractionEnabled="NO" alpha="0.71999999999999997" contentMode="left" horizontalHuggingPriority="251" verticalHuggingPriority="251" text=" " textAlignment="right" lineBreakMode="tailTruncation" baselineAdjustment="alignBaselines" adjustsFontSizeToFit="NO" translatesAutoresizingMaskIntoConstraints="NO" id="Ga1-5h-098">
-                                        <rect key="frame" x="388" y="404" width="6" height="26.5"/>
+                                        <rect key="frame" x="390" y="404" width="6" height="26.5"/>
                                         <fontDescription key="fontDescription" name="AppleSDGothicNeo-Bold" family="Apple SD Gothic Neo" pointSize="22"/>
                                         <nil key="textColor"/>
                                         <nil key="highlightedColor"/>
                                     </label>
                                     <label opaque="NO" userInteractionEnabled="NO" contentMode="left" horizontalHuggingPriority="251" verticalHuggingPriority="251" text=" " textAlignment="right" lineBreakMode="tailTruncation" baselineAdjustment="alignBaselines" adjustsFontSizeToFit="NO" translatesAutoresizingMaskIntoConstraints="NO" id="aH0-fX-5FG">
-                                        <rect key="frame" x="388.5" y="26" width="5.5" height="24"/>
+                                        <rect key="frame" x="390.5" y="26" width="5.5" height="24"/>
                                         <fontDescription key="fontDescription" name="AppleSDGothicNeo-SemiBold" family="Apple SD Gothic Neo" pointSize="20"/>
                                         <color key="textColor" systemColor="systemBlueColor"/>
                                         <nil key="highlightedColor"/>
@@ -157,7 +163,7 @@
                             <constraint firstItem="D31-Op-W8B" firstAttribute="trailing" secondItem="HRL-LR-qje" secondAttribute="trailing" constant="20" id="XM6-Rk-gaf"/>
                             <constraint firstItem="HRL-LR-qje" firstAttribute="top" secondItem="D31-Op-W8B" secondAttribute="top" constant="20" id="fUI-S1-ifC"/>
                             <constraint firstItem="D31-Op-W8B" firstAttribute="trailing" secondItem="tS7-xd-kNm" secondAttribute="trailing" constant="10" id="wNZ-ff-0Gh"/>
-                            <constraint firstItem="dIk-b4-jkf" firstAttribute="width" secondItem="TYR-z9-Dem" secondAttribute="width" id="xwC-fg-E46"/>
+                            <constraint firstItem="dIk-b4-jkf" firstAttribute="width" secondItem="TYR-z9-Dem" secondAttribute="width" constant="2" id="xwC-fg-E46"/>
                         </constraints>
                     </view>
                     <navigationItem key="navigationItem" id="bat-c4-OfP"/>
@@ -793,7 +799,7 @@
         </scene>
     </scenes>
     <inferredMetricsTieBreakers>
-        <segue reference="gDD-gx-IZf"/>
+        <segue reference="gmf-He-0fF"/>
         <segue reference="mfo-1T-RCj"/>
     </inferredMetricsTieBreakers>
     <resources>
@@ -819,11 +825,14 @@
             <color red="0.97299998998641968" green="0.97299998998641968" blue="0.97299998998641968" alpha="1" colorSpace="custom" customColorSpace="sRGB"/>
         </namedColor>
         <namedColor name="pinColor">
-            <color red="0.80199998617172241" green="0.78200000524520874" blue="1" alpha="1" colorSpace="custom" customColorSpace="displayP3"/>
+            <color red="0.75400000810623169" green="0.80699998140335083" blue="0.88999998569488525" alpha="1" colorSpace="custom" customColorSpace="displayP3"/>
         </namedColor>
         <namedColor name="toolbar">
             <color red="0.82200002670288086" green="0.86599999666213989" blue="0.85900002717971802" alpha="1" colorSpace="custom" customColorSpace="sRGB"/>
         </namedColor>
+        <systemColor name="labelColor">
+            <color white="0.0" alpha="1" colorSpace="custom" customColorSpace="genericGamma22GrayColorSpace"/>
+        </systemColor>
         <systemColor name="systemBlueColor">
             <color red="0.0" green="0.47843137254901963" blue="1" alpha="1" colorSpace="custom" customColorSpace="sRGB"/>
         </systemColor>
