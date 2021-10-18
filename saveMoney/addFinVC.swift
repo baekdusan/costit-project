@@ -101,18 +101,20 @@ class addFinVC: UIViewController, UITextFieldDelegate {
         
         //버튼 만들기
         let leftSpace = UIBarButtonItem(barButtonSystemItem: .flexibleSpace, target: nil, action: nil)
-        let nextButton = UIBarButtonItem(title: "다음", style: .plain, target: nil, action: #selector(nextPressed))
+        let nextButton = UIBarButtonItem(title: "다음", style: .done, target: nil, action: #selector(nextPressed))
         nextButton.tintColor = UIColor(named: "customLabel")
         let nextButton2 = UIBarButtonItem(title: "다음", style: .done, target: nil, action: #selector(nextPressed2))
         nextButton2.tintColor = UIColor(named: "customLabel")
         let doneButton = UIBarButtonItem(title: "붙이기", style: .done, target: nil, action: #selector(donePressed))
         doneButton.tintColor = UIColor(named: "customLabel")
+        let cancelButton = UIBarButtonItem(title: "취소", style: .plain, target: nil, action: #selector(cancel))
+        cancelButton.tintColor = UIColor(named: "customLabel")
         //action 자리에는 이후에 실행될 함수가 들어간다?
         
         //버튼 툴바에 할당
         timeToolbar.setItems([leftSpace, nextButton], animated: true)
         towhatToolbar.setItems([leftSpace, nextButton2], animated: true)
-        finishToolbar.setItems([leftSpace, doneButton], animated: true)
+        finishToolbar.setItems([cancelButton, leftSpace, doneButton], animated: true)
         
         //toolbar를 키보드 대신 할당?
         whenTextField.inputAccessoryView = timeToolbar
@@ -128,7 +130,10 @@ class addFinVC: UIViewController, UITextFieldDelegate {
         datepick.maximumDate = end
         datepick.locale = Locale(identifier: "ko-KR")
         datepick.preferredDatePickerStyle = .wheels
-        
+    }
+    
+    @objc func cancel() {
+        dismiss(animated: true, completion: nil)
     }
     
     // 날짜 키보드에서 다음을 눌렀을 때

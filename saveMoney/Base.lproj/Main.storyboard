@@ -430,7 +430,7 @@
                                     <imageReference key="image" image="highlighter" catalog="system" symbolScale="large" renderingMode="template"/>
                                 </state>
                                 <connections>
-                                    <segue destination="swU-1T-EKX" kind="presentation" identifier="addRevenueFinData" id="gDD-gx-IZf"/>
+                                    <segue destination="swU-1T-EKX" kind="presentation" identifier="addRevenueFinData" modalPresentationStyle="overFullScreen" id="gDD-gx-IZf"/>
                                 </connections>
                             </button>
                             <navigationBar contentMode="scaleToFill" translatesAutoresizingMaskIntoConstraints="NO" id="NPH-FY-oML">
@@ -624,7 +624,7 @@
                                 </state>
                                 <connections>
                                     <action selector="addFinbtn:" destination="BYZ-38-t0r" eventType="touchUpInside" id="SWz-TI-cYK"/>
-                                    <segue destination="swU-1T-EKX" kind="presentation" identifier="addFinData" id="gmf-He-0fF"/>
+                                    <segue destination="swU-1T-EKX" kind="presentation" identifier="addFinData" modalPresentationStyle="overFullScreen" id="gmf-He-0fF"/>
                                 </connections>
                             </button>
                             <button opaque="NO" contentMode="scaleToFill" contentHorizontalAlignment="center" contentVerticalAlignment="center" lineBreakMode="middleTruncation" translatesAutoresizingMaskIntoConstraints="NO" id="rxj-ow-zlY" userLabel="fixedOutLay">
@@ -705,24 +705,24 @@
             <objects>
                 <viewController storyboardIdentifier="addFinData" useStoryboardIdentifierAsRestorationIdentifier="YES" id="swU-1T-EKX" customClass="addFinVC" customModule="saveMoney" customModuleProvider="target" sceneMemberID="viewController">
                     <view key="view" contentMode="scaleToFill" id="KMx-Ff-zsZ">
-                        <rect key="frame" x="0.0" y="0.0" width="414" height="842"/>
+                        <rect key="frame" x="0.0" y="0.0" width="414" height="896"/>
                         <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
                         <subviews>
                             <imageView clipsSubviews="YES" userInteractionEnabled="NO" contentMode="scaleAspectFit" horizontalHuggingPriority="251" verticalHuggingPriority="251" translatesAutoresizingMaskIntoConstraints="NO" id="jHy-HD-Fyj">
-                                <rect key="frame" x="103.5" y="166" width="207" height="207"/>
-                                <color key="backgroundColor" systemColor="systemGray6Color"/>
+                                <rect key="frame" x="103.5" y="198.5" width="207" height="207"/>
+                                <color key="backgroundColor" name="memoPaperColor"/>
                                 <constraints>
                                     <constraint firstAttribute="width" secondItem="jHy-HD-Fyj" secondAttribute="height" multiplier="1:1" id="REK-dH-npM"/>
                                 </constraints>
                             </imageView>
                             <textField opaque="NO" contentMode="scaleToFill" contentHorizontalAlignment="left" contentVerticalAlignment="center" placeholder="언제?" minimumFontSize="17" translatesAutoresizingMaskIntoConstraints="NO" id="Jko-ni-RMV">
-                                <rect key="frame" x="114" y="184.5" width="149" height="18.5"/>
+                                <rect key="frame" x="114" y="217" width="149" height="18.5"/>
                                 <color key="tintColor" white="0.0" alpha="0.0" colorSpace="custom" customColorSpace="genericGamma22GrayColorSpace"/>
                                 <fontDescription key="fontDescription" type="system" weight="medium" pointSize="14"/>
                                 <textInputTraits key="textInputTraits"/>
                             </textField>
                             <textField opaque="NO" contentMode="scaleToFill" contentHorizontalAlignment="left" contentVerticalAlignment="center" placeholder="어디서?" minimumFontSize="17" translatesAutoresizingMaskIntoConstraints="NO" id="VFf-C3-1oS">
-                                <rect key="frame" x="114" y="218" width="186" height="25.5"/>
+                                <rect key="frame" x="114" y="250.5" width="186" height="25.5"/>
                                 <color key="tintColor" name="AccentColor"/>
                                 <fontDescription key="fontDescription" type="system" weight="medium" pointSize="20"/>
                                 <textInputTraits key="textInputTraits" returnKeyType="next"/>
@@ -731,7 +731,7 @@
                                 </connections>
                             </textField>
                             <textField opaque="NO" contentMode="scaleToFill" contentHorizontalAlignment="left" contentVerticalAlignment="center" placeholder="얼마?" textAlignment="right" minimumFontSize="17" translatesAutoresizingMaskIntoConstraints="NO" id="zdA-oh-xyy">
-                                <rect key="frame" x="114" y="322.5" width="186" height="25.5"/>
+                                <rect key="frame" x="114" y="355" width="186" height="25.5"/>
                                 <color key="tintColor" name="AccentColor"/>
                                 <fontDescription key="fontDescription" type="system" weight="semibold" pointSize="20"/>
                                 <textInputTraits key="textInputTraits" keyboardType="numberPad"/>
@@ -740,7 +740,7 @@
                                 </connections>
                             </textField>
                             <button opaque="NO" contentMode="scaleToFill" contentHorizontalAlignment="center" contentVerticalAlignment="center" lineBreakMode="middleTruncation" translatesAutoresizingMaskIntoConstraints="NO" id="5dk-F3-GBY">
-                                <rect key="frame" x="277.5" y="181" width="18" height="22"/>
+                                <rect key="frame" x="277.5" y="213.5" width="18" height="22"/>
                                 <color key="tintColor" white="0.33333333333333331" alpha="1" colorSpace="custom" customColorSpace="genericGamma22GrayColorSpace"/>
                                 <state key="normal" image="xmark" catalog="system"/>
                                 <connections>
@@ -841,9 +841,6 @@
         </systemColor>
         <systemColor name="systemGray3Color">
             <color red="0.7803921568627451" green="0.7803921568627451" blue="0.80000000000000004" alpha="1" colorSpace="custom" customColorSpace="sRGB"/>
-        </systemColor>
-        <systemColor name="systemGray6Color">
-            <color red="0.94901960784313721" green="0.94901960784313721" blue="0.96862745098039216" alpha="1" colorSpace="custom" customColorSpace="sRGB"/>
         </systemColor>
     </resources>
 </document>

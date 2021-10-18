@@ -85,6 +85,7 @@ class mainVC: UIViewController, sendFinData, shareRevenueFinList, FODelegate {
     override func prepare(for segue: UIStoryboardSegue, sender: Any?) {
         
         if segue.identifier == "addFinData" {
+            
             let vc = segue.destination as! addFinVC
             vc.start = salaryData.startDate
             vc.end = salaryData.endDate
@@ -116,8 +117,6 @@ class mainVC: UIViewController, sendFinData, shareRevenueFinList, FODelegate {
     
     override func viewDidLoad() {
         super.viewDidLoad()
-
-        self.modalPresentationStyle = .overFullScreen
         
         // 가계부 작성 버튼 곡률, 그림자 layout
         fixedOutLay.btnLayout()
@@ -290,6 +289,7 @@ class mainVC: UIViewController, sendFinData, shareRevenueFinList, FODelegate {
                 let row = index[1]
                 print(filteredList[section][row])
                 guard let vc = self.storyboard?.instantiateViewController(withIdentifier: "addFinData") as? addFinVC else { return }
+                vc.modalPresentationStyle = .overFullScreen
                 vc.originData = filteredList[section][row]
                 vc.delegate = self
                 self.present(vc, animated: true, completion: nil)
@@ -300,7 +300,7 @@ class mainVC: UIViewController, sendFinData, shareRevenueFinList, FODelegate {
     // 위젯으로 데이터 전송
     func towidget() {
         if let wdata = UserDefaults.init(suiteName: "group.costit") {
-            let stringData: [String] = [id.nickName + ",", (id.outLay - updateThisMonthTotalCost()).toDecimal() + "원", id.outLay > updateThisMonthTotalCost() ? "더 쓸 수 있어요" : "망했어요", Double(id.outLay) != 0 ? String(Int(Double(id.outLay - updateThisMonthTotalCost()) / Double(id.outLay) * 100)) : "0"]
+            let stringData: [String] = [id.nickName + "님", (id.outLay - updateThisMonthTotalCost()).toDecimal() + "원", id.outLay > updateThisMonthTotalCost() ? "남았어요" : "망했어요", Double(id.outLay) != 0 ? String(Int(Double(id.outLay - updateThisMonthTotalCost()) / Double(id.outLay) * 100)) : "0"]
             wdata.setValue(stringData, forKey: "string")
         }
         if #available(iOS 14.0, *) {

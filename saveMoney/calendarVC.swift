@@ -132,11 +132,11 @@ extension calendarVC: FSCalendarDelegate, FSCalendarDataSource, FSCalendarDelega
         if date.toFullString() >= period.startDate.toFullString() && date.toFullString() <= period.endDate.toFullString() {
             
             if updateThisMonthTotalCost()[0] > percent(date)[1] {
-                return #colorLiteral(red: 0.8259984851, green: 0, blue: 0, alpha:  1)
+                return .systemPink.withAlphaComponent(1)
             } else if updateThisMonthTotalCost()[0] > percent(date)[0] {
-                return #colorLiteral(red: 0.9756903052, green: 0.4849535823, blue: 0.5627821684, alpha: 1)
+                return .systemPink.withAlphaComponent(0.6)
             } else {
-                return #colorLiteral(red: 0.9300299287, green: 0.8275253177, blue: 0.8353049159, alpha: 1)
+                return .systemPink.withAlphaComponent(0.2)
             }
         } else {
             return #colorLiteral(red: 0.2549019754, green: 0.2745098174, blue: 0.3019607961, alpha: 1)

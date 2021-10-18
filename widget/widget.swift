@@ -39,40 +39,48 @@ struct widgetEntryView : View {
         let wdata = UserDefaults.init(suiteName: "group.costit")?.stringArray(forKey: "string") ?? ["User", "0원", "지출 추가하기", "0"]
         let condition = Double(wdata[3])! / 100
         let int = condition * 100
-        let color: CGColor = int > 20 ? ( int > 50 ? #colorLiteral(red: 0.3518846035, green: 0.6747873425, blue: 0.622913003, alpha: 1) : #colorLiteral(red: 0.9529411793, green: 0.6862745285, blue: 0.1333333403, alpha: 1)) : #colorLiteral(red: 0.7450980544, green: 0.1568627506, blue: 0.07450980693, alpha: 1)
+        let color: CGColor = int > 20 ? ( int > 50 ? #colorLiteral(red: 0.3518846035, green: 0.6747873425, blue: 0.622913003, alpha: 1) : #colorLiteral(red: 0.9529411793, green: 0.6862745285, blue: 0.1333333403, alpha: 1)) : #colorLiteral(red: 0.9464814067, green: 0.240496546, blue: 0.2090002298, alpha: 1)
         let emoji: String = int >= 20 ? (int >= 40 ? (int >= 60 ? (int >= 80 ? "🤑" : "😊") : "🙂") : "🤔") : "😱"
         GeometryReader { geometry in
-                   Color("HeaderColor")
+            
+                // 위젯 배경색
+                Color("HeaderColor")
                        .opacity(0.25)
-                   VStack(alignment: .trailing) {
-                       
-                       Text(wdata[0])
-                           .font(.system(size: 12, weight: .bold))
-                           .frame(height: geometry.size.height * 0.1)
-                           .foregroundColor(Color("customLabel"))
-                       Text(wdata[1])
-                           .font(.system(size: 24, weight: .bold))
-                           .frame(height: geometry.size.height * 0.1)
-                           .opacity(0.72)
-                       Text(wdata[2])
-                           .font(.system(size: 12, weight: .bold))
-                           .frame(height: geometry.size.height * 0.1)
-                           .foregroundColor(Color("customLabel"))
-                       HStack(alignment: .bottom) {
-                           Text(wdata[3] + "%")
-                               .font(.system(size: 28, weight: .semibold))
-                               .opacity(0.72)
-                               .frame(width: geometry.size.width * 0.55, height: nil, alignment: .leading)
-                           Text(emoji)
-                               .font(.system(size: 30))
-                               .frame(width: geometry.size.width * 0.25, height: nil, alignment: .trailing)
-                       }.frame(width: geometry.size.width * 0.9, height: geometry.size.height * 0.3, alignment: .bottom)
-                   }.frame(width: geometry.size.width, height: geometry.size.height * 0.9, alignment: .center)
-                   ZStack(alignment: .leading) {
-                       Color("toolbar")
-                           .frame(width: geometry.size.width , height: geometry.size.height * 0.08)
-                       Color(color)
-                           .frame(width: geometry.size.width * CGFloat(condition) , height: geometry.size.height * 0.08)
+            
+                // 세로로 글자 배치 : 전체의 72% 차지
+                VStack(alignment: .trailing, spacing: 0) {
+                    Text(wdata[0])
+                        .font(.system(size: 12, weight: .bold))
+                        .frame(height: geometry.size.height * 0.1)
+                        .foregroundColor(Color("customLabel"))
+                    Text(wdata[1])
+                        .font(.system(size: 24, weight: .bold))
+                        .frame(height: geometry.size.height * 0.2)
+                        .opacity(0.72)
+                    Text(wdata[2])
+                        .font(.system(size: 12, weight: .bold))
+                        .frame(height: geometry.size.height * 0.1)
+                        .foregroundColor(Color("customLabel"))
+                    
+                    // 가로로 퍼센트, 이모티콘 배치
+                    HStack(alignment: .bottom, spacing: 0) {
+                        Text(wdata[3] + "%")
+                            .font(.system(size: 28, weight: .semibold))
+                            .opacity(0.72)
+                            .frame(width: geometry.size.width * 0.45, height: nil, alignment: .leading)
+                        Text(emoji)
+                            .font(.system(size: 30))
+                            .frame(width: geometry.size.width * 0.45, height: nil, alignment: .trailing)
+                    }.frame(width: geometry.size.width * 0.9, height: geometry.size.height * 0.32, alignment: .bottom)
+                }.frame(width: geometry.size.width, height: geometry.size.height * 0.92, alignment: .center)
+            
+                // 아래 배터리 상태바 : 전체 길이의 8% 차지
+                ZStack(alignment: .leading) {
+                    Color("toolbar")
+                        .frame(width: geometry.size.width , height: geometry.size.height * 0.08)
+                    Color(color)
+                        .frame(width: geometry.size.width * CGFloat(condition) , height: geometry.size.height * 0.08)
+                        
                    }.frame(width: geometry.size.width, height: geometry.size.height, alignment: .bottom)
                }
     }

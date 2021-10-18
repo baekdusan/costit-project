@@ -169,6 +169,7 @@ class revenueVC: UIViewController, sendRevenueFinData {
                 vc.originData = filteredRList[section][row]
                 vc.rDelegate = self
                 vc.fromRevenue = true
+                vc.modalPresentationStyle = .overFullScreen
                 self.present(vc, animated: true, completion: nil)
             }
         }
