@@ -43,15 +43,23 @@ class firstOpenVC: UIViewController, UIPickerViewDelegate, UIPickerViewDataSourc
         
         datepick.delegate = self
         datepick.dataSource = self
+        salaryTF.inputView = datepick
         
         purposeTF.keyboardType = .numberPad
         
+        //버튼 만들기
+        let space = UIBarButtonItem(barButtonSystemItem: .flexibleSpace, target: nil, action: nil)
+        let doneButton = UIBarButtonItem(title: "완료", style: .done, target: nil, action: #selector(donePressed))
+        doneButton.tintColor = UIColor(named: "customLabel")
+        let nextButton = UIBarButtonItem(title: "다음", style: .plain, target: nil, action: #selector(nextPressed))
+        nextButton.tintColor = UIColor(named: "customLabel")
+        let nextButton2 = UIBarButtonItem(title: "다음", style: .plain, target: nil, action: #selector(nextPressed2))
+        nextButton2.tintColor = UIColor(named: "customLabel")
         
-        salaryTF.inputView = datepick
+        createToolbarBtn(purposeTF, [space, nextButton])
+        createToolbarBtn(salaryTF, [space, doneButton])
+        createToolbarBtn(nicknameTF, [space, nextButton2])
         
-        createToolbarBtn(purposeTF)
-        createToolbarBtn(salaryTF)
-        createToolbarBtn(nicknameTF)
         if profileData.nickName != "User" {
             nicknameTF.text = profileData.nickName
             purposeTF.text = profileData.outLay.toDecimal()
@@ -62,36 +70,13 @@ class firstOpenVC: UIViewController, UIPickerViewDelegate, UIPickerViewDataSourc
         }
     }
     
-    func createToolbarBtn(_ TF: UITextField) {
+    func createToolbarBtn(_ TF: UITextField, _ composition: [UIBarButtonItem]) {
         //toolbar 만들기, done 버튼이 들어갈 곳
         let toolbar = UIToolbar()
         toolbar.barTintColor = UIColor(named: "HeaderColor")
         toolbar.sizeToFit() //view 스크린에 딱 맞게 사이즈 조정
+        toolbar.setItems(composition, animated: true)
         
-        //버튼 만들기
-        let leftSpace = UIBarButtonItem(barButtonSystemItem: .flexibleSpace, target: nil, action: nil)
-        let doneButton = UIBarButtonItem(title: "완료", style: .done, target: nil, action: #selector(donePressed))
-        doneButton.tintColor = UIColor(named: "customLabel")
-        let nextButton = UIBarButtonItem(title: "다음", style: .plain, target: nil, action: #selector(nextPressed))
-        nextButton.tintColor = UIColor(named: "customLabel")
-        let nextButton2 = UIBarButtonItem(title: "다음", style: .plain, target: nil, action: #selector(nextPressed2))
-        nextButton2.tintColor = UIColor(named: "customLabel")
-        
-        //버튼 툴바에 할당
-//        TF == purposeTF ? toolbar.setItems([leftSpace, nextButton], animated: true) : toolbar.setItems([leftSpace, doneButton], animated: true)
-        
-        switch TF {
-        case purposeTF:
-            toolbar.setItems([leftSpace, nextButton], animated: true)
-        case salaryTF:
-            toolbar.setItems([leftSpace, doneButton], animated: true)
-        case nicknameTF:
-            toolbar.setItems([leftSpace, nextButton2], animated: true)
-        default:
-            toolbar.setItems([leftSpace, nextButton2], animated: true)
-        }
-        
-        //toolbar를 키보드 대신 할당?
         TF.inputAccessoryView = toolbar
     }
     

@@ -20,9 +20,6 @@ class revenueVC: UIViewController, sendRevenueFinData {
     }
     
     @IBOutlet weak var navigation: UINavigationBar!
-    @IBOutlet weak var nickName: UILabel! // 닉네임
-    @IBOutlet weak var totalRevenue: UILabel! // 총 소득액
-    
     @IBOutlet weak var collectionView: UICollectionView! // 콜렉션 뷰
     @IBOutlet weak var dismissLayOut: UIButton! // to 지출 화면
     @IBOutlet weak var addBtnLayOut: UIButton! // 소득 추가 버튼
@@ -35,7 +32,7 @@ class revenueVC: UIViewController, sendRevenueFinData {
         }
     }
     var efinList: [finData] = []
-    var filteredRList: [[finData]] = [] // 필터링된 소득 가계부 데이터
+    var filtered: [finData] = [] // 필터링된 소득 가계부 데이터
     var nickname : String = "User" // 닉네임 default 값은 User
     var start: Date!
     var end: Date!
@@ -80,10 +77,6 @@ class revenueVC: UIViewController, sendRevenueFinData {
         
         // 지출 뷰에서 받아온 기간으로 가계부 데이터 필터링
         filteredbyMonth(start, end)
-        
-        // 뷰 셋팅
-        nickName.text = "\(nickname) 님의 수입은"
-        totalRevenue.text = totalMoney().toDecimal() + " 원"
     }
     
     @IBAction func dismiss(_ sender: Any) {
@@ -92,7 +85,6 @@ class revenueVC: UIViewController, sendRevenueFinData {
     
     func updateLayout() {
         filteredbyMonth(start, end) // 이번 달에 맞춰서 filteredList 할당
-        totalRevenue.text = totalMoney().toDecimal() + " 원" // 이번 달 총 수입
         
         // 콜렉션뷰 갱신, 위젯 갱신
         collectionView.reloadData()
@@ -100,32 +92,16 @@ class revenueVC: UIViewController, sendRevenueFinData {
     
     // 콜렉션 뷰에 넣을 데이터대로 셋팅 (섹션, 로우 나누고 정렬)
     func filteredbyMonth(_ startDate: Date, _ endDate: Date) {
-        
-        let filtered = rfinList.filter { $0.when >= startDate && $0.when <= endDate}
-        var day: Set<String> = []
-        
-        for i in filtered {
-            day.insert(i.when.toFullString())
-        }
-        
-        filteredRList.removeAll()
-        
-        for j in day {
-            var list: [finData] = []
-            list = filtered.filter { $0.when.toFullString() == j }
-            filteredRList.append(list)
-        }
-        
-        filteredRList.sort { $0[0].when > $1[0].when }
+        filtered.removeAll()
+        filtered = rfinList.filter { $0.when >= startDate && $0.when <= endDate}
+        filtered.sort { $0.when > $1.when }
     }
     
     // 총 소득액
     func totalMoney() -> Int {
         var total : Int = 0
-        for i in filteredRList {
-            for j in i {
-                total += j.how
-            }
+        for i in filtered {
+            total += i.how
         }
         return total
     }
@@ -146,14 +122,10 @@ class revenueVC: UIViewController, sendRevenueFinData {
     @objc func cancelButtonAction(sender : UIButton) {
         collectionView.performBatchUpdates({
             
-            let section = sender.tag / 1000
-            let row = sender.tag % 1000
-            
-            collectionView.deleteItems(at: [IndexPath.init(row: row, section: section)])
-            let removedStr = filteredRList[section].remove(at: row)
+            collectionView.deleteItems(at: [IndexPath.init(row: sender.tag, section: 0)])
+            let removedStr = filtered.remove(at: sender.tag)
             rfinList.remove(at: rfinList.firstIndex(where: {$0 == removedStr})!)
             
-            totalRevenue.text = totalMoney().toDecimal() + " 원"
         }, completion: { [self] _ in collectionView.reloadData()})
     }
     
@@ -163,10 +135,9 @@ class revenueVC: UIViewController, sendRevenueFinData {
         if longPressGestureRecognizer.state == UIGestureRecognizer.State.began {
             let touchPoint = longPressGestureRecognizer.location(in: collectionView)
             if let index = collectionView.indexPathForItem(at: touchPoint) {
-                let section = index[0]
                 let row = index[1]
                 guard let vc = self.storyboard?.instantiateViewController(withIdentifier: "addFinData") as? addFinVC else { return }
-                vc.originData = filteredRList[section][row]
+                vc.originData = filtered[row]
                 vc.rDelegate = self
                 vc.fromRevenue = true
                 vc.modalPresentationStyle = .overFullScreen
@@ -180,12 +151,12 @@ extension revenueVC: UICollectionViewDelegate, UICollectionViewDataSource {
     
     // 섹션 개수 -> 최대 31개(한달 최대 일수)
     func numberOfSections(in collectionView: UICollectionView) -> Int {
-        return filteredRList.count
+        return 1
     }
     
     // 섹션당 로우 개수
     func collectionView(_ collectionView: UICollectionView, numberOfItemsInSection section: Int) -> Int {
-        return filteredRList[section].count
+        return filtered.count
     }
     
     // 컬렉션 뷰 레이아웃
@@ -196,9 +167,9 @@ extension revenueVC: UICollectionViewDelegate, UICollectionViewDataSource {
         guard let cell = collectionView.dequeueReusableCell(withReuseIdentifier: "rCell", for: indexPath) as? rCell else {
             return UICollectionViewCell()
         }
-        cell.updateUI(filteredRList, indexPath.section, indexPath.row)
+        cell.updateUI(filtered, indexPath.row)
         cell.makeShadow()
-        cell.dismiss.tag = indexPath.section * 1000 + indexPath.row
+        cell.dismiss.tag = indexPath.row
         cell.dismiss.addTarget(self, action: #selector(cancelButtonAction(sender:)), for: .touchUpInside)
         cell.border.addGestureRecognizer(deepTouchGesture)
         return cell
@@ -209,7 +180,7 @@ extension revenueVC: UICollectionViewDelegate, UICollectionViewDataSource {
         switch kind {
         case UICollectionView.elementKindSectionHeader:
             guard let headerView = collectionView.dequeueReusableSupplementaryView(ofKind: kind, withReuseIdentifier: "rHeader", for: indexPath) as? rheader else { return UICollectionReusableView() }
-            headerView.updateHeader(filteredRList, indexPath.section)
+            headerView.updateHeader(filtered, indexPath.section)
             return headerView
         default: assert(false, "nil")
         }
@@ -220,10 +191,14 @@ extension revenueVC: UICollectionViewDelegate, UICollectionViewDataSource {
 extension revenueVC: UICollectionViewDelegateFlowLayout {
     func collectionView(_ collectionView: UICollectionView, layout collectionViewLayout: UICollectionViewLayout, sizeForItemAt indexPath: IndexPath) -> CGSize {
         
-        let width = (view.bounds.width - 48) * 0.5
-        let height = width
+        let width = view.bounds.width * 0.9
+        let height = CGFloat(72)
         
         return CGSize(width: width, height: height)
+    }
+    
+    func collectionView(_ collectionView: UICollectionView, layout collectionViewLayout: UICollectionViewLayout, referenceSizeForHeaderInSection section: Int) -> CGSize {
+        return CGSize(width: view.bounds.width * 0.9, height: 72)
     }
 }
 
@@ -235,17 +210,17 @@ class rCell: UICollectionViewCell {
     @IBOutlet weak var dismiss: UIButton!
     @IBOutlet weak var border: UIView!
     
-    func updateUI(_ model: [[finData]], _ section: Int, _ row: Int) {
+    func updateUI(_ model: [finData], _ row: Int) {
     
-    when.text = model[section][row].when.toString(false)
-    towhat.text = model[section][row].towhat
-    how.text = "+ " + model[section][row].how.toDecimal() + " 원"
+    when.text = model[row].when.toString(false)
+    towhat.text = model[row].towhat
+    how.text = "+ " + model[row].how.toDecimal()
 }
     
     func makeShadow() {
         layer.shadowColor = UIColor.black.cgColor
         layer.shadowOpacity = 0.16
-        layer.shadowOffset = CGSize(width: 0, height: 6)
+        layer.shadowOffset = CGSize(width: 0, height: 5)
         layer.masksToBounds = false
     }
 }
@@ -255,12 +230,16 @@ class rheader: UICollectionReusableView {
 
     @IBOutlet weak var headerDate: UILabel!
     
-    func updateHeader(_ arr: [[finData]], _ index: Int) {
+    func updateHeader(_ arr: [finData], _ index: Int) {
             
-        if arr[index].isEmpty {
-            headerDate.text = ""
+        if arr.isEmpty {
+            headerDate.text = "0 원"
         } else {
-            headerDate.text = arr[index][0].when.onlydate() + "일"
+            var total = 0
+            for i in arr {
+                total += i.how
+            }
+            headerDate.text = total.toDecimal() + " 원"
         }
     }
 }

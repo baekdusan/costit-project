@@ -28,10 +28,30 @@ class addFinVC: UIViewController, UITextFieldDelegate {
     
     var originData: finData! // 수정할 때 잠시 담아두는 데이터
     
+    func swipeRecognizer() {
+            let swipeDown = UISwipeGestureRecognizer(target: self, action: #selector(self.respondToSwipeGesture(_:)))
+        swipeDown.direction = UISwipeGestureRecognizer.Direction.down
+            self.view.addGestureRecognizer(swipeDown)
+    }
+        
+    @objc func respondToSwipeGesture(_ gesture: UIGestureRecognizer){
+        if let swipeGesture = gesture as? UISwipeGestureRecognizer {
+            switch swipeGesture.direction{
+            case UISwipeGestureRecognizer.Direction.down:
+                // 스와이프 시, 원하는 기능 구현.
+                self.dismiss(animated: true, completion: nil)
+            default: break
+            }
+        }
+    }
+    
     override func viewDidLoad() {
         super.viewDidLoad()
         
-        // 날짜 텍스트 필드 노출 스타일 설정
+        // 빈 화면에 스크롤제스처 추가
+        swipeRecognizer()
+        
+        // 날짜 텍스트 필드 노출 스타일 설정  ----- 변경금지 !! -----
         formatter.dateStyle = .medium
         formatter.timeStyle = .medium
         formatter.dateFormat = "yyyy. MM. dd."
@@ -47,12 +67,31 @@ class addFinVC: UIViewController, UITextFieldDelegate {
             when = datepick.date
         }
         
-        // 데이트 피커뷰 만들어주고, 두번째 뷰를 firstResponder 설정
-        createDatePickerView()
+        // 툴바 및 데이트 피커 설정
+        let space = UIBarButtonItem(barButtonSystemItem: .flexibleSpace, target: nil, action: nil)
+        let dateTotowhat = UIBarButtonItem(title: "다음", style: .done, target: nil, action: #selector(dateTotowhat))
+        dateTotowhat.tintColor = UIColor(named: "customLabel")
+        let towhatTohow = UIBarButtonItem(title: "다음", style: .done, target: nil, action: #selector(towhatTohow))
+        towhatTohow.tintColor = UIColor(named: "customLabel")
+        let done = UIBarButtonItem(title: "붙이기", style: .done, target: nil, action: #selector(donePressed))
+        done.tintColor = UIColor(named: "customLabel")
+        
+        toolbarSetting(whenTextField, [space, dateTotowhat])
+        toolbarSetting(towhatTextField, [space, towhatTohow])
+        toolbarSetting(howTextField, [space, done])
+        
+        //assign datepicker to the textfield, 텍스트 필드에 datepicker 할당
+        whenTextField.inputView = datepick
+
+        //datePicker 형식 바꾸기
+        datepick.datePickerMode = .date
+        datepick.minimumDate = start
+        datepick.maximumDate = end
+        datepick.locale = Locale(identifier: "ko-KR")
+        datepick.preferredDatePickerStyle = .wheels
         towhatTextField.becomeFirstResponder()
         
-        // 날짜 갱신해주는 타이머
-        Timer.scheduledTimer(timeInterval: 1, target: self, selector: #selector(valuechange), userInfo: nil, repeats: true)
+        datepick.addTarget(self, action: #selector(valuechange), for: .valueChanged)
         
         // 메모장 이미지 그림자 넣기
         memoPaper.layer.shadowColor = UIColor.black.cgColor
@@ -79,57 +118,18 @@ class addFinVC: UIViewController, UITextFieldDelegate {
     
     // 데이트 피커 키보드 내용을 감지하는 메서드
     @objc func valuechange() {
-        // 날짜 변경이 이루어질 때만 데이트 피커 바탕으로 갱신
         if whenTextField.isEditing {
             whenTextField.text = formatter.string(from: datepick.date)
         }
     }
     
-    func createDatePickerView() {
+    func toolbarSetting(_ textfield: UITextField, _ composition: [UIBarButtonItem]) {
         //toolbar 만들기, done 버튼이 들어갈 곳
-        let timeToolbar = UIToolbar()
-        timeToolbar.barTintColor = UIColor(named: "toolbar")
-        timeToolbar.sizeToFit() //view 스크린에 딱 맞게 사이즈 조정
-        
-        let towhatToolbar = UIToolbar()
-        towhatToolbar.barTintColor = UIColor(named: "toolbar")
-        towhatToolbar.sizeToFit()
-        
-        let finishToolbar = UIToolbar()
-        finishToolbar.barTintColor = UIColor(named: "toolbar")
-        finishToolbar.sizeToFit()
-        
-        //버튼 만들기
-        let leftSpace = UIBarButtonItem(barButtonSystemItem: .flexibleSpace, target: nil, action: nil)
-        let nextButton = UIBarButtonItem(title: "다음", style: .done, target: nil, action: #selector(nextPressed))
-        nextButton.tintColor = UIColor(named: "customLabel")
-        let nextButton2 = UIBarButtonItem(title: "다음", style: .done, target: nil, action: #selector(nextPressed2))
-        nextButton2.tintColor = UIColor(named: "customLabel")
-        let doneButton = UIBarButtonItem(title: "붙이기", style: .done, target: nil, action: #selector(donePressed))
-        doneButton.tintColor = UIColor(named: "customLabel")
-        let cancelButton = UIBarButtonItem(title: "취소", style: .plain, target: nil, action: #selector(cancel))
-        cancelButton.tintColor = UIColor(named: "customLabel")
-        //action 자리에는 이후에 실행될 함수가 들어간다?
-        
-        //버튼 툴바에 할당
-        timeToolbar.setItems([leftSpace, nextButton], animated: true)
-        towhatToolbar.setItems([leftSpace, nextButton2], animated: true)
-        finishToolbar.setItems([cancelButton, leftSpace, doneButton], animated: true)
-        
-        //toolbar를 키보드 대신 할당?
-        whenTextField.inputAccessoryView = timeToolbar
-        towhatTextField.inputAccessoryView = towhatToolbar
-        howTextField.inputAccessoryView = finishToolbar
-        
-        //assign datepicker to the textfield, 텍스트 필드에 datepicker 할당
-        whenTextField.inputView = datepick
-
-        //datePicker 형식 바꾸기
-        datepick.datePickerMode = .date
-        datepick.minimumDate = start
-        datepick.maximumDate = end
-        datepick.locale = Locale(identifier: "ko-KR")
-        datepick.preferredDatePickerStyle = .wheels
+        let toolbar = UIToolbar()
+        toolbar.barTintColor = UIColor(named: "topViewColor")
+        toolbar.sizeToFit() //view 스크린에 딱 맞게 사이즈 조정
+        toolbar.setItems(composition, animated: true)
+        textfield.inputAccessoryView = toolbar
     }
     
     @objc func cancel() {
@@ -137,19 +137,24 @@ class addFinVC: UIViewController, UITextFieldDelegate {
     }
     
     // 날짜 키보드에서 다음을 눌렀을 때
-    @objc func nextPressed() {
+    @objc func dateTotowhat() {
         when = datepick.date
         towhatTextField.becomeFirstResponder()
     }
     
     // towhat 키보드에서 다음을 눌렀을 때
-    @objc func nextPressed2() {
+    @objc func towhatTohow() {
+        howTextField.becomeFirstResponder()
+    }
+    
+    // towhat 키보드에서 키보드 속 다음을 눌렀을 때
+    func textFieldShouldReturn(_ textField: UITextField) -> Bool {
         howTextField.becomeFirstResponder()
     }
     
     // 지출 키보드에서 다음을 눌렀을 때
     @objc func donePressed() {
-        if !whenTextField.text!.isEmpty && !towhatTextField.text!.isEmpty && !howTextField.text!.isEmpty {
+        if !whenTextField.text!.isEmpty, !towhatTextField.text!.isEmpty, !howTextField.text!.isEmpty {
             let writenData = finData(when: when, towhat: towhatTextField.text, how: outlay)
             // 수정하기로 열었을 때
             if let originData = originData {
@@ -185,10 +190,7 @@ class addFinVC: UIViewController, UITextFieldDelegate {
         }
     }
     
-    // towhat 키보드에서 다음을 눌렀을 때
-    func textFieldShouldReturn(_ textField: UITextField) -> Bool {
-        howTextField.becomeFirstResponder()
-    }
+    
     
     // 금액 최대 글자수는 15로 제한, 메모는 30자
     func textField(_ textField: UITextField, shouldChangeCharactersIn range: NSRange, replacementString string: String) -> Bool {
@@ -218,7 +220,8 @@ class addFinVC: UIViewController, UITextFieldDelegate {
     func numberFormatter(number: Int) -> String {
         let numberFormatter = NumberFormatter()
         numberFormatter.numberStyle = .decimal
-        
         return numberFormatter.string(from: NSNumber(value: number))!
     }
 }
+
+

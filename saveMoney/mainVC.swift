@@ -9,6 +9,7 @@ class mainVC: UIViewController, sendFinData, shareRevenueFinList, FODelegate {
         // 첫 실행 저장
         isFirstOpen = true
         UserDefaults.standard.setValue(isFirstOpen, forKey: "firstOpen")
+        
         // 프로필 셋팅
         id = profile(nickName: nickName, outLay: pm, period: salary)
         
@@ -43,6 +44,7 @@ class mainVC: UIViewController, sendFinData, shareRevenueFinList, FODelegate {
         rfinList = rFinList
     }
     
+    @IBOutlet weak var topView: UIView!
     @IBOutlet weak var nickName: UILabel! // 닉네임 라벨
     @IBOutlet weak var balance: UILabel! // 남은 금액
     @IBOutlet weak var balanceCondition: UILabel! // "목표 금액"
@@ -117,6 +119,10 @@ class mainVC: UIViewController, sendFinData, shareRevenueFinList, FODelegate {
     
     override func viewDidLoad() {
         super.viewDidLoad()
+
+        topView.layer.cornerRadius = 24
+        topView.layer.maskedCorners = [.layerMaxXMaxYCorner, .layerMinXMaxYCorner]
+        
         
         // 가계부 작성 버튼 곡률, 그림자 layout
         fixedOutLay.btnLayout()
