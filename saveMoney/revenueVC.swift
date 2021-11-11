@@ -1,4 +1,5 @@
 import UIKit
+import SwiftUI
 
 protocol shareRevenueFinList {
     func sendRFinList(_ viewController: revenueVC, _ rFinList: [finData])
@@ -21,7 +22,6 @@ class revenueVC: UIViewController, sendRevenueFinData {
     
     @IBOutlet weak var navigation: UINavigationBar!
     @IBOutlet weak var collectionView: UICollectionView! // 콜렉션 뷰
-    @IBOutlet weak var dismissLayOut: UIButton! // to 지출 화면
     @IBOutlet weak var addBtnLayOut: UIButton! // 소득 추가 버튼
     
     var rfinList: [finData] = [] {
@@ -68,19 +68,19 @@ class revenueVC: UIViewController, sendRevenueFinData {
         let image = UIImage(systemName: "calendar.badge.clock", withConfiguration: UIImage.SymbolConfiguration(scale: .medium))
         let calendarbtn = UIBarButtonItem(image: image, style: .plain, target: self, action: #selector(toCalendarVC))
         
+        let dismissImage = UIImage(systemName: "arrow.left.arrow.right", withConfiguration: UIImage.SymbolConfiguration(scale: .medium))
+        let dismissbtn = UIBarButtonItem(image: dismissImage, style: .plain, target: self, action: #selector(dismissView))
+        
         calendarbtn.tintColor = UIColor(named: "customLabel")
-        navigation.topItem?.rightBarButtonItem = calendarbtn
+        dismissbtn.tintColor = UIColor(named: "customLabel")
+//        navigation.topItem?.rightBarButtonItem = calendarbtn
+        navigation.topItem?.leftBarButtonItem = dismissbtn
         
         // 버튼 동그랗게 + 투명도 조절
-        dismissLayOut.btnLayout()
         addBtnLayOut.btnLayout()
         
         // 지출 뷰에서 받아온 기간으로 가계부 데이터 필터링
         filteredbyMonth(start, end)
-    }
-    
-    @IBAction func dismiss(_ sender: Any) {
-        dismiss(animated: true, completion: nil)
     }
     
     func updateLayout() {
@@ -116,6 +116,10 @@ class revenueVC: UIViewController, sendRevenueFinData {
         vc.efinList = efinList
         vc.rfinList = rfinList
         present(vc, animated: true, completion: nil)
+    }
+    
+    @objc func dismissView() {
+        dismiss(animated: true, completion: nil)
     }
     
     // 삭제 버튼 (touch up inside)
@@ -192,13 +196,9 @@ extension revenueVC: UICollectionViewDelegateFlowLayout {
     func collectionView(_ collectionView: UICollectionView, layout collectionViewLayout: UICollectionViewLayout, sizeForItemAt indexPath: IndexPath) -> CGSize {
         
         let width = view.bounds.width * 0.9
-        let height = CGFloat(72)
+        let height = CGFloat(78)
         
         return CGSize(width: width, height: height)
-    }
-    
-    func collectionView(_ collectionView: UICollectionView, layout collectionViewLayout: UICollectionViewLayout, referenceSizeForHeaderInSection section: Int) -> CGSize {
-        return CGSize(width: view.bounds.width * 0.9, height: 72)
     }
 }
 
@@ -219,7 +219,7 @@ class rCell: UICollectionViewCell {
     
     func makeShadow() {
         layer.shadowColor = UIColor.black.cgColor
-        layer.shadowOpacity = 0.16
+        layer.shadowOpacity = 0.08
         layer.shadowOffset = CGSize(width: 0, height: 5)
         layer.masksToBounds = false
     }
@@ -233,13 +233,13 @@ class rheader: UICollectionReusableView {
     func updateHeader(_ arr: [finData], _ index: Int) {
             
         if arr.isEmpty {
-            headerDate.text = "0 원"
+            headerDate.text = "₩ 0"
         } else {
             var total = 0
             for i in arr {
                 total += i.how
             }
-            headerDate.text = total.toDecimal() + " 원"
+            headerDate.text = "₩ " + total.toDecimal()
         }
     }
 }

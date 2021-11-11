@@ -14,13 +14,11 @@ class mainVC: UIViewController, sendFinData, shareRevenueFinList, FODelegate {
         id = profile(nickName: nickName, outLay: pm, period: salary)
         
         // 레이아웃
-        // 1. 닉네임
-        self.nickName.text = "\(id.nickName) 님의 잔액은"
-        // 2. 기준일
+        // 1. 기준일
         salaryData.startDate = setSalaryDate(salary).startDate
         salaryData.endDate = setSalaryDate(salary).endDate
         navigationItem.title = salaryData.startDate.toString(false) + " - " + salaryData.endDate.toString(false)
-        // 3. 남은 금액 및 상태
+        // 2. 남은 금액 및 상태
         updateLayout()
     }
     
@@ -43,22 +41,21 @@ class mainVC: UIViewController, sendFinData, shareRevenueFinList, FODelegate {
     func sendRFinList(_ viewController: revenueVC, _ rFinList: [finData]) {
         rfinList = rFinList
     }
+    @IBOutlet weak var editbtn: UIBarButtonItem!
     
     @IBOutlet weak var topView: UIView!
-    @IBOutlet weak var nickName: UILabel! // 닉네임 라벨
     @IBOutlet weak var balance: UILabel! // 남은 금액
     @IBOutlet weak var balanceCondition: UILabel! // "목표 금액"
     
     @IBOutlet weak var collectionView: UICollectionView! // 콜렉션뷰
     @IBOutlet weak var addFinBorder: UIButton!
-    @IBOutlet weak var fixedOutLay: UIButton! // 고정 지출
     
     // 지출 가계부
     var efinList: [finData] = [finData(when: Date(), towhat: "코스트잇 다운로드😎", how: 1200)] {
         didSet {
             // 가계부 데이터 변경시마다 저장 및 상태 변경
             UserDefaults.standard.set(try? PropertyListEncoder().encode(efinList), forKey:"finlist")
-            balanceCondition.text = "목표 금액 : \(id.outLay.toDecimal()) 원"
+            balanceCondition.text = "/ \(id.outLay.toDecimal()) 원"
         }
     }
     // 수입 가계부
@@ -82,6 +79,8 @@ class mainVC: UIViewController, sendFinData, shareRevenueFinList, FODelegate {
     }
     var isFirstOpen: Bool! // 앱 첫실행 감지
     var filteredList: [[finData]] = [] // 필터링된 가계부 데이터
+    
+    var isEditEnabled: Bool = false // 편집 가능 여부
     
     // segue시 데이터 전달
     override func prepare(for segue: UIStoryboardSegue, sender: Any?) {
@@ -119,13 +118,8 @@ class mainVC: UIViewController, sendFinData, shareRevenueFinList, FODelegate {
     
     override func viewDidLoad() {
         super.viewDidLoad()
-
-        topView.layer.cornerRadius = 24
-        topView.layer.maskedCorners = [.layerMaxXMaxYCorner, .layerMinXMaxYCorner]
-        
         
         // 가계부 작성 버튼 곡률, 그림자 layout
-        fixedOutLay.btnLayout()
         addFinBorder.btnLayout()
         
         // 지출 가계부 정보 받아오기
@@ -156,9 +150,8 @@ class mainVC: UIViewController, sendFinData, shareRevenueFinList, FODelegate {
         filteredbyMonth(salaryData.startDate, salaryData.endDate)
         
         // 레이아웃 셋팅 (이름, 남은 금액, 목표 기간)
-        nickName.text = "\(id.nickName) 님의 잔액은"
         balance.text = Int(id.outLay - updateThisMonthTotalCost()).toDecimal() + " 원"
-        balanceCondition.text = "목표 금액 : \(id.outLay.toDecimal()) 원"
+        balanceCondition.text = "/ \(id.outLay.toDecimal()) 원"
     }
     
     override func viewWillAppear(_ animated: Bool) {
@@ -189,10 +182,17 @@ class mainVC: UIViewController, sendFinData, shareRevenueFinList, FODelegate {
     @IBAction func addFinbtn(_ sender: Any) {
     }
     
-    @IBAction func toRevenueVC(_ sender: UIButton) {
+    @IBAction func edit(_ sender: UIBarButtonItem) {
+        if isEditEnabled == false {
+                isEditEnabled = true
+            editbtn.image = UIImage(systemName: "lock.open.fill", withConfiguration: UIImage.SymbolConfiguration(scale: .medium))
+        } else {
+            isEditEnabled = false
+            editbtn.image = UIImage(systemName: "lock.fill", withConfiguration: UIImage.SymbolConfiguration(scale: .medium))
+        }
+        
+        collectionView.reloadData()
     }
-    
-    
     
     // 급여일을 설정했을 때 그걸 바탕으로 한달의 지출 기간을 셋팅
     func setSalaryDate(_ salary: String) -> salaryDate {
@@ -224,7 +224,7 @@ class mainVC: UIViewController, sendFinData, shareRevenueFinList, FODelegate {
     func updateLayout() {
         filteredbyMonth(salaryData.startDate, salaryData.endDate) // 이번 달에 맞춰서 filteredList 할당
         balance.text = Int(id.outLay - updateThisMonthTotalCost()).toDecimal() + " 원" // 남은 금액 = 목표 금액 - 이번 달 총 지출 비용
-        balanceCondition.text = "목표 금액 : \(id.outLay.toDecimal()) 원"
+        balanceCondition.text = "/ \(id.outLay.toDecimal()) 원"
         
         // 콜렉션뷰 갱신, 위젯 갱신
         collectionView.reloadData()
@@ -280,7 +280,7 @@ class mainVC: UIViewController, sendFinData, shareRevenueFinList, FODelegate {
             efinList.remove(at: efinList.firstIndex(where: {$0 == removedStr})!)
             
             balance.text = Int(id.outLay - updateThisMonthTotalCost()).toDecimal() + " 원"
-            balanceCondition.text = "목표 금액 : \(id.outLay.toDecimal()) 원"
+            balanceCondition.text = "/ \(id.outLay.toDecimal()) 원"
             towidget()
         }, completion: { [self] _ in collectionView.reloadData()})
     }
@@ -343,6 +343,11 @@ extension mainVC: UICollectionViewDelegate, UICollectionViewDataSource {
         cell.dismiss.addTarget(self, action: #selector(cancelButtonAction(sender:)), for: .touchUpInside)
         cell.border.addGestureRecognizer(deepTouchGesture)
         
+        if isEditEnabled {
+            cell.dismiss.alpha = 1
+        } else {
+            cell.dismiss.alpha = 0
+        }
         return cell
     }
     
@@ -385,12 +390,12 @@ class finCell: UICollectionViewCell {
         
         when.text = model[section][row].when.toString(false)
         towhat.text = model[section][row].towhat
-        how.text = "- " + model[section][row].how.toDecimal() + " 원"
+        how.text = "- " + model[section][row].how.toDecimal()
     }
     
     func makeShadow() {
         layer.shadowColor = UIColor.black.cgColor
-        layer.shadowOpacity = 0.16
+        layer.shadowOpacity = 0.08
         layer.shadowOffset = CGSize(width: 0, height: 6)
         layer.masksToBounds = false
     }
@@ -399,13 +404,19 @@ class finCell: UICollectionViewCell {
 // 컬렉션 헤더 뷰 클래스
 class header: UICollectionReusableView {
     @IBOutlet weak var headerDate: UILabel!
+    @IBOutlet weak var todayTotal: UILabel!
     
     func updateHeader(_ arr: [[finData]], _ index: Int) {
-        
+        var todaytotal = 0
         if arr[index].isEmpty {
             headerDate.text = "정말?"
         } else {
             headerDate.text = arr[index][0].when.onlydate() + "일"
+            
+            for i in arr[index] {
+                todaytotal += i.how
+            }
         }
+        todayTotal.text = "₩ " + todaytotal.toDecimal()
     }
 }

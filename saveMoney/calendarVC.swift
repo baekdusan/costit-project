@@ -74,11 +74,11 @@ class calendarVC: UIViewController {
     func selectDate(_ date: Date) {
         pickDate.text = date.onlydate()
         filter(date)
-        updateThisMonthTotalCost()[0] == 0 ? (todayTotalCost.alpha = 0) : (todayTotalCost.alpha = 0.72)
-        updateThisMonthTotalCost()[1] == 0 ? (todayTotalRCost.alpha = 0) : (todayTotalRCost.alpha = 0.72)
+        updateThisMonthTotalCost()[0] == 0 ? (todayTotalCost.alpha = 0) : (todayTotalCost.alpha = 1)
+        updateThisMonthTotalCost()[1] == 0 ? (todayTotalRCost.alpha = 0) : (todayTotalRCost.alpha = 1)
         
-        todayTotalCost.text = "- " + updateThisMonthTotalCost()[0].toDecimal() + " 원"
-        todayTotalRCost.text = "+ " + updateThisMonthTotalCost()[1].toDecimal() + " 원"
+        todayTotalCost.text = "+ " + updateThisMonthTotalCost()[0].toDecimal() + " 원"
+        todayTotalRCost.text = "- " + updateThisMonthTotalCost()[1].toDecimal() + " 원"
         tableView.reloadData()
     }
     
@@ -247,6 +247,6 @@ class dailyOutLay: UITableViewCell {
     
     func setList(_ int: Int, _ list: [finData], _ rlist: [finData]) {
         what.text = list[int].towhat
-        how.text = (rlist.contains(list[int]) ? "+ " : "- ") + list[int].how.toDecimal() + " 원"
+        how.text = (rlist.contains(list[int]) ? "+ " : "- ") + list[int].how.toDecimal()
     }
 }

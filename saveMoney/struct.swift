@@ -156,6 +156,6 @@ extension Int {
 extension UIButton {
     func btnLayout() {
         self.layer.cornerRadius = 32
-        self.alpha = 0.78
+        self.alpha = 0.84
     }
 }
