@@ -3,8 +3,11 @@ import FSCalendar
 
 class calendarVC: UIViewController {
     
-    @IBOutlet weak var tableView: UITableView!
+    @IBOutlet weak var dDay: UILabel!
+    
     @IBOutlet weak var calendarView: FSCalendar!
+    @IBOutlet weak var tableView: UITableView!
+   
     @IBOutlet weak var pickDate: UILabel!
     @IBOutlet weak var todayTotalCost: UILabel!
     @IBOutlet weak var todayTotalRCost: UILabel!
@@ -21,11 +24,27 @@ class calendarVC: UIViewController {
     override func traitCollectionDidChange(_ previousTraitCollection: UITraitCollection?) {
         super.traitCollectionDidChange(previousTraitCollection)
         calendarView.appearance.selectionColor = UIColor(named: "toolbar")
-        calendarCorner.layer.borderColor = UIColor.systemGray5.cgColor
     }
     
     override func viewDidLoad() {
         super.viewDidLoad()
+        
+        dDay.alpha = 0
+        let dday = Date().dDay(period.endDate)
+        
+        switch dday {
+        case 0:
+            dDay.text = "오늘이 마지막이에요!"
+        case 1:
+            dDay.text = "하루 남았어요"
+        default:
+            dDay.text = "\(dday)일 남았어요"
+        }
+        
+        calendarView.layer.shadowColor = UIColor.black.cgColor
+        calendarView.layer.shadowOpacity = 0.08
+        calendarView.layer.shadowOffset = CGSize(width: 0, height: 4)
+        calendarView.layer.masksToBounds = false
         
         dateFormatter.dateFormat = "yyyy-MM-dd"
         
@@ -37,13 +56,26 @@ class calendarVC: UIViewController {
         calendarView.appearance.weekdayFont = UIFont.systemFont(ofSize: 18, weight: .semibold)
         calendarView.appearance.titleFont = UIFont.systemFont(ofSize: 14, weight: .semibold)
         
-        calendarCorner.layer.borderWidth = 1
         calendarCorner.layer.cornerRadius = 24
         calendarCorner.layer.maskedCorners = [.layerMaxXMinYCorner, .layerMinXMinYCorner]
-        calendarCorner.layer.borderColor = UIColor.systemGray5.cgColor
+        calendarCorner.layer.shadowColor = UIColor.black.cgColor
+        calendarCorner.layer.shadowOpacity = 0.08
+        calendarCorner.layer.shadowOffset = CGSize(width: 0, height: -4)
+        calendarCorner.layer.masksToBounds = false
         
         // 오픈시 오늘 날짜로 뷰 셋팅
+        calendarView.select(Date())
         selectDate(Date())
+    }
+    
+    override func viewDidAppear(_ animated: Bool) {
+        super.viewDidAppear(animated)
+        
+        dDay.transform = CGAffineTransform(scaleX: 0, y: 0)
+        UIView.animate(withDuration: 0.6, delay: 0.1, usingSpringWithDamping: 0.7, initialSpringVelocity: 2, options: .curveLinear, animations: {
+            self.dDay.alpha = 1.0;
+            self.dDay.transform = .identity
+        }, completion: nil)
     }
     
     func filter(_ today: Date) {
@@ -74,11 +106,8 @@ class calendarVC: UIViewController {
     func selectDate(_ date: Date) {
         pickDate.text = date.onlydate()
         filter(date)
-        updateThisMonthTotalCost()[0] == 0 ? (todayTotalCost.alpha = 0) : (todayTotalCost.alpha = 1)
-        updateThisMonthTotalCost()[1] == 0 ? (todayTotalRCost.alpha = 0) : (todayTotalRCost.alpha = 1)
-        
-        todayTotalCost.text = "+ " + updateThisMonthTotalCost()[0].toDecimal() + " 원"
-        todayTotalRCost.text = "- " + updateThisMonthTotalCost()[1].toDecimal() + " 원"
+        todayTotalCost.text = "- " + updateThisMonthTotalCost()[0].toDecimal() + " 원"
+        todayTotalRCost.text = "+ " + updateThisMonthTotalCost()[1].toDecimal() + " 원"
         tableView.reloadData()
     }
     

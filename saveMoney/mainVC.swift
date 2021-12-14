@@ -79,8 +79,9 @@ class mainVC: UIViewController, sendFinData, shareRevenueFinList, FODelegate {
     }
     var isFirstOpen: Bool! // 앱 첫실행 감지
     var filteredList: [[finData]] = [] // 필터링된 가계부 데이터
-    
     var isEditEnabled: Bool = false // 편집 가능 여부
+    var isEditMode: Bool = false // 편집 모드 여부
+    var pullRefresh = UIRefreshControl()
     
     // segue시 데이터 전달
     override func prepare(for segue: UIStoryboardSegue, sender: Any?) {
@@ -92,24 +93,25 @@ class mainVC: UIViewController, sendFinData, shareRevenueFinList, FODelegate {
             vc.end = salaryData.endDate
             vc.delegate = self
         } else if segue.identifier == "toRevenueVC" {
+            
             let vc = segue.destination as! revenueVC
             vc.rdelegate = self
-            vc.nickname = id.nickName
             vc.rfinList = rfinList
-            vc.efinList = efinList
-            vc.purpose = id.outLay
             vc.start = salaryData.startDate
             vc.end = salaryData.endDate
         } else if segue.identifier == "calendar" {
+            
             let vc = segue.destination as! calendarVC
             vc.efinList = efinList
             vc.rfinList = rfinList
             vc.purpose = id.outLay
             vc.period = salaryData
         } else if segue.identifier == "firstOpen" {
+            
             let vc = segue.destination as! firstOpenVC
             vc.FODelegate = self
         } else if segue.identifier == "editProfile" {
+            
             let vc = segue.destination as! firstOpenVC
             vc.profileData = id
             vc.FODelegate = self
@@ -120,7 +122,7 @@ class mainVC: UIViewController, sendFinData, shareRevenueFinList, FODelegate {
         super.viewDidLoad()
         
         // 가계부 작성 버튼 곡률, 그림자 layout
-        addFinBorder.btnLayout()
+        addFinBorder.btnLayout(false)
         
         // 지출 가계부 정보 받아오기
         if let fData = UserDefaults.standard.value(forKey:"finlist") as? Data {
@@ -152,6 +154,8 @@ class mainVC: UIViewController, sendFinData, shareRevenueFinList, FODelegate {
         // 레이아웃 셋팅 (이름, 남은 금액, 목표 기간)
         balance.text = Int(id.outLay - updateThisMonthTotalCost()).toDecimal() + " 원"
         balanceCondition.text = "/ \(id.outLay.toDecimal()) 원"
+        
+        self.collectionView.alwaysBounceVertical = true
     }
     
     override func viewWillAppear(_ animated: Bool) {
@@ -188,6 +192,7 @@ class mainVC: UIViewController, sendFinData, shareRevenueFinList, FODelegate {
             editbtn.image = UIImage(systemName: "lock.open.fill", withConfiguration: UIImage.SymbolConfiguration(scale: .medium))
         } else {
             isEditEnabled = false
+            isEditMode = false
             editbtn.image = UIImage(systemName: "lock.fill", withConfiguration: UIImage.SymbolConfiguration(scale: .medium))
         }
         
@@ -270,10 +275,11 @@ class mainVC: UIViewController, sendFinData, shareRevenueFinList, FODelegate {
     
     // 가계부 삭제 버튼
     @objc func cancelButtonAction(sender : UIButton) {
+        
+        let section = sender.tag / 1000
+        let row = sender.tag % 1000
+        
         collectionView.performBatchUpdates({
-            
-            let section = sender.tag / 1000
-            let row = sender.tag % 1000
             
             collectionView.deleteItems(at: [IndexPath.init(row: row, section: section)])
             let removedStr = filteredList[section].remove(at: row)
@@ -282,7 +288,10 @@ class mainVC: UIViewController, sendFinData, shareRevenueFinList, FODelegate {
             balance.text = Int(id.outLay - updateThisMonthTotalCost()).toDecimal() + " 원"
             balanceCondition.text = "/ \(id.outLay.toDecimal()) 원"
             towidget()
-        }, completion: { [self] _ in collectionView.reloadData()})
+            
+            isEditMode = true
+        }, completion: { [self] _ in
+            collectionView.reloadData()})
     }
     
     // 수정 버튼(꾹 누르는 제스처)
@@ -344,7 +353,13 @@ extension mainVC: UICollectionViewDelegate, UICollectionViewDataSource {
         cell.border.addGestureRecognizer(deepTouchGesture)
         
         if isEditEnabled {
-            cell.dismiss.alpha = 1
+            if !isEditMode {
+                cell.dismiss.transform = CGAffineTransform(scaleX: 0, y: 0)
+                UIView.animate(withDuration: 0.6, delay: 0.1, usingSpringWithDamping: 0.6, initialSpringVelocity: 2, options: .curveLinear, animations: {
+                    cell.dismiss.alpha = 1.0;
+                    cell.dismiss.transform = .identity
+                }, completion: nil)
+            }
         } else {
             cell.dismiss.alpha = 0
         }
@@ -412,11 +427,34 @@ class header: UICollectionReusableView {
             headerDate.text = "정말?"
         } else {
             headerDate.text = arr[index][0].when.onlydate() + "일"
-            
+
             for i in arr[index] {
                 todaytotal += i.how
             }
         }
         todayTotal.text = "₩ " + todaytotal.toDecimal()
+    }
+}
+
+extension mainVC : UIScrollViewDelegate {
+    
+    // 스크롤이 시작될 때
+    func scrollViewDidScroll(_ scrollView: UIScrollView) {
+        self.addFinBorder.btnLayout(true)
+    }
+    
+    // 스크롤이 끝에 닿았을 때
+    func scrollViewDidEndDecelerating(_ scrollView: UIScrollView) {
+        UIView.animate(withDuration: 0.6, delay: 0, animations: { self.addFinBorder.btnLayout(false) }, completion: nil)
+    }
+    
+    // 스크롤뷰에서 손을 뗐을 때
+    func scrollViewDidEndDragging(_ scrollView: UIScrollView, willDecelerate decelerate: Bool) {
+        UIView.animate(withDuration: 0.6, delay: 0, animations: { self.addFinBorder.btnLayout(false) }, completion: nil)
+    }
+    
+    // 맨 위로 스크롤이 올라갈 때 (상단 상태바 중앙 터치 시)
+    func scrollViewDidScrollToTop(_ scrollView: UIScrollView) {
+        UIView.animate(withDuration: 0.6, delay: 0, animations: { self.addFinBorder.btnLayout(false) }, completion: nil)
     }
 }

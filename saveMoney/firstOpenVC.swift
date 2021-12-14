@@ -5,6 +5,7 @@ protocol FODelegate {
 }
 
 class firstOpenVC: UIViewController, UIPickerViewDelegate, UIPickerViewDataSource {
+    
     func numberOfComponents(in pickerView: UIPickerView) -> Int {
         return 1
     }
@@ -31,6 +32,7 @@ class firstOpenVC: UIViewController, UIPickerViewDelegate, UIPickerViewDataSourc
     var salaryDay: String!
     var profileData = profile()
     
+    @IBOutlet weak var confirmbtn: UIBarButtonItem!
     @IBOutlet weak var nicknameTF: UITextField!
     @IBOutlet weak var purposeTF: UITextField!
     @IBOutlet weak var salaryTF: UITextField!
@@ -39,7 +41,7 @@ class firstOpenVC: UIViewController, UIPickerViewDelegate, UIPickerViewDataSourc
         super.viewDidLoad()
         
         self.navigationController?.navigationBar.topItem?.title = ""
-        self.navigationController?.navigationBar.tintColor = UIColor(named: "HeaderColor")
+        self.navigationController?.navigationBar.tintColor = UIColor(named: "customLabel")
         
         datepick.delegate = self
         datepick.dataSource = self
@@ -59,15 +61,41 @@ class firstOpenVC: UIViewController, UIPickerViewDelegate, UIPickerViewDataSourc
         createToolbarBtn(purposeTF, [space, nextButton])
         createToolbarBtn(salaryTF, [space, doneButton])
         createToolbarBtn(nicknameTF, [space, nextButton2])
-        
+    
         if profileData.nickName != "User" {
             nicknameTF.text = profileData.nickName
             purposeTF.text = profileData.outLay.toDecimal()
             salaryTF.text = "매월 " + profileData.period
-            
+            salaryDay = profileData.period
         } else {
             nicknameTF.becomeFirstResponder()
         }
+        
+        confirmbtnAlpha()
+        
+        nicknameTF.addTarget(self, action: #selector(confirmbtnAlpha), for: .editingChanged)
+        purposeTF.addTarget(self, action: #selector(confirmbtnAlpha), for: .editingChanged)
+        salaryTF.addTarget(self, action: #selector(confirmbtnAlpha), for: .editingChanged)
+    }
+    @IBAction func confirm(_ sender: UIBarButtonItem) {
+        if isAllfilled() {
+            if let delegate = FODelegate {
+                delegate.initialData(self, nicknameTF.text!, profileData.outLay, salaryDay ?? "1일")
+                _ = navigationController?.popViewController(animated: true)
+            }
+        }
+    }
+    
+    @objc func confirmbtnAlpha() {
+        if isAllfilled() {
+            confirmbtn.isEnabled = true
+        } else {
+            confirmbtn.isEnabled = false
+        }
+    }
+    
+    func isAllfilled() -> Bool {
+        return !nicknameTF.text!.isEmpty && !purposeTF.text!.isEmpty && !salaryTF.text!.isEmpty
     }
     
     func createToolbarBtn(_ TF: UITextField, _ composition: [UIBarButtonItem]) {
@@ -89,7 +117,7 @@ class firstOpenVC: UIViewController, UIPickerViewDelegate, UIPickerViewDataSourc
     }
     
     @objc func donePressed(_ textField: UITextField) {
-        if nicknameTF.text != nil && purposeTF.text != nil && salaryTF.text != nil {
+        if isAllfilled() {
             if let delegate = FODelegate {
                 delegate.initialData(self, nicknameTF.text!, profileData.outLay, salaryDay ?? "1일")
                 _ = navigationController?.popViewController(animated: true)
@@ -126,4 +154,5 @@ extension firstOpenVC: UITextFieldDelegate {
             }
         }
     }
+    
 }

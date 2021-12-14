@@ -113,6 +113,10 @@ extension Date {
         }
         return text[0] + text[1]
     }
+    
+    func dDay(_ endDate: Date) -> Int {
+        return Calendar.current.dateComponents([.month, .day], from: self, to: endDate).day!
+    }
 }
 
 struct finData: Codable, Equatable {
@@ -154,8 +158,8 @@ extension Int {
 }
 
 extension UIButton {
-    func btnLayout() {
+    func btnLayout(_ isDragging: Bool) {
         self.layer.cornerRadius = 32
-        self.alpha = 0.84
+        self.alpha = isDragging ? 0.3 : 1
     }
 }

@@ -126,7 +126,7 @@ class addFinVC: UIViewController, UITextFieldDelegate {
     func toolbarSetting(_ textfield: UITextField, _ composition: [UIBarButtonItem]) {
         //toolbar 만들기, done 버튼이 들어갈 곳
         let toolbar = UIToolbar()
-        toolbar.barTintColor = UIColor(named: "topViewColor")
+        toolbar.barTintColor = UIColor(named: fromRevenue == false ? "topViewColor" : "pinColor")
         toolbar.sizeToFit() //view 스크린에 딱 맞게 사이즈 조정
         toolbar.setItems(composition, animated: true)
         textfield.inputAccessoryView = toolbar

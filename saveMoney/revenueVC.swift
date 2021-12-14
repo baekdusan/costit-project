@@ -31,12 +31,9 @@ class revenueVC: UIViewController, sendRevenueFinData {
             }
         }
     }
-    var efinList: [finData] = []
     var filtered: [finData] = [] // 필터링된 소득 가계부 데이터
-    var nickname : String = "User" // 닉네임 default 값은 User
     var start: Date!
     var end: Date!
-    var purpose: Int!
     var rdelegate: shareRevenueFinList!
     
     override func prepare(for segue: UIStoryboardSegue, sender: Any?) {
@@ -65,19 +62,14 @@ class revenueVC: UIViewController, sendRevenueFinData {
         navigation.topItem?.titleView = title
         
         // 네비게이션 바 버튼 레이아웃 설정
-        let image = UIImage(systemName: "calendar.badge.clock", withConfiguration: UIImage.SymbolConfiguration(scale: .medium))
-        let calendarbtn = UIBarButtonItem(image: image, style: .plain, target: self, action: #selector(toCalendarVC))
-        
         let dismissImage = UIImage(systemName: "arrow.left.arrow.right", withConfiguration: UIImage.SymbolConfiguration(scale: .medium))
         let dismissbtn = UIBarButtonItem(image: dismissImage, style: .plain, target: self, action: #selector(dismissView))
         
-        calendarbtn.tintColor = UIColor(named: "customLabel")
         dismissbtn.tintColor = UIColor(named: "customLabel")
-//        navigation.topItem?.rightBarButtonItem = calendarbtn
         navigation.topItem?.leftBarButtonItem = dismissbtn
         
         // 버튼 동그랗게 + 투명도 조절
-        addBtnLayOut.btnLayout()
+        addBtnLayOut.btnLayout(false)
         
         // 지출 뷰에서 받아온 기간으로 가계부 데이터 필터링
         filteredbyMonth(start, end)
@@ -104,18 +96,6 @@ class revenueVC: UIViewController, sendRevenueFinData {
             total += i.how
         }
         return total
-    }
-    
-    @objc func toCalendarVC() {
-        guard let vc = storyboard?.instantiateViewController(withIdentifier: "calendarVC") as? calendarVC else { return }
-        
-        vc.modalPresentationStyle = .fullScreen
-        vc.modalTransitionStyle = .crossDissolve
-        vc.period = salaryDate(startDate: start, endDate: end)
-        vc.purpose = purpose
-        vc.efinList = efinList
-        vc.rfinList = rfinList
-        present(vc, animated: true, completion: nil)
     }
     
     @objc func dismissView() {
