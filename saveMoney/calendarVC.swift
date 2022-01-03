@@ -56,8 +56,7 @@ class calendarVC: UIViewController {
         calendarView.appearance.weekdayFont = UIFont.systemFont(ofSize: 18, weight: .semibold)
         calendarView.appearance.titleFont = UIFont.systemFont(ofSize: 14, weight: .semibold)
         
-        calendarCorner.layer.cornerRadius = 24
-        calendarCorner.layer.maskedCorners = [.layerMaxXMinYCorner, .layerMinXMinYCorner]
+        calendarCorner.layer.cornerRadius = 20
         calendarCorner.layer.shadowColor = UIColor.black.cgColor
         calendarCorner.layer.shadowOpacity = 0.08
         calendarCorner.layer.shadowOffset = CGSize(width: 0, height: -4)
@@ -108,7 +107,26 @@ class calendarVC: UIViewController {
         filter(date)
         todayTotalCost.text = "- " + updateThisMonthTotalCost()[0].toDecimal() + " 원"
         todayTotalRCost.text = "+ " + updateThisMonthTotalCost()[1].toDecimal() + " 원"
+        
         tableView.reloadData()
+        
+        if updateThisMonthTotalCost()[0] * updateThisMonthTotalCost()[1] == 0 {
+            
+            if updateThisMonthTotalCost()[0] == 0 {
+                todayTotalRCost.alpha = 1
+            } else {
+                todayTotalRCost.alpha = 0
+            }
+            
+            if updateThisMonthTotalCost()[1] == 0 {
+                todayTotalCost.alpha = 1
+            } else {
+                todayTotalCost.alpha = 0
+            }
+        } else {
+            todayTotalCost.alpha = 1
+            todayTotalRCost.alpha = 1
+        }
     }
     
     @IBAction func dismiss(_ sender: Any) {

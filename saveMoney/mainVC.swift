@@ -45,9 +45,9 @@ class mainVC: UIViewController, sendFinData, shareRevenueFinList, FODelegate {
     
     @IBOutlet weak var topView: UIView!
     @IBOutlet weak var balance: UILabel! // 남은 금액
-    @IBOutlet weak var balanceCondition: UILabel! // "목표 금액"
+    @IBOutlet weak var balanceCondition: UILabel! // 목표 금액
     
-    @IBOutlet weak var collectionView: UICollectionView! // 콜렉션뷰
+    @IBOutlet weak var collectionView: UICollectionView! // 콜렉션 뷰
     @IBOutlet weak var addFinBorder: UIButton!
     
     // 지출 가계부
@@ -156,6 +156,9 @@ class mainVC: UIViewController, sendFinData, shareRevenueFinList, FODelegate {
         balanceCondition.text = "/ \(id.outLay.toDecimal()) 원"
         
         self.collectionView.alwaysBounceVertical = true
+        
+        
+        
     }
     
     override func viewWillAppear(_ animated: Bool) {
@@ -171,7 +174,7 @@ class mainVC: UIViewController, sendFinData, shareRevenueFinList, FODelegate {
         
         // 네비게이션 바 타이틀 레이아웃 설정
         let title = UILabel()
-        title.text = salaryData.startDate.toString(false) + " - " + salaryData.endDate.toString(false)
+        title.text = salaryData.startDate.toString(false) + " ~ " + salaryData.endDate.toString(false)
         title.font = UIFont.systemFont(ofSize: 12, weight: .semibold)
         title.textColor = UIColor(named: "customLabel")
         navigationItem.titleView = title
@@ -195,9 +198,9 @@ class mainVC: UIViewController, sendFinData, shareRevenueFinList, FODelegate {
             isEditMode = false
             editbtn.image = UIImage(systemName: "lock.fill", withConfiguration: UIImage.SymbolConfiguration(scale: .medium))
         }
-        
         collectionView.reloadData()
     }
+
     
     // 급여일을 설정했을 때 그걸 바탕으로 한달의 지출 기간을 셋팅
     func setSalaryDate(_ salary: String) -> salaryDate {
@@ -432,7 +435,7 @@ class header: UICollectionReusableView {
                 todaytotal += i.how
             }
         }
-        todayTotal.text = "₩ " + todaytotal.toDecimal()
+        todayTotal.text = todaytotal.toDecimal() + "원"
     }
 }
 

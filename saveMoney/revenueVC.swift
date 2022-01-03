@@ -56,7 +56,7 @@ class revenueVC: UIViewController, sendRevenueFinData {
         
         // 네비게이션 바 타이틀 레이아웃 설정
         let title = UILabel()
-        title.text = start.toString(false) + " - " + end.toString(false)
+        title.text = start.toString(false) + " ~ " + end.toString(false)
         title.font = UIFont.systemFont(ofSize: 12, weight: .semibold)
         title.textColor = UIColor(named: "customLabel")
         navigation.topItem?.titleView = title
