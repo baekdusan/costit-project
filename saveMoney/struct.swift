@@ -34,6 +34,15 @@ extension Date {
         return Calendar(identifier: .gregorian).date(byAdding: components, to: startOfMonth)!
     }
     
+    // 이번 달의 끝 전날
+    var yesterDayofLastDayofMonth: Date {
+        var components = DateComponents()
+        components.month = 1
+        components.second = -1
+        components.day = -1
+        return Calendar(identifier: .gregorian).date(byAdding: components, to: startOfMonth)!
+    }
+    
     // 지난 달의 끝
     var endofLastMonth: Date {
         var components = DateComponents()

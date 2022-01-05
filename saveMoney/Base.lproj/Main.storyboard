@@ -247,81 +247,84 @@
                         <rect key="frame" x="0.0" y="0.0" width="414" height="896"/>
                         <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
                         <subviews>
-                            <imageView clipsSubviews="YES" userInteractionEnabled="NO" alpha="0.5" contentMode="scaleAspectFit" horizontalHuggingPriority="251" verticalHuggingPriority="251" translatesAutoresizingMaskIntoConstraints="NO" id="K5K-NL-zSM" userLabel="line1">
-                                <rect key="frame" x="41.5" y="153.5" width="331" height="2"/>
-                                <color key="backgroundColor" name="HeaderColor"/>
-                                <constraints>
-                                    <constraint firstAttribute="height" constant="2" id="0pl-iu-I31"/>
-                                </constraints>
-                            </imageView>
-                            <imageView clipsSubviews="YES" userInteractionEnabled="NO" alpha="0.5" contentMode="scaleAspectFit" horizontalHuggingPriority="251" verticalHuggingPriority="251" translatesAutoresizingMaskIntoConstraints="NO" id="xNM-SY-vME" userLabel="line2">
-                                <rect key="frame" x="41.5" y="221" width="331" height="2"/>
-                                <color key="backgroundColor" name="HeaderColor"/>
-                                <constraints>
-                                    <constraint firstAttribute="height" constant="2" id="biZ-SF-tSH"/>
-                                </constraints>
-                            </imageView>
-                            <imageView clipsSubviews="YES" userInteractionEnabled="NO" alpha="0.5" contentMode="scaleAspectFit" horizontalHuggingPriority="251" verticalHuggingPriority="251" translatesAutoresizingMaskIntoConstraints="NO" id="edQ-G6-LeW" userLabel="line3">
-                                <rect key="frame" x="41.5" y="288.5" width="331" height="2"/>
-                                <color key="backgroundColor" name="HeaderColor"/>
-                                <constraints>
-                                    <constraint firstAttribute="height" constant="2" id="Z2b-T9-Qaw"/>
-                                </constraints>
-                            </imageView>
-                            <textField opaque="NO" contentMode="scaleToFill" contentHorizontalAlignment="left" contentVerticalAlignment="center" placeholder="닉네임을 입력해주세요." textAlignment="right" minimumFontSize="17" translatesAutoresizingMaskIntoConstraints="NO" id="kqL-fs-GOD">
-                                <rect key="frame" x="41.5" y="118" width="331" height="25.5"/>
-                                <color key="textColor" name="customLabel"/>
-                                <fontDescription key="fontDescription" type="system" weight="medium" pointSize="20"/>
-                                <textInputTraits key="textInputTraits" returnKeyType="next" enablesReturnKeyAutomatically="YES"/>
-                                <connections>
-                                    <outlet property="delegate" destination="FqB-8i-DRy" id="hw9-8W-52H"/>
-                                </connections>
-                            </textField>
-                            <textField opaque="NO" contentMode="scaleToFill" contentHorizontalAlignment="left" contentVerticalAlignment="center" placeholder="이번 달 목표 지출액은요?" textAlignment="right" minimumFontSize="17" translatesAutoresizingMaskIntoConstraints="NO" id="oaM-Yp-SzO">
-                                <rect key="frame" x="41.5" y="185.5" width="331" height="25.5"/>
-                                <color key="textColor" name="customLabel"/>
-                                <fontDescription key="fontDescription" type="system" weight="medium" pointSize="20"/>
-                                <textInputTraits key="textInputTraits" returnKeyType="next" enablesReturnKeyAutomatically="YES"/>
-                                <connections>
-                                    <outlet property="delegate" destination="FqB-8i-DRy" id="No4-JI-iLk"/>
-                                </connections>
-                            </textField>
-                            <textField opaque="NO" contentMode="scaleToFill" contentHorizontalAlignment="left" contentVerticalAlignment="center" placeholder="매달 언제마다?" textAlignment="right" minimumFontSize="17" translatesAutoresizingMaskIntoConstraints="NO" id="XOE-fQ-VyV">
-                                <rect key="frame" x="41.5" y="253" width="331" height="25.5"/>
-                                <color key="textColor" name="customLabel"/>
-                                <fontDescription key="fontDescription" type="system" weight="medium" pointSize="20"/>
-                                <textInputTraits key="textInputTraits"/>
-                            </textField>
-                            <label opaque="NO" userInteractionEnabled="NO" contentMode="left" horizontalHuggingPriority="251" verticalHuggingPriority="251" text="급여가 일정하지 않다면, 1일이 편해요." lineBreakMode="tailTruncation" baselineAdjustment="alignBaselines" adjustsFontSizeToFit="NO" translatesAutoresizingMaskIntoConstraints="NO" id="bnK-DQ-puM">
-                                <rect key="frame" x="41.5" y="300.5" width="182" height="14.5"/>
-                                <fontDescription key="fontDescription" type="system" pointSize="12"/>
-                                <color key="textColor" systemColor="systemGray3Color"/>
-                                <nil key="highlightedColor"/>
-                            </label>
+                            <stackView opaque="NO" contentMode="scaleToFill" axis="vertical" spacing="30" translatesAutoresizingMaskIntoConstraints="NO" id="p4V-3y-Nue">
+                                <rect key="frame" x="41.5" y="118" width="331" height="197"/>
+                                <subviews>
+                                    <stackView opaque="NO" contentMode="scaleToFill" axis="vertical" spacing="10" translatesAutoresizingMaskIntoConstraints="NO" id="e6a-zE-A1O">
+                                        <rect key="frame" x="0.0" y="0.0" width="331" height="37.5"/>
+                                        <subviews>
+                                            <textField opaque="NO" contentMode="scaleToFill" contentHorizontalAlignment="left" contentVerticalAlignment="center" placeholder="닉네임을 입력해주세요." textAlignment="right" minimumFontSize="17" translatesAutoresizingMaskIntoConstraints="NO" id="kqL-fs-GOD">
+                                                <rect key="frame" x="0.0" y="0.0" width="331" height="25.5"/>
+                                                <color key="textColor" name="customLabel"/>
+                                                <fontDescription key="fontDescription" type="system" weight="medium" pointSize="20"/>
+                                                <textInputTraits key="textInputTraits" returnKeyType="next" enablesReturnKeyAutomatically="YES"/>
+                                                <connections>
+                                                    <outlet property="delegate" destination="FqB-8i-DRy" id="hw9-8W-52H"/>
+                                                </connections>
+                                            </textField>
+                                            <imageView clipsSubviews="YES" userInteractionEnabled="NO" alpha="0.5" contentMode="scaleAspectFit" horizontalHuggingPriority="251" verticalHuggingPriority="251" translatesAutoresizingMaskIntoConstraints="NO" id="K5K-NL-zSM" userLabel="line1">
+                                                <rect key="frame" x="0.0" y="35.5" width="331" height="2"/>
+                                                <color key="backgroundColor" name="HeaderColor"/>
+                                                <constraints>
+                                                    <constraint firstAttribute="height" constant="2" id="0pl-iu-I31"/>
+                                                </constraints>
+                                            </imageView>
+                                        </subviews>
+                                    </stackView>
+                                    <stackView opaque="NO" contentMode="scaleToFill" axis="vertical" spacing="10" translatesAutoresizingMaskIntoConstraints="NO" id="5ED-wX-FjW">
+                                        <rect key="frame" x="0.0" y="67.5" width="331" height="37.5"/>
+                                        <subviews>
+                                            <textField opaque="NO" contentMode="scaleToFill" contentHorizontalAlignment="left" contentVerticalAlignment="center" placeholder="이번 달 목표 지출액은요?" textAlignment="right" minimumFontSize="17" translatesAutoresizingMaskIntoConstraints="NO" id="oaM-Yp-SzO">
+                                                <rect key="frame" x="0.0" y="0.0" width="331" height="25.5"/>
+                                                <color key="textColor" name="customLabel"/>
+                                                <fontDescription key="fontDescription" type="system" weight="medium" pointSize="20"/>
+                                                <textInputTraits key="textInputTraits" returnKeyType="next" enablesReturnKeyAutomatically="YES"/>
+                                                <connections>
+                                                    <outlet property="delegate" destination="FqB-8i-DRy" id="No4-JI-iLk"/>
+                                                </connections>
+                                            </textField>
+                                            <imageView clipsSubviews="YES" userInteractionEnabled="NO" alpha="0.5" contentMode="scaleAspectFit" horizontalHuggingPriority="251" verticalHuggingPriority="251" translatesAutoresizingMaskIntoConstraints="NO" id="xNM-SY-vME" userLabel="line2">
+                                                <rect key="frame" x="0.0" y="35.5" width="331" height="2"/>
+                                                <color key="backgroundColor" name="HeaderColor"/>
+                                                <constraints>
+                                                    <constraint firstAttribute="height" constant="2" id="biZ-SF-tSH"/>
+                                                </constraints>
+                                            </imageView>
+                                        </subviews>
+                                    </stackView>
+                                    <stackView opaque="NO" contentMode="scaleToFill" axis="vertical" spacing="10" translatesAutoresizingMaskIntoConstraints="NO" id="AH8-3X-6jp">
+                                        <rect key="frame" x="0.0" y="135" width="331" height="62"/>
+                                        <subviews>
+                                            <textField opaque="NO" contentMode="scaleToFill" contentHorizontalAlignment="left" contentVerticalAlignment="center" placeholder="매달 언제마다?" textAlignment="right" minimumFontSize="17" translatesAutoresizingMaskIntoConstraints="NO" id="XOE-fQ-VyV">
+                                                <rect key="frame" x="0.0" y="0.0" width="331" height="25.5"/>
+                                                <color key="textColor" name="customLabel"/>
+                                                <fontDescription key="fontDescription" type="system" weight="medium" pointSize="20"/>
+                                                <textInputTraits key="textInputTraits"/>
+                                            </textField>
+                                            <imageView clipsSubviews="YES" userInteractionEnabled="NO" alpha="0.5" contentMode="scaleAspectFit" horizontalHuggingPriority="251" verticalHuggingPriority="251" translatesAutoresizingMaskIntoConstraints="NO" id="edQ-G6-LeW" userLabel="line3">
+                                                <rect key="frame" x="0.0" y="35.5" width="331" height="2"/>
+                                                <color key="backgroundColor" name="HeaderColor"/>
+                                                <constraints>
+                                                    <constraint firstAttribute="height" constant="2" id="Z2b-T9-Qaw"/>
+                                                </constraints>
+                                            </imageView>
+                                            <label opaque="NO" userInteractionEnabled="NO" contentMode="left" horizontalHuggingPriority="251" verticalHuggingPriority="251" text="급여가 일정하지 않다면, 1일이 편해요." lineBreakMode="tailTruncation" baselineAdjustment="alignBaselines" adjustsFontSizeToFit="NO" translatesAutoresizingMaskIntoConstraints="NO" id="bnK-DQ-puM">
+                                                <rect key="frame" x="0.0" y="47.5" width="331" height="14.5"/>
+                                                <fontDescription key="fontDescription" type="system" pointSize="12"/>
+                                                <color key="textColor" systemColor="systemGray3Color"/>
+                                                <nil key="highlightedColor"/>
+                                            </label>
+                                        </subviews>
+                                    </stackView>
+                                </subviews>
+                            </stackView>
                         </subviews>
                         <viewLayoutGuide key="safeArea" id="DDS-tG-mHw"/>
                         <color key="backgroundColor" name="backgroundColor"/>
                         <constraints>
-                            <constraint firstItem="XOE-fQ-VyV" firstAttribute="top" secondItem="xNM-SY-vME" secondAttribute="bottom" constant="30" id="1GF-wu-01K"/>
-                            <constraint firstItem="oaM-Yp-SzO" firstAttribute="centerX" secondItem="DDS-tG-mHw" secondAttribute="centerX" id="1oj-YA-nfO"/>
-                            <constraint firstItem="bnK-DQ-puM" firstAttribute="leading" secondItem="XOE-fQ-VyV" secondAttribute="leading" id="7KD-Rl-rqb"/>
-                            <constraint firstItem="oaM-Yp-SzO" firstAttribute="width" secondItem="kqL-fs-GOD" secondAttribute="width" id="7q5-vF-YR8"/>
-                            <constraint firstItem="XOE-fQ-VyV" firstAttribute="centerX" secondItem="DDS-tG-mHw" secondAttribute="centerX" id="CU9-9p-YqD"/>
-                            <constraint firstItem="XOE-fQ-VyV" firstAttribute="width" secondItem="kqL-fs-GOD" secondAttribute="width" id="OmY-Ck-slU"/>
-                            <constraint firstItem="K5K-NL-zSM" firstAttribute="centerX" secondItem="kqL-fs-GOD" secondAttribute="centerX" id="Qcj-zn-CN9"/>
-                            <constraint firstItem="edQ-G6-LeW" firstAttribute="centerX" secondItem="XOE-fQ-VyV" secondAttribute="centerX" id="QrP-OW-4Hp"/>
-                            <constraint firstItem="K5K-NL-zSM" firstAttribute="width" secondItem="kqL-fs-GOD" secondAttribute="width" id="R4c-xo-MEx"/>
-                            <constraint firstItem="K5K-NL-zSM" firstAttribute="top" secondItem="kqL-fs-GOD" secondAttribute="bottom" constant="10" id="SPh-jh-u7N"/>
-                            <constraint firstItem="kqL-fs-GOD" firstAttribute="top" secondItem="DDS-tG-mHw" secondAttribute="top" constant="30" id="W6O-qK-ebA"/>
-                            <constraint firstItem="edQ-G6-LeW" firstAttribute="width" secondItem="XOE-fQ-VyV" secondAttribute="width" id="Xcv-Tc-t9S"/>
-                            <constraint firstItem="oaM-Yp-SzO" firstAttribute="top" secondItem="K5K-NL-zSM" secondAttribute="bottom" constant="30" id="ZFb-6d-z1S"/>
-                            <constraint firstItem="edQ-G6-LeW" firstAttribute="top" secondItem="XOE-fQ-VyV" secondAttribute="bottom" constant="10" id="ZJ1-DR-8I9"/>
-                            <constraint firstItem="bnK-DQ-puM" firstAttribute="top" secondItem="edQ-G6-LeW" secondAttribute="bottom" constant="10" id="ad3-TY-1Sy"/>
-                            <constraint firstItem="kqL-fs-GOD" firstAttribute="width" secondItem="DDS-tG-mHw" secondAttribute="width" multiplier="0.8" id="gJZ-Ll-Pf8"/>
-                            <constraint firstItem="xNM-SY-vME" firstAttribute="centerX" secondItem="oaM-Yp-SzO" secondAttribute="centerX" id="huF-FT-FAj"/>
-                            <constraint firstItem="xNM-SY-vME" firstAttribute="width" secondItem="oaM-Yp-SzO" secondAttribute="width" id="nhz-L3-1Bb"/>
-                            <constraint firstItem="xNM-SY-vME" firstAttribute="top" secondItem="oaM-Yp-SzO" secondAttribute="bottom" constant="10" id="pmV-aE-EIQ"/>
-                            <constraint firstItem="kqL-fs-GOD" firstAttribute="centerX" secondItem="DDS-tG-mHw" secondAttribute="centerX" id="yGp-mG-Dy7"/>
+                            <constraint firstItem="p4V-3y-Nue" firstAttribute="top" secondItem="DDS-tG-mHw" secondAttribute="top" constant="30" id="C05-f0-jIu"/>
+                            <constraint firstItem="p4V-3y-Nue" firstAttribute="width" secondItem="DDS-tG-mHw" secondAttribute="width" multiplier="0.8" id="Jbc-8m-7HI"/>
+                            <constraint firstItem="p4V-3y-Nue" firstAttribute="centerX" secondItem="DDS-tG-mHw" secondAttribute="centerX" id="zYA-sF-ns2"/>
                         </constraints>
                     </view>
                     <navigationItem key="navigationItem" id="Ic3-1A-cFK">
@@ -609,22 +612,28 @@
                                     <rect key="frame" x="0.0" y="0.0" width="414" height="92"/>
                                     <autoresizingMask key="autoresizingMask"/>
                                     <subviews>
-                                        <stackView opaque="NO" contentMode="scaleToFill" axis="vertical" alignment="top" spacing="2" translatesAutoresizingMaskIntoConstraints="NO" id="ctE-JE-4k3">
+                                        <stackView opaque="NO" contentMode="scaleToFill" axis="vertical" distribution="fillProportionally" alignment="top" spacing="2" translatesAutoresizingMaskIntoConstraints="NO" id="ctE-JE-4k3">
                                             <rect key="frame" x="25" y="25" width="364" height="42.5"/>
                                             <subviews>
-                                                <label opaque="NO" userInteractionEnabled="NO" contentMode="left" horizontalHuggingPriority="251" verticalHuggingPriority="251" text="18일" textAlignment="natural" lineBreakMode="tailTruncation" baselineAdjustment="alignBaselines" adjustsFontSizeToFit="NO" translatesAutoresizingMaskIntoConstraints="NO" id="Gu2-nF-lb1">
-                                                    <rect key="frame" x="0.0" y="0.0" width="39.5" height="24"/>
+                                                <label opaque="NO" userInteractionEnabled="NO" contentMode="left" horizontalHuggingPriority="251" verticalHuggingPriority="251" text="18일" lineBreakMode="tailTruncation" baselineAdjustment="alignBaselines" adjustsFontSizeToFit="NO" translatesAutoresizingMaskIntoConstraints="NO" id="Gu2-nF-lb1">
+                                                    <rect key="frame" x="0.0" y="0.0" width="364" height="24"/>
                                                     <fontDescription key="fontDescription" name="PretendardVariable-SemiBold" family="Pretendard Variable" pointSize="20"/>
                                                     <nil key="textColor"/>
                                                     <nil key="highlightedColor"/>
                                                 </label>
                                                 <label opaque="NO" userInteractionEnabled="NO" alpha="0.20000000000000001" contentMode="left" horizontalHuggingPriority="251" verticalHuggingPriority="251" text="26,400원" lineBreakMode="tailTruncation" baselineAdjustment="alignBaselines" adjustsFontSizeToFit="NO" translatesAutoresizingMaskIntoConstraints="NO" id="v81-bq-hQ6">
-                                                    <rect key="frame" x="0.0" y="26" width="57.5" height="16.5"/>
-                                                    <fontDescription key="fontDescription" name="PretendardVariable-Regular" family="Pretendard Variable" pointSize="14"/>
+                                                    <rect key="frame" x="0.0" y="26" width="364" height="16.5"/>
+                                                    <fontDescription key="fontDescription" name="PretendardVariable-Medium" family="Pretendard Variable" pointSize="14"/>
                                                     <nil key="textColor"/>
                                                     <nil key="highlightedColor"/>
                                                 </label>
                                             </subviews>
+                                            <constraints>
+                                                <constraint firstItem="Gu2-nF-lb1" firstAttribute="leading" secondItem="ctE-JE-4k3" secondAttribute="leading" id="13R-56-qNf"/>
+                                                <constraint firstAttribute="trailing" secondItem="v81-bq-hQ6" secondAttribute="trailing" id="3uu-Ge-Sqx"/>
+                                                <constraint firstItem="v81-bq-hQ6" firstAttribute="leading" secondItem="ctE-JE-4k3" secondAttribute="leading" id="92z-Mu-0QP"/>
+                                                <constraint firstAttribute="trailing" secondItem="Gu2-nF-lb1" secondAttribute="trailing" id="qxe-rs-beM"/>
+                                            </constraints>
                                         </stackView>
                                     </subviews>
                                     <constraints>
@@ -719,7 +728,7 @@
                                     <segue destination="gQO-nb-ve8" kind="presentation" identifier="calendar" modalPresentationStyle="fullScreen" id="EhB-U6-c6Z"/>
                                 </connections>
                             </barButtonItem>
-                            <barButtonItem id="8ZC-mY-bdV">
+                            <barButtonItem title="Item" id="8ZC-mY-bdV">
                                 <imageReference key="image" image="lock.fill" catalog="system" symbolScale="medium"/>
                                 <color key="tintColor" name="customLabel"/>
                                 <connections>
@@ -841,7 +850,7 @@
         </scene>
     </scenes>
     <inferredMetricsTieBreakers>
-        <segue reference="gmf-He-0fF"/>
+        <segue reference="gDD-gx-IZf"/>
         <segue reference="PHu-JG-VVa"/>
     </inferredMetricsTieBreakers>
     <resources>

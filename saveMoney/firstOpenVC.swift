@@ -22,12 +22,10 @@ class firstOpenVC: UIViewController, UIPickerViewDelegate, UIPickerViewDataSourc
         salaryDay = salaryList[row]
         salaryTF.text = "매월 " + salaryList[row]
     }
-    
-    
 
     var FODelegate: FODelegate?
     let datepick = UIPickerView()
-    let salaryList: [String] = ["1일", "5일", "10일", "15일", "20일", "25일", "마지막날"]
+    let salaryList: [String] = ["1일", "5일", "10일", "15일", "20일", "25일", "마지막 날"]
     var purposeMoney: Int!
     var salaryDay: String!
     var profileData = profile()
@@ -51,22 +49,25 @@ class firstOpenVC: UIViewController, UIPickerViewDelegate, UIPickerViewDataSourc
         
         //버튼 만들기
         let space = UIBarButtonItem(barButtonSystemItem: .flexibleSpace, target: nil, action: nil)
+        
+        let toPurposeButton = UIBarButtonItem(title: "다음", style: .plain, target: nil, action: #selector(nicknamePressed(_:)))
+        toPurposeButton.tintColor = UIColor(named: "customLabel")
+        
+        let toSalaryButton = UIBarButtonItem(title: "다음", style: .plain, target: nil, action: #selector(purposePressed(_:)))
+        toSalaryButton.tintColor = UIColor(named: "customLabel")
+        
         let doneButton = UIBarButtonItem(title: "완료", style: .done, target: nil, action: #selector(donePressed))
         doneButton.tintColor = UIColor(named: "customLabel")
-        let nextButton = UIBarButtonItem(title: "다음", style: .plain, target: nil, action: #selector(nextPressed))
-        nextButton.tintColor = UIColor(named: "customLabel")
-        let nextButton2 = UIBarButtonItem(title: "다음", style: .plain, target: nil, action: #selector(nextPressed2))
-        nextButton2.tintColor = UIColor(named: "customLabel")
         
-        createToolbarBtn(purposeTF, [space, nextButton])
+        createToolbarBtn(nicknameTF, [space, toPurposeButton])
+        createToolbarBtn(purposeTF, [space, toSalaryButton])
         createToolbarBtn(salaryTF, [space, doneButton])
-        createToolbarBtn(nicknameTF, [space, nextButton2])
+        
     
         if profileData.nickName != "User" {
             nicknameTF.text = profileData.nickName
             purposeTF.text = profileData.outLay.toDecimal()
             salaryTF.text = "매월 " + profileData.period
-            salaryDay = profileData.period
         } else {
             nicknameTF.becomeFirstResponder()
         }
@@ -77,10 +78,11 @@ class firstOpenVC: UIViewController, UIPickerViewDelegate, UIPickerViewDataSourc
         purposeTF.addTarget(self, action: #selector(confirmbtnAlpha), for: .editingChanged)
         salaryTF.addTarget(self, action: #selector(confirmbtnAlpha), for: .editingChanged)
     }
+    
     @IBAction func confirm(_ sender: UIBarButtonItem) {
         if isAllfilled() {
             if let delegate = FODelegate {
-                delegate.initialData(self, nicknameTF.text!, profileData.outLay, salaryDay ?? "1일")
+                delegate.initialData(self, nicknameTF.text!, profileData.outLay, salaryDay ?? profileData.period)
                 _ = navigationController?.popViewController(animated: true)
             }
         }
@@ -108,12 +110,12 @@ class firstOpenVC: UIViewController, UIPickerViewDelegate, UIPickerViewDataSourc
         TF.inputAccessoryView = toolbar
     }
     
-    @objc func nextPressed(_ textField: UITextField) {
-        salaryTF.becomeFirstResponder()
+    @objc func nicknamePressed(_ textField: UITextField) {
+        self.purposeTF.becomeFirstResponder()
     }
     
-    @objc func nextPressed2(_ textField: UITextField) {
-        self.purposeTF.becomeFirstResponder()
+    @objc func purposePressed(_ textField: UITextField) {
+        self.salaryTF.becomeFirstResponder()
     }
     
     @objc func donePressed(_ textField: UITextField) {

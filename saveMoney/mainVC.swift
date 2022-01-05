@@ -208,9 +208,9 @@ class mainVC: UIViewController, sendFinData, shareRevenueFinList, FODelegate {
         case "1일":
             
             return salaryDate(startDate: Date().startOfMonth, endDate: Date().endOfMonth)
-        case "마지막날":
+        case "마지막 날", "마지막날":
             
-            return salaryDate(startDate: Date().endofLastMonth, endDate: Date().endOfMonth)
+            return salaryDate(startDate: Date().endofLastMonth, endDate: Date().yesterDayofLastDayofMonth)
         default:
             
             let int = salary.map { String($0) }
@@ -371,16 +371,15 @@ extension mainVC: UICollectionViewDelegate, UICollectionViewDataSource {
     
     // 컬렉션 헤더 뷰 레이아웃
     func collectionView(_ collectionView: UICollectionView, viewForSupplementaryElementOfKind kind: String, at indexPath: IndexPath) -> UICollectionReusableView {
-        switch kind {
-        case UICollectionView.elementKindSectionHeader:
-            guard let headerView = collectionView.dequeueReusableSupplementaryView(ofKind: kind, withReuseIdentifier: "header", for: indexPath) as? header else { return UICollectionReusableView() }
-            
-            headerView.updateHeader(filteredList, indexPath.section)
-            return headerView
-        default: assert(false, "nil")
-        }
         
-        return UICollectionReusableView()
+        if kind == UICollectionView.elementKindSectionHeader {
+            guard let header = collectionView.dequeueReusableSupplementaryView(ofKind: kind, withReuseIdentifier: "header", for: indexPath) as? header else { return UICollectionReusableView() }
+            
+            header.updateHeader(filteredList, indexPath.section)
+            return header
+        } else {
+            return UICollectionReusableView()
+        }
     }
 }
 
