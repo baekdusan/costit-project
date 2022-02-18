@@ -5,6 +5,11 @@ class calendarVC: UIViewController {
     
     @IBOutlet weak var dDay: UILabel!
     
+    @IBOutlet weak var totalBorder: UIStackView!
+    @IBOutlet weak var rTotal: UILabel!
+    @IBOutlet weak var eTotal: UILabel!
+    @IBOutlet weak var pTotal: UILabel!
+    
     @IBOutlet weak var calendarView: FSCalendar!
     @IBOutlet weak var tableView: UITableView!
    
@@ -15,6 +20,7 @@ class calendarVC: UIViewController {
     
     var efinList: [finData] = []
     var rfinList: [finData] = []
+    var pfinList: [FixedExpenditure] = []
     var filtered: [finData] = []
     let dateFormatter = DateFormatter()
     var period = salaryDate()
@@ -23,7 +29,7 @@ class calendarVC: UIViewController {
     // 다크 라이트 전환시 적용
     override func traitCollectionDidChange(_ previousTraitCollection: UITraitCollection?) {
         super.traitCollectionDidChange(previousTraitCollection)
-        calendarView.appearance.selectionColor = UIColor(named: "toolbar")
+        calendarView.appearance.selectionColor = UIColor(named: "calendarBgColor")
     }
     
     override func viewDidLoad() {
@@ -65,6 +71,12 @@ class calendarVC: UIViewController {
         // 오픈시 오늘 날짜로 뷰 셋팅
         calendarView.select(Date())
         selectDate(Date())
+        
+        rTotal.text = filteredbyMonth(period.startDate, period.endDate, list: rfinList)
+        eTotal.text = filteredbyMonth(period.startDate, period.endDate, list: efinList)
+        pTotal.text = totalF(pfinList)
+        
+        tableCellBorderLayout(totalBorder)
     }
     
     override func viewDidAppear(_ animated: Bool) {
@@ -284,6 +296,39 @@ extension calendarVC: UITableViewDelegate, UITableViewDataSource {
     
     func tableView(_ tableView: UITableView, heightForRowAt indexPath: IndexPath) -> CGFloat {
         return 60
+    }
+}
+
+extension calendarVC {
+    func filteredbyMonth(_ startDate: Date, _ endDate: Date, list: [finData]) -> String {
+        
+        let filtered = list.filter { $0.when >= startDate && $0.when <= endDate}
+        
+        var total = 0
+        
+        for i in filtered {
+            total += i.how
+        }
+        
+        return total.toDecimal()
+    }
+    
+    func totalF(_ list: [FixedExpenditure]) -> String {
+        var total = 0
+        for i in list {
+            total += i.how
+        }
+        
+        return total.toDecimal()
+    }
+    
+    func tableCellBorderLayout(_ stackView : UIStackView) {
+        let border = UIView()
+        border.backgroundColor = .systemGray6
+        border.autoresizingMask = [.flexibleWidth, .flexibleBottomMargin]
+        border.frame = CGRect(x: 10, y: stackView.frame.height + 19.25, width: stackView.frame.width - 20, height: 1.5)
+        border.layer.masksToBounds = false
+        stackView.addSubview(border)
     }
 }
 

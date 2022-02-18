@@ -1,7 +1,10 @@
 import UIKit
 import WidgetKit
 
-class mainVC: UIViewController, sendFinData, shareRevenueFinList, FODelegate {
+class mainVC: UIViewController, sendFinData, shareRevenueFinList, FODelegate, FixedFinDataDelegate {
+    func fixedFinData(_ controller: fixedExpenditureVC, _ fixedData: [FixedExpenditure]) {
+        fixedFinList = fixedData
+    }
     
     // 앱 첫 오픈시에 데이터 입력을 넘겨받는 프로토콜
     func initialData(_ controller: firstOpenVC, _ nickName: String, _ pm: Int, _ salary: String) {
@@ -48,6 +51,7 @@ class mainVC: UIViewController, sendFinData, shareRevenueFinList, FODelegate {
     @IBOutlet weak var balanceCondition: UILabel! // 목표 금액
     
     @IBOutlet weak var collectionView: UICollectionView! // 콜렉션 뷰
+    @IBOutlet weak var revenueBorder: UIButton!
     @IBOutlet weak var addFinBorder: UIButton!
     
     // 지출 가계부
@@ -65,12 +69,20 @@ class mainVC: UIViewController, sendFinData, shareRevenueFinList, FODelegate {
             UserDefaults.standard.set(try? PropertyListEncoder().encode(rfinList), forKey:"rfinList")
         }
     }
+    
+    var fixedFinList: [FixedExpenditure] = [] {
+        didSet {
+            UserDefaults.standard.set(try? PropertyListEncoder().encode(fixedFinList), forKey: "fixedFinList")
+        }
+    }
+    
     var salaryData = salaryDate() {
         // 급여 날짜 저장
         didSet {
             UserDefaults.standard.set(try? PropertyListEncoder().encode(salaryData), forKey: "salarydata")
         }
     }
+    
     var id = profile() {
         // 프로필 담기
         didSet {
@@ -82,6 +94,19 @@ class mainVC: UIViewController, sendFinData, shareRevenueFinList, FODelegate {
     var isEditEnabled: Bool = false // 편집 가능 여부
     var isEditMode: Bool = false // 편집 모드 여부
     var pullRefresh = UIRefreshControl()
+    let gradientView = CAGradientLayer()
+    
+    override func traitCollectionDidChange(_ previousTraitCollection: UITraitCollection?) {
+        super.traitCollectionDidChange(previousTraitCollection)
+
+        gradientView.removeFromSuperlayer()
+        let colors: [CGColor] = [
+            UIColor(named: "topViewColor")!.cgColor,
+            UIColor(named: "backgroundColor")!.withAlphaComponent(0).cgColor
+        ]
+        gradientView.colors = colors
+        topView.layer.addSublayer(gradientView)
+    }
     
     // segue시 데이터 전달
     override func prepare(for segue: UIStoryboardSegue, sender: Any?) {
@@ -89,6 +114,8 @@ class mainVC: UIViewController, sendFinData, shareRevenueFinList, FODelegate {
         if segue.identifier == "addFinData" {
             
             let vc = segue.destination as! addFinVC
+            vc.fromWhere = .expense
+            vc.mode = .new
             vc.start = salaryData.startDate
             vc.end = salaryData.endDate
             vc.delegate = self
@@ -99,11 +126,19 @@ class mainVC: UIViewController, sendFinData, shareRevenueFinList, FODelegate {
             vc.rfinList = rfinList
             vc.start = salaryData.startDate
             vc.end = salaryData.endDate
+        } else if segue.identifier == "fixedExpenditureVC" {
+          
+            let vc = segue.destination as! fixedExpenditureVC
+            vc.fixedData = fixedFinList
+            vc.name = id.nickName
+            vc.fixedDelegate = self
+            
         } else if segue.identifier == "calendar" {
             
             let vc = segue.destination as! calendarVC
             vc.efinList = efinList
             vc.rfinList = rfinList
+            vc.pfinList = fixedFinList
             vc.purpose = id.outLay
             vc.period = salaryData
         } else if segue.identifier == "firstOpen" {
@@ -121,8 +156,15 @@ class mainVC: UIViewController, sendFinData, shareRevenueFinList, FODelegate {
     override func viewDidLoad() {
         super.viewDidLoad()
         
-        // 가계부 작성 버튼 곡률, 그림자 layout
-        addFinBorder.btnLayout(false)
+        gradientView.frame = topView.bounds
+        let colors: [CGColor] = [
+            UIColor(named: "topViewColor")!.cgColor,
+            UIColor(named: "backgroundColor")!.withAlphaComponent(0).cgColor
+        ]
+        gradientView.colors = colors
+        topView.layer.addSublayer(gradientView)
+        
+        collectionView.clipsToBounds = false
         
         // 지출 가계부 정보 받아오기
         if let fData = UserDefaults.standard.value(forKey:"finlist") as? Data {
@@ -131,6 +173,10 @@ class mainVC: UIViewController, sendFinData, shareRevenueFinList, FODelegate {
         // 수입 가계부 정보 받아오기
         if let rfData = UserDefaults.standard.value(forKey: "rfinList") as? Data {
             rfinList = try! PropertyListDecoder().decode([finData].self, from: rfData)
+        }
+        // 고정 지출 정보 가져오기
+        if let fFData = UserDefaults.standard.value(forKey: "fixedFinList") as? Data {
+            fixedFinList = try! PropertyListDecoder().decode([FixedExpenditure].self, from: fFData)
         }
         // 프로필 데이터 받아오기
         if let pData = UserDefaults.standard.value(forKey: "profile") as? Data {
@@ -156,16 +202,17 @@ class mainVC: UIViewController, sendFinData, shareRevenueFinList, FODelegate {
         balanceCondition.text = "/ \(id.outLay.toDecimal()) 원"
         
         self.collectionView.alwaysBounceVertical = true
-        
-        
-        
     }
     
     override func viewWillAppear(_ animated: Bool) {
         super .viewWillAppear(animated)
         
+        // 가계부 작성 버튼 곡률, 그림자 layout
+        addFinBorder.btnLayout(false)
+        revenueBorder.btnLayout(false)
+        
         // 네비게이션 바 투명처리
-        navigationController?.navigationBar.setBackgroundImage(UIImage(), for: UIBarMetrics.default)
+        navigationController?.navigationBar.setBackgroundImage(UIImage(), for: .default)
         navigationController?.navigationBar.shadowImage = UIImage()
     }
     
@@ -285,8 +332,14 @@ class mainVC: UIViewController, sendFinData, shareRevenueFinList, FODelegate {
         collectionView.performBatchUpdates({
             
             collectionView.deleteItems(at: [IndexPath.init(row: row, section: section)])
-            let removedStr = filteredList[section].remove(at: row)
-            efinList.remove(at: efinList.firstIndex(where: {$0 == removedStr})!)
+            let removedData = filteredList[section].remove(at: row)
+            
+            if filteredList[section].isEmpty {
+                collectionView.deleteSections([section])
+                filteredList.remove(at: section)
+            }
+            
+            efinList.remove(at: efinList.firstIndex(where: {$0 == removedData})!)
             
             balance.text = Int(id.outLay - updateThisMonthTotalCost()).toDecimal() + " 원"
             balanceCondition.text = "/ \(id.outLay.toDecimal()) 원"
@@ -305,9 +358,10 @@ class mainVC: UIViewController, sendFinData, shareRevenueFinList, FODelegate {
             if let index = collectionView.indexPathForItem(at: touchPoint) {
                 let section = index[0]
                 let row = index[1]
-                print(filteredList[section][row])
                 guard let vc = self.storyboard?.instantiateViewController(withIdentifier: "addFinData") as? addFinVC else { return }
                 vc.modalPresentationStyle = .overFullScreen
+                vc.fromWhere = .expense
+                vc.mode = .edit
                 vc.originData = filteredList[section][row]
                 vc.delegate = self
                 self.present(vc, animated: true, completion: nil)
@@ -329,7 +383,8 @@ class mainVC: UIViewController, sendFinData, shareRevenueFinList, FODelegate {
 }
 
 extension mainVC: UICollectionViewDelegate, UICollectionViewDataSource {
-
+    
+    
     // 섹션 개수 -> 최대 31개(한달 최대 일수)
     func numberOfSections(in collectionView: UICollectionView) -> Int {
         return filteredList.count
@@ -407,7 +462,9 @@ class finCell: UICollectionViewCell {
         
         when.text = model[section][row].when.toString(false)
         towhat.text = model[section][row].towhat
-        how.text = "- " + model[section][row].how.toDecimal()
+        let money: Int = model[section][row].how
+        money == 0 ? (how.text = "무료") : (how.text = "- " + money.toDecimal())
+        
     }
     
     func makeShadow() {
@@ -425,14 +482,9 @@ class header: UICollectionReusableView {
     
     func updateHeader(_ arr: [[finData]], _ index: Int) {
         var todaytotal = 0
-        if arr[index].isEmpty {
-            headerDate.text = "정말?"
-        } else {
-            headerDate.text = arr[index][0].when.onlydate() + "일"
-
-            for i in arr[index] {
-                todaytotal += i.how
-            }
+        headerDate.text = arr[index][0].when.onlydate() + "일"
+        for i in arr[index] {
+            todaytotal += i.how
         }
         todayTotal.text = todaytotal.toDecimal() + "원"
     }
@@ -443,20 +495,48 @@ extension mainVC : UIScrollViewDelegate {
     // 스크롤이 시작될 때
     func scrollViewDidScroll(_ scrollView: UIScrollView) {
         self.addFinBorder.btnLayout(true)
+        self.revenueBorder.btnLayout(true)
     }
     
     // 스크롤이 끝에 닿았을 때
     func scrollViewDidEndDecelerating(_ scrollView: UIScrollView) {
-        UIView.animate(withDuration: 0.6, delay: 0, animations: { self.addFinBorder.btnLayout(false) }, completion: nil)
+        UIView.animate(
+            withDuration: 0.6,
+            delay: 0,
+            animations:
+                {
+                    self.addFinBorder.btnLayout(false)
+                    self.revenueBorder.btnLayout(false)
+                },
+            completion: nil
+        )
     }
     
     // 스크롤뷰에서 손을 뗐을 때
     func scrollViewDidEndDragging(_ scrollView: UIScrollView, willDecelerate decelerate: Bool) {
-        UIView.animate(withDuration: 0.6, delay: 0, animations: { self.addFinBorder.btnLayout(false) }, completion: nil)
+        UIView.animate(
+            withDuration: 0.6,
+            delay: 0,
+            animations:
+                {
+                    self.addFinBorder.btnLayout(false)
+                    self.revenueBorder.btnLayout(false)
+                },
+            completion: nil
+        )
     }
     
     // 맨 위로 스크롤이 올라갈 때 (상단 상태바 중앙 터치 시)
     func scrollViewDidScrollToTop(_ scrollView: UIScrollView) {
-        UIView.animate(withDuration: 0.6, delay: 0, animations: { self.addFinBorder.btnLayout(false) }, completion: nil)
+        UIView.animate(
+            withDuration: 0.6,
+            delay: 0,
+            animations:
+                {
+                    self.addFinBorder.btnLayout(false)
+                    self.revenueBorder.btnLayout(false)
+                },
+            completion: nil
+        )
     }
 }

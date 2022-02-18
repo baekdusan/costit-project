@@ -3,8 +3,19 @@ import UIKit
 protocol sendFinData {
     func sendFinanceSource(_ controller: addFinVC, _ originData: finData, _ revisedData: finData)
 }
+
 protocol sendRevenueFinData {
     func sendRevenueData(_ controller: addFinVC, _ originData: finData, _ revisedData: finData)
+}
+
+enum sourceView {
+    case expense
+    case revenue
+}
+
+enum mode {
+    case new
+    case edit
 }
 
 class addFinVC: UIViewController, UITextFieldDelegate {
@@ -24,9 +35,11 @@ class addFinVC: UIViewController, UITextFieldDelegate {
     var end: Date!
     let formatter = DateFormatter()
     
-    var fromRevenue: Bool = false
+    var fromWhere: sourceView?
+    var mode: mode?
     
     var originData: finData! // 수정할 때 잠시 담아두는 데이터
+    
     
     func swipeRecognizer() {
             let swipeDown = UISwipeGestureRecognizer(target: self, action: #selector(self.respondToSwipeGesture(_:)))
@@ -126,7 +139,7 @@ class addFinVC: UIViewController, UITextFieldDelegate {
     func toolbarSetting(_ textfield: UITextField, _ composition: [UIBarButtonItem]) {
         //toolbar 만들기, done 버튼이 들어갈 곳
         let toolbar = UIToolbar()
-        toolbar.barTintColor = UIColor(named: fromRevenue == false ? "topViewColor" : "pinColor")
+        toolbar.barTintColor = UIColor(named: fromWhere == .expense ? "topViewColor" : "pinColor")
         toolbar.sizeToFit() //view 스크린에 딱 맞게 사이즈 조정
         toolbar.setItems(composition, animated: true)
         textfield.inputAccessoryView = toolbar
@@ -156,32 +169,38 @@ class addFinVC: UIViewController, UITextFieldDelegate {
     @objc func donePressed() {
         if !whenTextField.text!.isEmpty, !towhatTextField.text!.isEmpty, !howTextField.text!.isEmpty {
             let writenData = finData(when: when, towhat: towhatTextField.text, how: outlay)
-            // 수정하기로 열었을 때
-            if let originData = originData {
-                // 데이터를 수정 안하고 붙인다면 그냥 뷰를 닫기
-                if originData != writenData {
-                    if fromRevenue == true {
+            if mode == .edit {
+                guard let originData = originData else { return }
+                switch fromWhere {
+                case .expense:
+                    if originData != writenData {
+                        if let delegate = delegate {
+                            delegate.sendFinanceSource(self, originData, writenData)
+                        }
+                    } else {
+                    }
+                case .revenue:
+                    if originData != writenData {
                         if let delegate = rDelegate {
                             delegate.sendRevenueData(self, originData, writenData)
                         }
                     } else {
-                        if let delegate = delegate {
-                            delegate.sendFinanceSource(self, originData, writenData)
-                        }
                     }
-                    
-                } else {
+                default:
+                    break
                 }
-            // 그냥 열었을 때
-            } else {
-                if fromRevenue == true {
-                    if let delegate = rDelegate {
-                        delegate.sendRevenueData(self, writenData, writenData)
-                    }
-                } else {
+            } else if mode == .new {
+                switch fromWhere {
+                case .expense:
                     if let delegate = delegate {
                         delegate.sendFinanceSource(self, writenData, writenData)
                     }
+                case .revenue:
+                    if let delegate = rDelegate {
+                        delegate.sendRevenueData(self, writenData, writenData)
+                    }
+                default:
+                    break
                 }
             }
             dismiss(animated: true, completion: nil)
@@ -223,5 +242,3 @@ class addFinVC: UIViewController, UITextFieldDelegate {
         return numberFormatter.string(from: NSNumber(value: number))!
     }
 }
-
-

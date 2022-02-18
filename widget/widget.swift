@@ -44,8 +44,7 @@ struct widgetEntryView : View {
         GeometryReader { geometry in
             
                 // 위젯 배경색
-                Color("HeaderColor")
-                       .opacity(0.25)
+                Color("WidgetBackground")
             
                 // 세로로 글자 배치 : 전체의 72% 차지
                 VStack(alignment: .trailing, spacing: 0) {
@@ -78,9 +77,10 @@ struct widgetEntryView : View {
             
                 // 아래 배터리 상태바 : 전체 길이의 8% 차지
                 ZStack(alignment: .leading) {
-                    Color("toolbar")
+                    Color("WidgetStatusBarBackground")
                         .frame(width: geometry.size.width , height: geometry.size.height * 0.08)
                     Color(color)
+//                        .cornerRadius(geometry.size.height * 0.08 / 2, corners: [.topRight, .bottomRight])
                         .frame(width: geometry.size.width * CGFloat(condition) , height: geometry.size.height * 0.08)
                         
                    }.frame(width: geometry.size.width, height: geometry.size.height, alignment: .bottom)
@@ -106,5 +106,22 @@ struct widget_Previews: PreviewProvider {
     static var previews: some View {
         widgetEntryView(entry: SimpleEntry(date: Date()))
             .previewContext(WidgetPreviewContext(family: .systemSmall))
+    }
+}
+
+struct RoundedCorner: Shape {
+
+    var radius: CGFloat = .infinity
+    var corners: UIRectCorner = .allCorners
+
+    func path(in rect: CGRect) -> Path {
+        let path = UIBezierPath(roundedRect: rect, byRoundingCorners: corners, cornerRadii: CGSize(width: radius, height: radius))
+        return Path(path.cgPath)
+    }
+}
+
+extension View {
+    func cornerRadius(_ radius: CGFloat, corners: UIRectCorner) -> some View {
+        clipShape(RoundedCorner(radius: radius, corners: corners))
     }
 }

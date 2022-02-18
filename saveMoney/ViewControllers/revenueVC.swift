@@ -1,5 +1,4 @@
 import UIKit
-import SwiftUI
 
 protocol shareRevenueFinList {
     func sendRFinList(_ viewController: revenueVC, _ rFinList: [finData])
@@ -22,6 +21,7 @@ class revenueVC: UIViewController, sendRevenueFinData {
     
     @IBOutlet weak var navigation: UINavigationBar!
     @IBOutlet weak var collectionView: UICollectionView! // 콜렉션 뷰
+    @IBOutlet weak var dismissBtn: UIButton!
     @IBOutlet weak var addBtnLayOut: UIButton! // 소득 추가 버튼
     
     var rfinList: [finData] = [] {
@@ -40,7 +40,8 @@ class revenueVC: UIViewController, sendRevenueFinData {
         if segue.identifier == "addRevenueFinData" {
             // 소득을 추가할 때는 기간 내에 시작과 끝점, 그리고 추가 뷰가 소득 뷰에서부터 왔다는 것을 알려줘야함
             let vc = segue.destination as! addFinVC
-            vc.fromRevenue = true
+            vc.fromWhere = .revenue
+            vc.mode = .new
             vc.start = start
             vc.end = end
             vc.rDelegate = self
@@ -61,18 +62,16 @@ class revenueVC: UIViewController, sendRevenueFinData {
         title.textColor = UIColor(named: "customLabel")
         navigation.topItem?.titleView = title
         
-        // 네비게이션 바 버튼 레이아웃 설정
-        let dismissImage = UIImage(systemName: "arrow.left.arrow.right", withConfiguration: UIImage.SymbolConfiguration(scale: .medium))
-        let dismissbtn = UIBarButtonItem(image: dismissImage, style: .plain, target: self, action: #selector(dismissView))
-        
-        dismissbtn.tintColor = UIColor(named: "customLabel")
-        navigation.topItem?.leftBarButtonItem = dismissbtn
-        
         // 버튼 동그랗게 + 투명도 조절
         addBtnLayOut.btnLayout(false)
+        dismissBtn.btnLayout(false)
         
         // 지출 뷰에서 받아온 기간으로 가계부 데이터 필터링
         filteredbyMonth(start, end)
+    }
+    @IBAction func dismissBtn(_ sender: UIButton) {
+        dismiss(animated: true, completion: nil)
+            
     }
     
     func updateLayout() {
@@ -121,9 +120,10 @@ class revenueVC: UIViewController, sendRevenueFinData {
             if let index = collectionView.indexPathForItem(at: touchPoint) {
                 let row = index[1]
                 guard let vc = self.storyboard?.instantiateViewController(withIdentifier: "addFinData") as? addFinVC else { return }
+                vc.fromWhere = .revenue
+                vc.mode = .edit
                 vc.originData = filtered[row]
                 vc.rDelegate = self
-                vc.fromRevenue = true
                 vc.modalPresentationStyle = .overFullScreen
                 self.present(vc, animated: true, completion: nil)
             }
@@ -165,6 +165,7 @@ extension revenueVC: UICollectionViewDelegate, UICollectionViewDataSource {
         case UICollectionView.elementKindSectionHeader:
             guard let headerView = collectionView.dequeueReusableSupplementaryView(ofKind: kind, withReuseIdentifier: "rHeader", for: indexPath) as? rheader else { return UICollectionReusableView() }
             headerView.updateHeader(filtered, indexPath.section)
+            headerView.makeShadow()
             return headerView
         default: assert(false, "nil")
         }
@@ -221,6 +222,12 @@ class rheader: UICollectionReusableView {
             }
             headerDate.text = "₩ " + total.toDecimal()
         }
+    }
+    
+    func makeShadow() {
+        layer.shadowColor = UIColor.black.cgColor
+        layer.shadowOpacity = 0.08
+        layer.masksToBounds = true
     }
 }
 

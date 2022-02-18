@@ -10,6 +10,7 @@
 		0140BAB1A396A6C1A9253BCD /* Pods_saveMoney.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 04646CCD1D5FB13C9608BF47 /* Pods_saveMoney.framework */; };
 		3109F60C27336DC500D83FDA /* PretendardVariable.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 3109F60B27336DC500D83FDA /* PretendardVariable.ttf */; };
 		310CB42F26ED0E7E002F7665 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 3193F99826CDE29E006FB348 /* Assets.xcassets */; };
+		3152752C27B0E63A00FC2B80 /* fixedExpenditureCell.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3152752B27B0E63A00FC2B80 /* fixedExpenditureCell.swift */; };
 		3191827F2709DACE002AB18F /* revenueVC.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3191827E2709DACD002AB18F /* revenueVC.swift */; };
 		3193F99026CDE29C006FB348 /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3193F98F26CDE29C006FB348 /* AppDelegate.swift */; };
 		3193F99226CDE29C006FB348 /* SceneDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3193F99126CDE29C006FB348 /* SceneDelegate.swift */; };
@@ -21,6 +22,7 @@
 		3193F9A626CF677B006FB348 /* calendarVC.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3193F9A526CF677B006FB348 /* calendarVC.swift */; };
 		3193F9A826D113B9006FB348 /* firstOpenVC.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3193F9A726D113B9006FB348 /* firstOpenVC.swift */; };
 		3193F9AA26D33331006FB348 /* struct.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3193F9A926D33331006FB348 /* struct.swift */; };
+		3197287627B006BF00F5367C /* fixedExpenditureVC.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3197287527B006BE00F5367C /* fixedExpenditureVC.swift */; };
 		31DBD91226E74FCB007733FB /* WidgetKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 31DBD91126E74FCB007733FB /* WidgetKit.framework */; };
 		31DBD91426E74FCB007733FB /* SwiftUI.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 31DBD91326E74FCB007733FB /* SwiftUI.framework */; };
 		31DBD91726E74FCB007733FB /* widget.swift in Sources */ = {isa = PBXBuildFile; fileRef = 31DBD91626E74FCB007733FB /* widget.swift */; };
@@ -55,6 +57,7 @@
 /* Begin PBXFileReference section */
 		04646CCD1D5FB13C9608BF47 /* Pods_saveMoney.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = Pods_saveMoney.framework; sourceTree = BUILT_PRODUCTS_DIR; };
 		3109F60B27336DC500D83FDA /* PretendardVariable.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; path = PretendardVariable.ttf; sourceTree = "<group>"; };
+		3152752B27B0E63A00FC2B80 /* fixedExpenditureCell.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = fixedExpenditureCell.swift; sourceTree = "<group>"; };
 		3191827E2709DACD002AB18F /* revenueVC.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = revenueVC.swift; sourceTree = "<group>"; };
 		3193F98C26CDE29C006FB348 /* saveMoney.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = saveMoney.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		3193F98F26CDE29C006FB348 /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
@@ -68,6 +71,7 @@
 		3193F9A526CF677B006FB348 /* calendarVC.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = calendarVC.swift; sourceTree = "<group>"; };
 		3193F9A726D113B9006FB348 /* firstOpenVC.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = firstOpenVC.swift; sourceTree = "<group>"; };
 		3193F9A926D33331006FB348 /* struct.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = struct.swift; sourceTree = "<group>"; };
+		3197287527B006BE00F5367C /* fixedExpenditureVC.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = fixedExpenditureVC.swift; sourceTree = "<group>"; };
 		31DBD91026E74FCB007733FB /* widgetExtension.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = widgetExtension.appex; sourceTree = BUILT_PRODUCTS_DIR; };
 		31DBD91126E74FCB007733FB /* WidgetKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = WidgetKit.framework; path = System/Library/Frameworks/WidgetKit.framework; sourceTree = SDKROOT; };
 		31DBD91326E74FCB007733FB /* SwiftUI.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = SwiftUI.framework; path = System/Library/Frameworks/SwiftUI.framework; sourceTree = SDKROOT; };
@@ -140,17 +144,27 @@
 				3193F99526CDE29C006FB348 /* Main.storyboard */,
 				3193F98F26CDE29C006FB348 /* AppDelegate.swift */,
 				3193F99126CDE29C006FB348 /* SceneDelegate.swift */,
-				3193F9A726D113B9006FB348 /* firstOpenVC.swift */,
-				3193F9A526CF677B006FB348 /* calendarVC.swift */,
-				3193F99326CDE29C006FB348 /* mainVC.swift */,
-				3191827E2709DACD002AB18F /* revenueVC.swift */,
-				3193F9A326CDE459006FB348 /* addFinVC.swift */,
 				3193F9A926D33331006FB348 /* struct.swift */,
+				31B1384227BF8B2800B6B30D /* ViewControllers */,
 				3193F99826CDE29E006FB348 /* Assets.xcassets */,
 				3193F99A26CDE29E006FB348 /* LaunchScreen.storyboard */,
 				3193F99D26CDE29E006FB348 /* Info.plist */,
 			);
 			path = saveMoney;
+			sourceTree = "<group>";
+		};
+		31B1384227BF8B2800B6B30D /* ViewControllers */ = {
+			isa = PBXGroup;
+			children = (
+				3193F9A726D113B9006FB348 /* firstOpenVC.swift */,
+				3193F99326CDE29C006FB348 /* mainVC.swift */,
+				3191827E2709DACD002AB18F /* revenueVC.swift */,
+				3197287527B006BE00F5367C /* fixedExpenditureVC.swift */,
+				3152752B27B0E63A00FC2B80 /* fixedExpenditureCell.swift */,
+				3193F9A326CDE459006FB348 /* addFinVC.swift */,
+				3193F9A526CF677B006FB348 /* calendarVC.swift */,
+			);
+			path = ViewControllers;
 			sourceTree = "<group>";
 		};
 		31DBD91526E74FCB007733FB /* widget */ = {
@@ -321,6 +335,8 @@
 			files = (
 				3193F9A626CF677B006FB348 /* calendarVC.swift in Sources */,
 				3193F9A426CDE459006FB348 /* addFinVC.swift in Sources */,
+				3152752C27B0E63A00FC2B80 /* fixedExpenditureCell.swift in Sources */,
+				3197287627B006BF00F5367C /* fixedExpenditureVC.swift in Sources */,
 				3193F99426CDE29C006FB348 /* mainVC.swift in Sources */,
 				3193F9A826D113B9006FB348 /* firstOpenVC.swift in Sources */,
 				3193F9AA26D33331006FB348 /* struct.swift in Sources */,
@@ -493,14 +509,14 @@
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_ENTITLEMENTS = saveMoney/saveMoney.entitlements;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 2;
+				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = 27AD4X6UKW;
 				INFOPLIST_FILE = saveMoney/Info.plist;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 1.3.5;
+				MARKETING_VERSION = 1.4;
 				PRODUCT_BUNDLE_IDENTIFIER = kr.co.saveMoney;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_VERSION = 5.0;
@@ -517,14 +533,14 @@
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_ENTITLEMENTS = saveMoney/saveMoney.entitlements;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 2;
+				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = 27AD4X6UKW;
 				INFOPLIST_FILE = saveMoney/Info.plist;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 1.3.5;
+				MARKETING_VERSION = 1.4;
 				PRODUCT_BUNDLE_IDENTIFIER = kr.co.saveMoney;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_VERSION = 5.0;
@@ -539,7 +555,7 @@
 				ASSETCATALOG_COMPILER_WIDGET_BACKGROUND_COLOR_NAME = WidgetBackground;
 				CODE_SIGN_ENTITLEMENTS = widgetExtension.entitlements;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 2;
+				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = 27AD4X6UKW;
 				INFOPLIST_FILE = widget/Info.plist;
 				LD_RUNPATH_SEARCH_PATHS = (
@@ -547,7 +563,7 @@
 					"@executable_path/Frameworks",
 					"@executable_path/../../Frameworks",
 				);
-				MARKETING_VERSION = 1.3.5;
+				MARKETING_VERSION = 1.4;
 				PRODUCT_BUNDLE_IDENTIFIER = kr.co.saveMoney.widget;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SKIP_INSTALL = YES;
@@ -563,7 +579,7 @@
 				ASSETCATALOG_COMPILER_WIDGET_BACKGROUND_COLOR_NAME = WidgetBackground;
 				CODE_SIGN_ENTITLEMENTS = widgetExtension.entitlements;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 2;
+				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = 27AD4X6UKW;
 				INFOPLIST_FILE = widget/Info.plist;
 				LD_RUNPATH_SEARCH_PATHS = (
@@ -571,7 +587,7 @@
 					"@executable_path/Frameworks",
 					"@executable_path/../../Frameworks",
 				);
-				MARKETING_VERSION = 1.3.5;
+				MARKETING_VERSION = 1.4;
 				PRODUCT_BUNDLE_IDENTIFIER = kr.co.saveMoney.widget;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SKIP_INSTALL = YES;
