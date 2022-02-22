@@ -34,6 +34,7 @@ class fixedExpenditureVC: UIViewController {
             }
             
             self.navigationBarTitle.text = totalCost()
+            self.navigationBarTitle.sizeToFit()
         }
     }
     let navigationBarTitle = UILabel()
@@ -67,8 +68,7 @@ class fixedExpenditureVC: UIViewController {
         
         navigationBarTitle.text = totalCost()
         navigationBarTitle.font = UIFont.systemFont(ofSize: 12, weight: .semibold)
-//        title.textColor = UIColor(named: "customLabel")
-        
+        navigationBarTitle.sizeToFit()
         navigation.topItem?.titleView = navigationBarTitle
         
         
