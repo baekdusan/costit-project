@@ -27,8 +27,8 @@ class fixedExpenditureVC: UIViewController {
                 
             }
             if !fixedData.isEmpty {
+                notificationCenter.removeAllPendingNotificationRequests()
                 for i in fixedData {
-                    notificationCenter.removePendingNotificationRequests(withIdentifiers: [i.id])
                     notificationCenter.addNotificationRequest(to: name, by: i)
                 }
             }
@@ -59,10 +59,13 @@ class fixedExpenditureVC: UIViewController {
     override func viewDidLoad() {
         super.viewDidLoad()
         
+        // 푸시 알림 요청
         requestNotificationAuthorization()
         
+        // 테이블 뷰 테두리 없앰
         tableView.separatorStyle = .none
         
+        // 네비게이션 바 투명 & 총액 표시
         self.navigation.setBackgroundImage(UIImage(), for: .default)
         self.navigation.shadowImage = UIImage()
         
@@ -71,21 +74,24 @@ class fixedExpenditureVC: UIViewController {
         navigationBarTitle.sizeToFit()
         navigation.topItem?.titleView = navigationBarTitle
         
-        
+        // 줄 생성
         border.backgroundColor = UIColor(named: "fixedColor")
         border.autoresizingMask = [.flexibleWidth, .flexibleBottomMargin]
         border.frame = CGRect(x: 0, y: TFSTackView.frame.height - 1.5, width: TFSTackView.frame.width, height: 1.5)
         TFSTackView.addSubview(border)
         
+        // 키보드 툴바 설정
         addInputAccessoryForTextFields(textFields: [whenTF, toWhatTF, howTF], dismissable: true, previousNextable: true)
         
+        // 추가 버튼 알파값 조절
         addBtnAlpha()
         
+        // 값이 바뀔 때마다 추가 버튼 알파값 변경
         [whenTF, toWhatTF, howTF].forEach {
             $0?.addTarget(self, action: #selector(addBtnAlpha), for: .editingChanged)
         }
         
-        
+        // 날짜별로 필터링하여 테이블에 리로드
         filteredbyDays()
         tableView.reloadData()
     }
@@ -93,32 +99,21 @@ class fixedExpenditureVC: UIViewController {
     override func viewWillAppear(_ animated: Bool) {
         super.viewWillAppear(animated)
         
+        // 피커 뷰 생성, 적용
         pickerview.dataSource = self
         pickerview.delegate = self
         whenTF.inputView = pickerview
         howTF.keyboardType = .numberPad
-        
-        if !fixedData.isEmpty {
-            for i in fixedData {
-                notificationCenter.removePendingNotificationRequests(withIdentifiers: [i.id])
-                notificationCenter.addNotificationRequest(to: name, by: i)
-            }
-        }
     }
     
     override func touchesBegan(_ touches: Set<UITouch>, with event: UIEvent?){
         self.view.endEditing(true)
     }
     
-    
-
-    
     @IBAction func addFixedDataBtn(_ sender: UIBarButtonItem) {
         addFixedData()
     }
-    
 
-    
     @IBAction func dismissBtn(_ sender: UIBarButtonItem) {
         dismiss(animated: true, completion: nil)
     }
@@ -151,6 +146,23 @@ extension fixedExpenditureVC: UITableViewDelegate, UITableViewDataSource {
         cell.trashBtn.addTarget(self, action: #selector(trashBtnTapped(sender:)), for: .touchUpInside)
 //        cell.addBtn.addTarget(self, action: #selector(addBtnTapped(sender:)), for: .touchUpInside)
         return cell
+    }
+    
+    func tableView(_ tableView: UITableView, viewForHeaderInSection section: Int) -> UIView? {
+        let myLabel = UILabel()
+        myLabel.frame = CGRect(x: 24, y: 0, width: tableView.frame.width - 48, height: 30)
+        myLabel.font = UIFont.boldSystemFont(ofSize: 12)
+        myLabel.alpha = 0.4
+        myLabel.text = self.tableView(tableView, titleForHeaderInSection: section)
+
+        let headerView = UIView()
+        headerView.addSubview(myLabel)
+
+        return headerView
+    }
+    
+    func tableView(_ tableView: UITableView, heightForHeaderInSection section: Int) -> CGFloat {
+        return 30
     }
 
 }
@@ -262,6 +274,24 @@ extension fixedExpenditureVC {
         let section = sender.tag / 1000
         let row = sender.tag % 1000
         
+        let alert = UIAlertController(title: "삭제", message: "해당 고정 지출 내역을 삭제해요.", preferredStyle: .alert)
+        
+        let cancel = UIAlertAction(title: "취소", style: .cancel, handler: nil)
+        let ok = UIAlertAction(title: "확인", style: .default, handler: { [self]_ in
+            deleteData(row, section)
+        })
+        
+        alert.addAction(cancel)
+        alert.addAction(ok)
+        
+        present(alert, animated: true, completion: nil)
+    }
+    
+//    @objc func addBtnTapped(sender: UIButton) {
+//        print(sender)
+//    }
+    
+    func deleteData(_ row: Int, _ section: Int) {
         tableView.performBatchUpdates({
             
             tableView.deleteRows(at: [IndexPath.init(row: row, section: section)], with: .fade)
@@ -274,13 +304,10 @@ extension fixedExpenditureVC {
             
             fixedData.remove(at: fixedData.firstIndex(where: {$0 == removedData})!)
         }, completion: {[self] _ in
-            tableView.reloadData()})
+            tableView.reloadData()
+        }
+    )
     }
-    
-//    @objc func addBtnTapped(sender: UIButton) {
-//        print(sender)
-//    }
-    
 
     
     @objc func addFixedData() {

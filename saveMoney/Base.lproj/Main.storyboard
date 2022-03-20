@@ -639,7 +639,7 @@
                                             </connections>
                                         </barButtonItem>
                                         <barButtonItem key="rightBarButtonItem" id="Qnv-4p-dub">
-                                            <imageReference key="image" image="plus" catalog="system" symbolScale="medium"/>
+                                            <imageReference key="image" image="plus" catalog="system" symbolScale="large"/>
                                             <color key="tintColor" name="fixedColor"/>
                                             <connections>
                                                 <action selector="addFixedDataBtn:" destination="eBd-1O-1rY" id="POC-nm-oUW"/>
@@ -649,10 +649,10 @@
                                 </items>
                             </navigationBar>
                             <stackView opaque="NO" contentMode="scaleToFill" spacing="10" translatesAutoresizingMaskIntoConstraints="NO" id="s6G-D9-xCJ">
-                                <rect key="frame" x="18" y="106" width="378" height="50"/>
+                                <rect key="frame" x="24" y="112" width="366" height="50"/>
                                 <subviews>
                                     <textField opaque="NO" contentMode="scaleToFill" contentHorizontalAlignment="left" contentVerticalAlignment="center" placeholder="언제?" textAlignment="center" minimumFontSize="17" translatesAutoresizingMaskIntoConstraints="NO" id="d2P-qt-btU">
-                                        <rect key="frame" x="0.0" y="0.0" width="71.5" height="50"/>
+                                        <rect key="frame" x="0.0" y="0.0" width="69" height="50"/>
                                         <color key="tintColor" name="fixedColor"/>
                                         <color key="textColor" name="customLabel"/>
                                         <fontDescription key="fontDescription" name="PretendardVariable-Bold" family="Pretendard Variable" pointSize="14"/>
@@ -662,7 +662,7 @@
                                         </connections>
                                     </textField>
                                     <textField opaque="NO" contentMode="scaleToFill" contentHorizontalAlignment="left" contentVerticalAlignment="center" placeholder="어디서?" textAlignment="center" minimumFontSize="17" translatesAutoresizingMaskIntoConstraints="NO" id="mhj-ET-RYT">
-                                        <rect key="frame" x="81.5" y="0.0" width="143.5" height="50"/>
+                                        <rect key="frame" x="79" y="0.0" width="138.5" height="50"/>
                                         <color key="tintColor" name="fixedColor"/>
                                         <fontDescription key="fontDescription" name="PretendardVariable-SemiBold" family="Pretendard Variable" pointSize="14"/>
                                         <textInputTraits key="textInputTraits"/>
@@ -671,7 +671,7 @@
                                         </connections>
                                     </textField>
                                     <textField opaque="NO" contentMode="scaleToFill" contentHorizontalAlignment="left" contentVerticalAlignment="center" placeholder="얼마?" textAlignment="center" minimumFontSize="17" translatesAutoresizingMaskIntoConstraints="NO" id="0o3-I9-mHt">
-                                        <rect key="frame" x="235" y="0.0" width="143" height="50"/>
+                                        <rect key="frame" x="227.5" y="0.0" width="138.5" height="50"/>
                                         <color key="tintColor" name="fixedColor"/>
                                         <fontDescription key="fontDescription" name="PretendardVariable-SemiBold" family="Pretendard Variable" pointSize="14"/>
                                         <textInputTraits key="textInputTraits"/>
@@ -686,38 +686,38 @@
                                     <constraint firstItem="d2P-qt-btU" firstAttribute="width" secondItem="mhj-ET-RYT" secondAttribute="width" multiplier="0.5" id="ueE-Ic-tFr"/>
                                 </constraints>
                             </stackView>
-                            <tableView clipsSubviews="YES" contentMode="scaleToFill" alwaysBounceVertical="YES" dataMode="prototypes" style="plain" separatorStyle="default" rowHeight="-1" estimatedRowHeight="-1" sectionHeaderHeight="-1" estimatedSectionHeaderHeight="-1" sectionFooterHeight="-1" estimatedSectionFooterHeight="-1" translatesAutoresizingMaskIntoConstraints="NO" id="1Xt-Kc-tuv">
-                                <rect key="frame" x="0.0" y="156" width="414" height="740"/>
+                            <tableView clipsSubviews="YES" contentMode="scaleToFill" alwaysBounceVertical="YES" dataMode="prototypes" style="grouped" separatorStyle="default" rowHeight="-1" estimatedRowHeight="-1" sectionHeaderHeight="18" estimatedSectionHeaderHeight="-1" sectionFooterHeight="18" estimatedSectionFooterHeight="-1" translatesAutoresizingMaskIntoConstraints="NO" id="1Xt-Kc-tuv">
+                                <rect key="frame" x="0.0" y="162" width="414" height="734"/>
                                 <color key="backgroundColor" systemColor="systemBackgroundColor"/>
                                 <color key="sectionIndexColor" name="customLabel"/>
                                 <prototypes>
                                     <tableViewCell clipsSubviews="YES" contentMode="scaleToFill" preservesSuperviewLayoutMargins="YES" selectionStyle="none" indentationWidth="10" reuseIdentifier="fixedExpenditureCell" id="QE1-Tx-EBT" customClass="fixedExpenditureCell" customModule="saveMoney" customModuleProvider="target">
-                                        <rect key="frame" x="0.0" y="44.5" width="414" height="50.5"/>
+                                        <rect key="frame" x="0.0" y="49.5" width="414" height="50.5"/>
                                         <autoresizingMask key="autoresizingMask"/>
                                         <tableViewCellContentView key="contentView" opaque="NO" clipsSubviews="YES" multipleTouchEnabled="YES" contentMode="center" preservesSuperviewLayoutMargins="YES" insetsLayoutMarginsFromSafeArea="NO" tableViewCell="QE1-Tx-EBT" id="oPt-pl-jvK">
                                             <rect key="frame" x="0.0" y="0.0" width="414" height="50.5"/>
                                             <autoresizingMask key="autoresizingMask"/>
                                             <subviews>
                                                 <stackView opaque="NO" contentMode="scaleToFill" distribution="fillProportionally" spacing="18" translatesAutoresizingMaskIntoConstraints="NO" id="9D8-ao-Rrq">
-                                                    <rect key="frame" x="18" y="0.0" width="378" height="50.5"/>
+                                                    <rect key="frame" x="24" y="0.0" width="366" height="50.5"/>
                                                     <subviews>
                                                         <stackView opaque="NO" contentMode="scaleToFill" translatesAutoresizingMaskIntoConstraints="NO" id="Bde-Un-AHu">
-                                                            <rect key="frame" x="0.0" y="0.0" width="378" height="50.5"/>
+                                                            <rect key="frame" x="0.0" y="0.0" width="366" height="50.5"/>
                                                             <subviews>
                                                                 <label opaque="NO" userInteractionEnabled="NO" contentMode="left" horizontalHuggingPriority="251" verticalHuggingPriority="251" text="Label" lineBreakMode="tailTruncation" numberOfLines="0" baselineAdjustment="alignBaselines" minimumFontSize="10" translatesAutoresizingMaskIntoConstraints="NO" id="xTJ-EJ-FJK">
-                                                                    <rect key="frame" x="0.0" y="0.0" width="164" height="50.5"/>
+                                                                    <rect key="frame" x="0.0" y="0.0" width="158" height="50.5"/>
                                                                     <fontDescription key="fontDescription" name="PretendardVariable-SemiBold" family="Pretendard Variable" pointSize="14"/>
                                                                     <nil key="textColor"/>
                                                                     <nil key="highlightedColor"/>
                                                                 </label>
                                                                 <label opaque="NO" userInteractionEnabled="NO" contentMode="left" horizontalHuggingPriority="251" verticalHuggingPriority="251" text="Label" textAlignment="right" lineBreakMode="tailTruncation" numberOfLines="0" baselineAdjustment="alignBaselines" minimumFontSize="12" translatesAutoresizingMaskIntoConstraints="NO" id="xbk-J0-rsS">
-                                                                    <rect key="frame" x="164" y="0.0" width="163.5" height="50.5"/>
+                                                                    <rect key="frame" x="158" y="0.0" width="157.5" height="50.5"/>
                                                                     <fontDescription key="fontDescription" name="PretendardVariable-SemiBold" family="Pretendard Variable" pointSize="16"/>
                                                                     <nil key="textColor"/>
                                                                     <nil key="highlightedColor"/>
                                                                 </label>
                                                                 <button opaque="NO" contentMode="scaleToFill" horizontalCompressionResistancePriority="250" contentHorizontalAlignment="center" contentVerticalAlignment="center" lineBreakMode="middleTruncation" translatesAutoresizingMaskIntoConstraints="NO" id="wPD-zq-Vb9">
-                                                                    <rect key="frame" x="327.5" y="0.0" width="50.5" height="50.5"/>
+                                                                    <rect key="frame" x="315.5" y="0.0" width="50.5" height="50.5"/>
                                                                     <constraints>
                                                                         <constraint firstAttribute="height" constant="50" id="XSn-Ma-rzH"/>
                                                                         <constraint firstAttribute="width" secondItem="wPD-zq-Vb9" secondAttribute="height" id="ePf-U6-VfO"/>
@@ -737,12 +737,13 @@
                                             <color key="backgroundColor" white="0.0" alpha="0.0" colorSpace="custom" customColorSpace="genericGamma22GrayColorSpace"/>
                                             <constraints>
                                                 <constraint firstItem="9D8-ao-Rrq" firstAttribute="top" secondItem="oPt-pl-jvK" secondAttribute="top" id="3yI-nz-zvM"/>
-                                                <constraint firstAttribute="trailing" secondItem="9D8-ao-Rrq" secondAttribute="trailing" constant="18" id="4ma-RS-ahf"/>
+                                                <constraint firstAttribute="trailing" secondItem="9D8-ao-Rrq" secondAttribute="trailing" constant="24" id="4ma-RS-ahf"/>
                                                 <constraint firstAttribute="bottom" secondItem="9D8-ao-Rrq" secondAttribute="bottom" id="Icn-W0-0Ix"/>
-                                                <constraint firstItem="9D8-ao-Rrq" firstAttribute="leading" secondItem="oPt-pl-jvK" secondAttribute="leading" constant="18" id="agO-da-ggl"/>
+                                                <constraint firstItem="9D8-ao-Rrq" firstAttribute="leading" secondItem="oPt-pl-jvK" secondAttribute="leading" constant="24" id="agO-da-ggl"/>
                                             </constraints>
                                         </tableViewCellContentView>
                                         <color key="backgroundColor" white="0.0" alpha="0.0" colorSpace="custom" customColorSpace="genericGamma22GrayColorSpace"/>
+                                        <inset key="separatorInset" minX="0.0" minY="0.0" maxX="0.0" maxY="0.0"/>
                                         <connections>
                                             <outlet property="how" destination="xbk-J0-rsS" id="4KN-UN-kO2"/>
                                             <outlet property="tableCellBorder" destination="9D8-ao-Rrq" id="FbR-IU-1eR"/>
@@ -758,16 +759,16 @@
                             </tableView>
                         </subviews>
                         <viewLayoutGuide key="safeArea" id="4fo-l5-Ywt"/>
-                        <color key="backgroundColor" name="backgroundColor"/>
+                        <color key="backgroundColor" name="memoPaperColor"/>
                         <constraints>
                             <constraint firstItem="1Xt-Kc-tuv" firstAttribute="top" secondItem="s6G-D9-xCJ" secondAttribute="bottom" id="2gd-CF-Fvn"/>
-                            <constraint firstItem="s6G-D9-xCJ" firstAttribute="top" secondItem="Ma2-Dl-oKh" secondAttribute="bottom" constant="18" id="8Yy-ZR-mJX"/>
-                            <constraint firstItem="4fo-l5-Ywt" firstAttribute="trailing" secondItem="s6G-D9-xCJ" secondAttribute="trailing" constant="18" id="HP9-BV-I6F"/>
+                            <constraint firstItem="s6G-D9-xCJ" firstAttribute="top" secondItem="Ma2-Dl-oKh" secondAttribute="bottom" constant="24" id="8Yy-ZR-mJX"/>
+                            <constraint firstItem="4fo-l5-Ywt" firstAttribute="trailing" secondItem="s6G-D9-xCJ" secondAttribute="trailing" constant="24" id="HP9-BV-I6F"/>
                             <constraint firstItem="4fo-l5-Ywt" firstAttribute="trailing" secondItem="Ma2-Dl-oKh" secondAttribute="trailing" id="PkU-EB-2tO"/>
                             <constraint firstItem="4fo-l5-Ywt" firstAttribute="trailing" secondItem="1Xt-Kc-tuv" secondAttribute="trailing" id="Stj-bP-wuD"/>
                             <constraint firstItem="Ma2-Dl-oKh" firstAttribute="leading" secondItem="3cK-md-g4x" secondAttribute="leading" id="Ue2-N6-eDn"/>
                             <constraint firstItem="Ma2-Dl-oKh" firstAttribute="top" secondItem="4fo-l5-Ywt" secondAttribute="top" id="VNC-9B-qFy"/>
-                            <constraint firstItem="s6G-D9-xCJ" firstAttribute="leading" secondItem="4fo-l5-Ywt" secondAttribute="leading" constant="18" id="W8g-O4-5wi"/>
+                            <constraint firstItem="s6G-D9-xCJ" firstAttribute="leading" secondItem="4fo-l5-Ywt" secondAttribute="leading" constant="24" id="W8g-O4-5wi"/>
                             <constraint firstAttribute="bottom" secondItem="1Xt-Kc-tuv" secondAttribute="bottom" id="g28-TG-Jjv"/>
                             <constraint firstItem="1Xt-Kc-tuv" firstAttribute="leading" secondItem="4fo-l5-Ywt" secondAttribute="leading" id="pdV-qj-Wvv"/>
                         </constraints>
@@ -1150,7 +1151,7 @@
             <color red="0.33300000429153442" green="0.33300000429153442" blue="0.33300000429153442" alpha="1" colorSpace="custom" customColorSpace="sRGB"/>
         </namedColor>
         <namedColor name="fixedColor">
-            <color red="0.36646652219999998" green="0.47792726759999998" blue="0.89808005089999998" alpha="1" colorSpace="custom" customColorSpace="displayP3"/>
+            <color red="0.36599999666213989" green="0.4779999852180481" blue="0.89800000190734863" alpha="1" colorSpace="custom" customColorSpace="displayP3"/>
         </namedColor>
         <namedColor name="memoPaperColor">
             <color red="0.98400002717971802" green="0.98400002717971802" blue="0.98400002717971802" alpha="1" colorSpace="custom" customColorSpace="displayP3"/>

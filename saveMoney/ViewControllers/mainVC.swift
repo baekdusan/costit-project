@@ -93,7 +93,6 @@ class mainVC: UIViewController, sendFinData, shareRevenueFinList, FODelegate, Fi
     var filteredList: [[finData]] = [] // 필터링된 가계부 데이터
     var isEditEnabled: Bool = false // 편집 가능 여부
     var isEditMode: Bool = false // 편집 모드 여부
-    var pullRefresh = UIRefreshControl()
     let gradientView = CAGradientLayer()
     
     override func traitCollectionDidChange(_ previousTraitCollection: UITraitCollection?) {
