@@ -26,13 +26,6 @@ class fixedExpenditureVC: UIViewController {
                 delegate.fixedFinData(self, fixedData)
                 
             }
-            if !fixedData.isEmpty {
-                notificationCenter.removeAllPendingNotificationRequests()
-                for i in fixedData {
-                    notificationCenter.addNotificationRequest(to: name, by: i)
-                }
-            }
-            
             self.navigationBarTitle.text = totalCost()
             self.navigationBarTitle.sizeToFit()
         }
@@ -94,6 +87,13 @@ class fixedExpenditureVC: UIViewController {
         // 날짜별로 필터링하여 테이블에 리로드
         filteredbyDays()
         tableView.reloadData()
+        
+        if !fixedData.isEmpty {
+            notificationCenter.removeAllPendingNotificationRequests()
+            for i in fixedData {
+                notificationCenter.addNotificationRequest(to: name, by: i)
+            }
+        }
     }
     
     override func viewWillAppear(_ animated: Bool) {
@@ -296,7 +296,8 @@ extension fixedExpenditureVC {
             
             tableView.deleteRows(at: [IndexPath.init(row: row, section: section)], with: .fade)
             let removedData = filteredFixedData[section].remove(at: row)
-
+            notificationCenter.removePendingNotificationRequests(withIdentifiers: [removedData.id])
+            
             if filteredFixedData[section].isEmpty {
                 tableView.deleteSections([section], with: .fade)
                 filteredFixedData.remove(at: section)
@@ -307,12 +308,15 @@ extension fixedExpenditureVC {
             tableView.reloadData()
         }
     )
+        
     }
 
     
     @objc func addFixedData() {
         if isAllfilled() {
             let data = FixedExpenditure(day: when, towhat: toWhatTF.text, how: how)
+            notificationCenter.addNotificationRequest(to: name, by: data)
+            
             fixedData.append(data)
             filteredbyDays()
             tableView.reloadData()

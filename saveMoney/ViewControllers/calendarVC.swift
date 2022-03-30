@@ -140,6 +140,13 @@ class calendarVC: UIViewController {
             todayTotalRCost.alpha = 1
         }
     }
+    @IBAction func search(_ sender: Any) {
+        guard let searchVC = storyboard?.instantiateViewController(withIdentifier: "searchVC") as? searchVC else { return }
+        searchVC.efinList = efinList
+        searchVC.rfinList = rfinList
+        
+        navigationController?.pushViewController(searchVC, animated: true)
+    }
     
     @IBAction func dismiss(_ sender: Any) {
         dismiss(animated: true, completion: nil)

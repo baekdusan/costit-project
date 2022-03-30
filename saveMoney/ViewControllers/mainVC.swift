@@ -132,14 +132,6 @@ class mainVC: UIViewController, sendFinData, shareRevenueFinList, FODelegate, Fi
             vc.name = id.nickName
             vc.fixedDelegate = self
             
-        } else if segue.identifier == "calendar" {
-            
-            let vc = segue.destination as! calendarVC
-            vc.efinList = efinList
-            vc.rfinList = rfinList
-            vc.pfinList = fixedFinList
-            vc.purpose = id.outLay
-            vc.period = salaryData
         } else if segue.identifier == "firstOpen" {
             
             let vc = segue.destination as! firstOpenVC
@@ -230,6 +222,22 @@ class mainVC: UIViewController, sendFinData, shareRevenueFinList, FODelegate, Fi
         if isFirstOpen == false {
             performSegue(withIdentifier: "firstOpen", sender: self)
         }
+    }
+    
+    // calendarVC를 네비게이션 컨트롤러가 품은 뷰로 만들어서 모달로 Push
+    @IBAction func calendarVCTapped(_ sender: UIBarButtonItem) {
+        guard let vc = storyboard?.instantiateViewController(identifier: "calendarVC") as? calendarVC else { return }
+        vc.efinList = efinList
+        vc.rfinList = rfinList
+        vc.pfinList = fixedFinList
+        vc.purpose = id.outLay
+        vc.period = salaryData
+        
+        let navigationController = UINavigationController(rootViewController: vc)
+        navigationController.modalPresentationStyle = .fullScreen
+        navigationController.isNavigationBarHidden = true
+
+        present(navigationController, animated: true)
     }
     
     @IBAction func addFinbtn(_ sender: Any) {

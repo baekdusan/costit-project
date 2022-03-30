@@ -23,6 +23,7 @@
 		3193F9A826D113B9006FB348 /* firstOpenVC.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3193F9A726D113B9006FB348 /* firstOpenVC.swift */; };
 		3193F9AA26D33331006FB348 /* struct.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3193F9A926D33331006FB348 /* struct.swift */; };
 		3197287627B006BF00F5367C /* fixedExpenditureVC.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3197287527B006BE00F5367C /* fixedExpenditureVC.swift */; };
+		31B0525A27F33FEA0074FBFA /* searchVC.swift in Sources */ = {isa = PBXBuildFile; fileRef = 31B0525927F33FEA0074FBFA /* searchVC.swift */; };
 		31DBD91226E74FCB007733FB /* WidgetKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 31DBD91126E74FCB007733FB /* WidgetKit.framework */; };
 		31DBD91426E74FCB007733FB /* SwiftUI.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 31DBD91326E74FCB007733FB /* SwiftUI.framework */; };
 		31DBD91726E74FCB007733FB /* widget.swift in Sources */ = {isa = PBXBuildFile; fileRef = 31DBD91626E74FCB007733FB /* widget.swift */; };
@@ -72,6 +73,7 @@
 		3193F9A726D113B9006FB348 /* firstOpenVC.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = firstOpenVC.swift; sourceTree = "<group>"; };
 		3193F9A926D33331006FB348 /* struct.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = struct.swift; sourceTree = "<group>"; };
 		3197287527B006BE00F5367C /* fixedExpenditureVC.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = fixedExpenditureVC.swift; sourceTree = "<group>"; };
+		31B0525927F33FEA0074FBFA /* searchVC.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = searchVC.swift; sourceTree = "<group>"; };
 		31DBD91026E74FCB007733FB /* widgetExtension.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = widgetExtension.appex; sourceTree = BUILT_PRODUCTS_DIR; };
 		31DBD91126E74FCB007733FB /* WidgetKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = WidgetKit.framework; path = System/Library/Frameworks/WidgetKit.framework; sourceTree = SDKROOT; };
 		31DBD91326E74FCB007733FB /* SwiftUI.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = SwiftUI.framework; path = System/Library/Frameworks/SwiftUI.framework; sourceTree = SDKROOT; };
@@ -163,6 +165,7 @@
 				3152752B27B0E63A00FC2B80 /* fixedExpenditureCell.swift */,
 				3193F9A326CDE459006FB348 /* addFinVC.swift */,
 				3193F9A526CF677B006FB348 /* calendarVC.swift */,
+				31B0525927F33FEA0074FBFA /* searchVC.swift */,
 			);
 			path = ViewControllers;
 			sourceTree = "<group>";
@@ -336,6 +339,7 @@
 				3193F9A626CF677B006FB348 /* calendarVC.swift in Sources */,
 				3193F9A426CDE459006FB348 /* addFinVC.swift in Sources */,
 				3152752C27B0E63A00FC2B80 /* fixedExpenditureCell.swift in Sources */,
+				31B0525A27F33FEA0074FBFA /* searchVC.swift in Sources */,
 				3197287627B006BF00F5367C /* fixedExpenditureVC.swift in Sources */,
 				3193F99426CDE29C006FB348 /* mainVC.swift in Sources */,
 				3193F9A826D113B9006FB348 /* firstOpenVC.swift in Sources */,
