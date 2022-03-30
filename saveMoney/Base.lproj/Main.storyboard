@@ -225,12 +225,12 @@
                                                 </subviews>
                                             </stackView>
                                             <button opaque="NO" contentMode="scaleToFill" contentHorizontalAlignment="center" contentVerticalAlignment="center" lineBreakMode="middleTruncation" translatesAutoresizingMaskIntoConstraints="NO" id="7KJ-fj-1Nc">
-                                                <rect key="frame" x="20" y="17.5" width="20.5" height="22"/>
-                                                <color key="tintColor" name="calendarBgColor"/>
+                                                <rect key="frame" x="20" y="17.5" width="21" height="22"/>
+                                                <color key="tintColor" name="customLabel"/>
                                                 <inset key="imageEdgeInsets" minX="0.0" minY="0.0" maxX="2.2250738585072014e-308" maxY="0.0"/>
                                                 <state key="normal">
                                                     <imageReference key="image" image="magnifyingglass" catalog="system" symbolScale="medium"/>
-                                                    <preferredSymbolConfiguration key="preferredSymbolConfiguration" weight="medium"/>
+                                                    <preferredSymbolConfiguration key="preferredSymbolConfiguration" weight="semibold"/>
                                                 </state>
                                                 <connections>
                                                     <action selector="search:" destination="gQO-nb-ve8" eventType="touchUpInside" id="aRN-NX-Ucw"/>
@@ -325,7 +325,7 @@
                         <subviews>
                             <button opaque="NO" contentMode="scaleToFill" contentHorizontalAlignment="center" contentVerticalAlignment="center" buttonType="system" lineBreakMode="middleTruncation" translatesAutoresizingMaskIntoConstraints="NO" id="Puh-z7-KnK">
                                 <rect key="frame" x="20" y="64" width="16.5" height="23"/>
-                                <color key="tintColor" name="calendarBgColor"/>
+                                <color key="tintColor" name="customLabel"/>
                                 <inset key="imageEdgeInsets" minX="0.0" minY="0.0" maxX="2.2250738585072014e-308" maxY="0.0"/>
                                 <state key="normal">
                                     <imageReference key="image" image="chevron.left" catalog="system" symbolScale="large"/>
@@ -335,14 +335,18 @@
                                     <action selector="popBtn:" destination="Ctb-we-B6h" eventType="touchUpInside" id="BJb-HB-bGF"/>
                                 </connections>
                             </button>
-                            <searchBar contentMode="redraw" searchBarStyle="minimal" translatesAutoresizingMaskIntoConstraints="NO" id="ieZ-0V-zKy">
+                            <searchBar contentMode="redraw" searchBarStyle="minimal" placeholder="Search" translatesAutoresizingMaskIntoConstraints="NO" id="ieZ-0V-zKy">
                                 <rect key="frame" x="48.5" y="50" width="347.5" height="51"/>
-                                <textInputTraits key="textInputTraits"/>
+                                <textInputTraits key="textInputTraits" returnKeyType="done"/>
+                                <scopeButtonTitles>
+                                    <string>Title</string>
+                                    <string>Title</string>
+                                </scopeButtonTitles>
                                 <connections>
                                     <outlet property="delegate" destination="Ctb-we-B6h" id="fjQ-7N-eCH"/>
                                 </connections>
                             </searchBar>
-                            <tableView clipsSubviews="YES" contentMode="scaleToFill" alwaysBounceVertical="YES" dataMode="prototypes" style="grouped" separatorStyle="none" rowHeight="-1" estimatedRowHeight="-1" sectionHeaderHeight="18" estimatedSectionHeaderHeight="-1" sectionFooterHeight="18" estimatedSectionFooterHeight="-1" translatesAutoresizingMaskIntoConstraints="NO" id="aOq-ms-H67">
+                            <tableView clipsSubviews="YES" contentMode="scaleToFill" alwaysBounceVertical="YES" bouncesZoom="NO" dataMode="prototypes" style="grouped" separatorStyle="none" rowHeight="-1" estimatedRowHeight="-1" sectionHeaderHeight="18" estimatedSectionHeaderHeight="-1" sectionFooterHeight="18" estimatedSectionFooterHeight="-1" translatesAutoresizingMaskIntoConstraints="NO" id="aOq-ms-H67">
                                 <rect key="frame" x="0.0" y="101" width="414" height="795"/>
                                 <color key="backgroundColor" systemColor="systemBackgroundColor"/>
                                 <prototypes>
@@ -353,39 +357,46 @@
                                             <rect key="frame" x="0.0" y="0.0" width="414" height="83"/>
                                             <autoresizingMask key="autoresizingMask"/>
                                             <subviews>
-                                                <label opaque="NO" userInteractionEnabled="NO" contentMode="left" horizontalHuggingPriority="251" verticalHuggingPriority="251" horizontalCompressionResistancePriority="751" text="2022. 03. 29" lineBreakMode="tailTruncation" baselineAdjustment="alignBaselines" adjustsFontSizeToFit="NO" translatesAutoresizingMaskIntoConstraints="NO" id="zNj-zF-yG6">
-                                                    <rect key="frame" x="18" y="34" width="70" height="15"/>
-                                                    <fontDescription key="fontDescription" name="PretendardVariable-Medium" family="Pretendard Variable" pointSize="12"/>
-                                                    <nil key="textColor"/>
-                                                    <nil key="highlightedColor"/>
-                                                </label>
-                                                <label opaque="NO" userInteractionEnabled="NO" contentMode="left" verticalHuggingPriority="251" preservesSuperviewLayoutMargins="YES" text="삼각김밥" lineBreakMode="tailTruncation" baselineAdjustment="alignBaselines" adjustsFontSizeToFit="NO" translatesAutoresizingMaskIntoConstraints="NO" id="gGR-P2-z5D">
-                                                    <rect key="frame" x="106" y="23" width="210.5" height="37"/>
-                                                    <fontDescription key="fontDescription" name="PretendardVariable-Medium" family="Pretendard Variable" pointSize="14"/>
-                                                    <nil key="textColor"/>
-                                                    <nil key="highlightedColor"/>
-                                                </label>
-                                                <label opaque="NO" userInteractionEnabled="NO" contentMode="left" horizontalHuggingPriority="251" verticalHuggingPriority="251" horizontalCompressionResistancePriority="751" text="1,500" lineBreakMode="tailTruncation" baselineAdjustment="alignBaselines" adjustsFontSizeToFit="NO" translatesAutoresizingMaskIntoConstraints="NO" id="Dy7-G6-3cD">
-                                                    <rect key="frame" x="334.5" y="32" width="41.5" height="19"/>
-                                                    <fontDescription key="fontDescription" name="PretendardVariable-SemiBold" family="Pretendard Variable" pointSize="16"/>
-                                                    <nil key="textColor"/>
-                                                    <nil key="highlightedColor"/>
-                                                </label>
+                                                <stackView opaque="NO" contentMode="scaleToFill" spacing="18" translatesAutoresizingMaskIntoConstraints="NO" id="9fh-lQ-vcj">
+                                                    <rect key="frame" x="24" y="0.0" width="366" height="83"/>
+                                                    <subviews>
+                                                        <label opaque="NO" userInteractionEnabled="NO" contentMode="left" horizontalHuggingPriority="251" verticalHuggingPriority="251" horizontalCompressionResistancePriority="751" text="2022. 03. 29" lineBreakMode="tailTruncation" baselineAdjustment="alignBaselines" adjustsFontSizeToFit="NO" translatesAutoresizingMaskIntoConstraints="NO" id="zNj-zF-yG6">
+                                                            <rect key="frame" x="0.0" y="0.0" width="69.5" height="83"/>
+                                                            <fontDescription key="fontDescription" name="PretendardVariable-Regular" family="Pretendard Variable" pointSize="12"/>
+                                                            <color key="textColor" name="customLabel"/>
+                                                            <nil key="highlightedColor"/>
+                                                        </label>
+                                                        <label opaque="NO" userInteractionEnabled="NO" contentMode="left" verticalHuggingPriority="251" preservesSuperviewLayoutMargins="YES" text="삼각김밥" lineBreakMode="tailTruncation" baselineAdjustment="alignBaselines" adjustsFontSizeToFit="NO" translatesAutoresizingMaskIntoConstraints="NO" id="gGR-P2-z5D">
+                                                            <rect key="frame" x="87.5" y="0.0" width="219" height="83"/>
+                                                            <fontDescription key="fontDescription" name="PretendardVariable-Medium" family="Pretendard Variable" pointSize="14"/>
+                                                            <nil key="textColor"/>
+                                                            <nil key="highlightedColor"/>
+                                                        </label>
+                                                        <label opaque="NO" userInteractionEnabled="NO" contentMode="left" horizontalHuggingPriority="251" verticalHuggingPriority="251" horizontalCompressionResistancePriority="751" text="1,500" lineBreakMode="tailTruncation" baselineAdjustment="alignBaselines" adjustsFontSizeToFit="NO" translatesAutoresizingMaskIntoConstraints="NO" id="Dy7-G6-3cD">
+                                                            <rect key="frame" x="324.5" y="0.0" width="41.5" height="83"/>
+                                                            <fontDescription key="fontDescription" name="PretendardVariable-SemiBold" family="Pretendard Variable" pointSize="16"/>
+                                                            <nil key="textColor"/>
+                                                            <nil key="highlightedColor"/>
+                                                        </label>
+                                                    </subviews>
+                                                    <constraints>
+                                                        <constraint firstAttribute="height" constant="72" id="Cxu-Gd-7az"/>
+                                                    </constraints>
+                                                </stackView>
                                             </subviews>
+                                            <color key="backgroundColor" systemColor="systemBackgroundColor"/>
                                             <constraints>
-                                                <constraint firstItem="gGR-P2-z5D" firstAttribute="leading" secondItem="zNj-zF-yG6" secondAttribute="trailing" constant="18" id="BTQ-2e-5es"/>
-                                                <constraint firstAttribute="bottomMargin" secondItem="gGR-P2-z5D" secondAttribute="bottom" constant="12" id="DvA-BZ-4sf"/>
-                                                <constraint firstItem="zNj-zF-yG6" firstAttribute="centerY" secondItem="dEG-db-U3Y" secondAttribute="centerY" id="Hw8-FE-lSi"/>
-                                                <constraint firstItem="Dy7-G6-3cD" firstAttribute="centerY" secondItem="dEG-db-U3Y" secondAttribute="centerY" id="JHG-Aj-T4a"/>
-                                                <constraint firstItem="gGR-P2-z5D" firstAttribute="top" secondItem="dEG-db-U3Y" secondAttribute="topMargin" constant="12" id="eRO-Gw-5iw"/>
-                                                <constraint firstItem="Dy7-G6-3cD" firstAttribute="leading" secondItem="gGR-P2-z5D" secondAttribute="trailing" constant="18" id="gpn-Q1-Fd7"/>
-                                                <constraint firstItem="zNj-zF-yG6" firstAttribute="leading" secondItem="dEG-db-U3Y" secondAttribute="leading" constant="18" id="qyx-Zt-WZA"/>
-                                                <constraint firstAttribute="trailingMargin" secondItem="Dy7-G6-3cD" secondAttribute="trailing" constant="18" id="vc9-dX-NGA"/>
+                                                <constraint firstItem="9fh-lQ-vcj" firstAttribute="leading" secondItem="dEG-db-U3Y" secondAttribute="leading" constant="24" id="4uc-xd-2DM"/>
+                                                <constraint firstAttribute="bottom" secondItem="9fh-lQ-vcj" secondAttribute="bottom" id="Alw-KW-eFV"/>
+                                                <constraint firstAttribute="trailing" secondItem="9fh-lQ-vcj" secondAttribute="trailing" constant="24" id="d8E-Rv-tpN"/>
+                                                <constraint firstItem="9fh-lQ-vcj" firstAttribute="top" secondItem="dEG-db-U3Y" secondAttribute="top" id="xrU-Cn-X4D"/>
                                             </constraints>
                                         </tableViewCellContentView>
+                                        <color key="backgroundColor" white="1" alpha="1" colorSpace="custom" customColorSpace="genericGamma22GrayColorSpace"/>
                                         <inset key="separatorInset" minX="0.0" minY="0.0" maxX="0.0" maxY="0.0"/>
                                         <connections>
                                             <outlet property="how" destination="Dy7-G6-3cD" id="Eoh-LJ-sFN"/>
+                                            <outlet property="tableCellBorder" destination="9fh-lQ-vcj" id="6bA-VM-Bqv"/>
                                             <outlet property="towhat" destination="gGR-P2-z5D" id="gi8-4h-Q6w"/>
                                             <outlet property="when" destination="zNj-zF-yG6" id="lAJ-Y3-mK4"/>
                                         </connections>
@@ -413,6 +424,7 @@
                     </view>
                     <navigationItem key="navigationItem" id="TAY-2r-iSI"/>
                     <connections>
+                        <outlet property="searchBar" destination="ieZ-0V-zKy" id="gT1-06-fB1"/>
                         <outlet property="tableView" destination="aOq-ms-H67" id="tXO-hb-So2"/>
                     </connections>
                 </viewController>
