@@ -195,7 +195,7 @@ extension calendarVC: FSCalendarDelegate, FSCalendarDataSource, FSCalendarDelega
     }
     
     func event(_ date: Date) -> UIColor {
-        if date.toFullString() >= period.startDate.toFullString() && date.toFullString() <= period.endDate.toFullString() {
+        if date >= period.startDate && date <= period.endDate {
             
             if updateThisMonthTotalCost()[0] > percent(date)[1] {
                 return .systemPink.withAlphaComponent(1)

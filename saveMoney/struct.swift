@@ -106,7 +106,7 @@ extension Date {
     // 날짜를 전체 문자열로 변경
     func toFullString() -> String {
         let dateFormatter = DateFormatter()
-        dateFormatter.dateFormat = "yyyy-MM-dd"
+        dateFormatter.dateFormat = "yyyy. MM. dd"
             
         dateFormatter.timeZone = TimeZone(identifier: "ko-KR")
             

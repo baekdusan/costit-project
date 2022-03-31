@@ -325,7 +325,7 @@
                         <subviews>
                             <button opaque="NO" contentMode="scaleToFill" contentHorizontalAlignment="center" contentVerticalAlignment="center" buttonType="system" lineBreakMode="middleTruncation" translatesAutoresizingMaskIntoConstraints="NO" id="Puh-z7-KnK">
                                 <rect key="frame" x="20" y="64" width="16.5" height="23"/>
-                                <color key="tintColor" name="customLabel"/>
+                                <color key="tintColor" name="calendarBgColor"/>
                                 <inset key="imageEdgeInsets" minX="0.0" minY="0.0" maxX="2.2250738585072014e-308" maxY="0.0"/>
                                 <state key="normal">
                                     <imageReference key="image" image="chevron.left" catalog="system" symbolScale="large"/>
@@ -335,7 +335,7 @@
                                     <action selector="popBtn:" destination="Ctb-we-B6h" eventType="touchUpInside" id="BJb-HB-bGF"/>
                                 </connections>
                             </button>
-                            <searchBar contentMode="redraw" searchBarStyle="minimal" placeholder="Search" translatesAutoresizingMaskIntoConstraints="NO" id="ieZ-0V-zKy">
+                            <searchBar contentMode="redraw" searchBarStyle="minimal" placeholder="품목을 입력해봐요 :)" translatesAutoresizingMaskIntoConstraints="NO" id="ieZ-0V-zKy">
                                 <rect key="frame" x="48.5" y="50" width="347.5" height="51"/>
                                 <textInputTraits key="textInputTraits" returnKeyType="done"/>
                                 <scopeButtonTitles>
@@ -347,7 +347,7 @@
                                 </connections>
                             </searchBar>
                             <tableView clipsSubviews="YES" contentMode="scaleToFill" alwaysBounceVertical="YES" bouncesZoom="NO" dataMode="prototypes" style="grouped" separatorStyle="none" rowHeight="-1" estimatedRowHeight="-1" sectionHeaderHeight="18" estimatedSectionHeaderHeight="-1" sectionFooterHeight="18" estimatedSectionFooterHeight="-1" translatesAutoresizingMaskIntoConstraints="NO" id="aOq-ms-H67">
-                                <rect key="frame" x="0.0" y="101" width="414" height="795"/>
+                                <rect key="frame" x="0.0" y="111" width="414" height="785"/>
                                 <color key="backgroundColor" systemColor="systemBackgroundColor"/>
                                 <prototypes>
                                     <tableViewCell clipsSubviews="YES" contentMode="scaleToFill" preservesSuperviewLayoutMargins="YES" selectionStyle="default" indentationWidth="10" reuseIdentifier="searchCell" rowHeight="83" id="0kz-ik-hlU" customClass="searchCell" customModule="saveMoney" customModuleProvider="target">
@@ -366,7 +366,7 @@
                                                             <color key="textColor" name="customLabel"/>
                                                             <nil key="highlightedColor"/>
                                                         </label>
-                                                        <label opaque="NO" userInteractionEnabled="NO" contentMode="left" verticalHuggingPriority="251" preservesSuperviewLayoutMargins="YES" text="삼각김밥" lineBreakMode="tailTruncation" baselineAdjustment="alignBaselines" adjustsFontSizeToFit="NO" translatesAutoresizingMaskIntoConstraints="NO" id="gGR-P2-z5D">
+                                                        <label opaque="NO" userInteractionEnabled="NO" contentMode="left" verticalHuggingPriority="251" preservesSuperviewLayoutMargins="YES" text="삼각김밥" lineBreakMode="tailTruncation" numberOfLines="0" baselineAdjustment="alignBaselines" adjustsFontSizeToFit="NO" translatesAutoresizingMaskIntoConstraints="NO" id="gGR-P2-z5D">
                                                             <rect key="frame" x="87.5" y="0.0" width="219" height="83"/>
                                                             <fontDescription key="fontDescription" name="PretendardVariable-Medium" family="Pretendard Variable" pointSize="14"/>
                                                             <nil key="textColor"/>
@@ -411,7 +411,7 @@
                         <viewLayoutGuide key="safeArea" id="yaa-mm-qly"/>
                         <color key="backgroundColor" systemColor="systemBackgroundColor"/>
                         <constraints>
-                            <constraint firstItem="aOq-ms-H67" firstAttribute="top" secondItem="ieZ-0V-zKy" secondAttribute="bottom" id="18t-uj-e9y"/>
+                            <constraint firstItem="aOq-ms-H67" firstAttribute="top" secondItem="ieZ-0V-zKy" secondAttribute="bottom" constant="10" id="18t-uj-e9y"/>
                             <constraint firstItem="yaa-mm-qly" firstAttribute="trailing" secondItem="aOq-ms-H67" secondAttribute="trailing" id="5dl-lh-m7U"/>
                             <constraint firstItem="Puh-z7-KnK" firstAttribute="leading" secondItem="yaa-mm-qly" secondAttribute="leading" constant="20" id="7DQ-XH-mCc"/>
                             <constraint firstItem="ieZ-0V-zKy" firstAttribute="leading" secondItem="Puh-z7-KnK" secondAttribute="trailing" constant="12" id="Gkr-Ub-1vi"/>

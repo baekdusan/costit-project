@@ -103,10 +103,25 @@ class revenueVC: UIViewController, sendRevenueFinData {
     
     // 삭제 버튼 (touch up inside)
     @objc func cancelButtonAction(sender : UIButton) {
+        let row = sender.tag
+        let alert = UIAlertController(title: "삭제", message: "해당 수입 내역을 삭제해요.", preferredStyle: .alert)
+        
+        let cancel = UIAlertAction(title: "취소", style: .cancel, handler: nil)
+        let ok = UIAlertAction(title: "확인", style: .default, handler: { [self]_ in
+            deleteRFindata(row)
+        })
+        
+        alert.addAction(cancel)
+        alert.addAction(ok)
+        
+        present(alert, animated: true, completion: nil)
+    }
+    
+    func deleteRFindata(_ row: Int) {
         collectionView.performBatchUpdates({
             
-            collectionView.deleteItems(at: [IndexPath.init(row: sender.tag, section: 0)])
-            let removedStr = filtered.remove(at: sender.tag)
+            collectionView.deleteItems(at: [IndexPath.init(row: row, section: 0)])
+            let removedStr = filtered.remove(at: row)
             rfinList.remove(at: rfinList.firstIndex(where: {$0 == removedStr})!)
             
         }, completion: { [self] _ in collectionView.reloadData()})
