@@ -235,7 +235,7 @@ class mainVC: UIViewController, sendFinData, shareRevenueFinList, FODelegate, Fi
         
         let navigationController = UINavigationController(rootViewController: vc)
         navigationController.modalPresentationStyle = .fullScreen
-        navigationController.isNavigationBarHidden = true
+//        navigationController.isNavigationBarHidden = true
 
         present(navigationController, animated: true)
     }

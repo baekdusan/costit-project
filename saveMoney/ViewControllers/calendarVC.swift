@@ -1,9 +1,8 @@
 import UIKit
 import FSCalendar
+import SwiftUI
 
 class calendarVC: UIViewController {
-    
-    @IBOutlet weak var dDay: UILabel!
     
     @IBOutlet weak var totalBorder: UIStackView!
     @IBOutlet weak var rTotal: UILabel!
@@ -26,6 +25,8 @@ class calendarVC: UIViewController {
     var period = salaryDate()
     var purpose : Int = 0
     
+    let navTitle = UILabel()
+    
     // 다크 라이트 전환시 적용
     override func traitCollectionDidChange(_ previousTraitCollection: UITraitCollection?) {
         super.traitCollectionDidChange(previousTraitCollection)
@@ -35,17 +36,7 @@ class calendarVC: UIViewController {
     override func viewDidLoad() {
         super.viewDidLoad()
         
-        dDay.alpha = 0
-        let dday = Date().dDay(period.endDate)
-        
-        switch dday {
-        case 0:
-            dDay.text = "오늘이 마지막이에요!"
-        case 1:
-            dDay.text = "하루 남았어요"
-        default:
-            dDay.text = "\(dday)일 남았어요"
-        }
+        setNavigationBar()
         
         calendarView.layer.shadowColor = UIColor.black.cgColor
         calendarView.layer.shadowOpacity = 0.08
@@ -82,10 +73,10 @@ class calendarVC: UIViewController {
     override func viewDidAppear(_ animated: Bool) {
         super.viewDidAppear(animated)
         
-        dDay.transform = CGAffineTransform(scaleX: 0, y: 0)
+        navTitle.transform = CGAffineTransform(scaleX: 0, y: 0)
         UIView.animate(withDuration: 0.6, delay: 0.1, usingSpringWithDamping: 0.7, initialSpringVelocity: 2, options: .curveLinear, animations: {
-            self.dDay.alpha = 1.0;
-            self.dDay.transform = .identity
+            self.navTitle.alpha = 1.0;
+            self.navTitle.transform = .identity
         }, completion: nil)
     }
     
@@ -140,7 +131,48 @@ class calendarVC: UIViewController {
             todayTotalRCost.alpha = 1
         }
     }
-    @IBAction func search(_ sender: Any) {
+    
+    func setNavigationBar() {
+        
+        // 버튼 사이즈 조정
+        let symbolScale = UIImage.SymbolConfiguration(scale: .medium)
+        
+        // 네비게이션 경계 없애기
+        self.navigationController?.navigationBar.setBackgroundImage(UIImage(), for: .default)
+        self.navigationController?.navigationBar.shadowImage = UIImage()
+        
+        // 왼쪽 버튼(검색 버튼)
+        let leftImage = UIImage(systemName: "magnifyingglass", withConfiguration: symbolScale)
+        let leftBtn = UIBarButtonItem(image: leftImage, style: .plain, target: self, action: #selector(toSearchVC))
+        
+        // 타이틀
+        navTitle.font = .systemFont(ofSize: 13, weight: .bold)
+        navTitle.textColor = UIColor(named: "customLabel")
+        navTitle.alpha = 0
+        self.navigationItem.titleView = navTitle
+        
+        // 오른쪽 버튼(dismiss)
+        let rightImage = UIImage(systemName: "xmark", withConfiguration: symbolScale)
+        let rightBtn = UIBarButtonItem(image: rightImage, style: .done, target: self, action: #selector(dismissVC) )
+        
+        self.navigationItem.leftBarButtonItem = leftBtn
+        self.navigationItem.leftBarButtonItem?.tintColor = UIColor(named: "customLabel")
+        self.navigationItem.rightBarButtonItem = rightBtn
+        self.navigationItem.rightBarButtonItem?.tintColor = UIColor(named: "customLabel")
+        
+        let dday = Date().dDay(period.endDate)
+        
+        switch dday {
+        case 0:
+            navTitle.text = "오늘이 마지막이에요!"
+        case 1:
+            navTitle.text = "하루 남았어요"
+        default:
+            navTitle.text = "\(dday)일 남았어요"
+        }
+    }
+    
+    @objc func toSearchVC() {
         guard let searchVC = storyboard?.instantiateViewController(withIdentifier: "searchVC") as? searchVC else { return }
         searchVC.efinList = efinList
         searchVC.rfinList = rfinList
@@ -148,8 +180,8 @@ class calendarVC: UIViewController {
         navigationController?.pushViewController(searchVC, animated: true)
     }
     
-    @IBAction func dismiss(_ sender: Any) {
-        dismiss(animated: true, completion: nil)
+    @objc func dismissVC() {
+        self.dismiss(animated: true)
     }
 }
 
