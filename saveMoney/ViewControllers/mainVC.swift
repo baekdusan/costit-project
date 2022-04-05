@@ -125,13 +125,6 @@ class mainVC: UIViewController, sendFinData, shareRevenueFinList, FODelegate, Fi
             vc.rfinList = rfinList
             vc.start = salaryData.startDate
             vc.end = salaryData.endDate
-        } else if segue.identifier == "fixedExpenditureVC" {
-          
-            let vc = segue.destination as! fixedExpenditureVC
-            vc.fixedData = fixedFinList
-            vc.name = id.nickName
-            vc.fixedDelegate = self
-            
         } else if segue.identifier == "firstOpen" {
             
             let vc = segue.destination as! firstOpenVC
@@ -177,6 +170,8 @@ class mainVC: UIViewController, sendFinData, shareRevenueFinList, FODelegate, Fi
         if let sData = UserDefaults.standard.value(forKey: "salarydata") as? Data {
             salaryData = try! PropertyListDecoder().decode(salaryDate.self, from: sData)
         }
+        
+        NotificationCenter.default.addObserver(self, selector: #selector(savePinData(_:)), name: NSNotification.Name("toMainVC"), object: nil)
         
         // 오늘이 설정기간의 마지막 시간을 넘어가면, 프로필에서 설정해둔 날짜에 맞춰 새롭게 갱신
         if Date() > salaryData.endDate {
@@ -231,11 +226,11 @@ class mainVC: UIViewController, sendFinData, shareRevenueFinList, FODelegate, Fi
         vc.rfinList = rfinList
         vc.pfinList = fixedFinList
         vc.purpose = id.outLay
+        vc.nickName = id.nickName
         vc.period = salaryData
         
         let navigationController = UINavigationController(rootViewController: vc)
         navigationController.modalPresentationStyle = .fullScreen
-//        navigationController.isNavigationBarHidden = true
 
         present(navigationController, animated: true)
     }
@@ -254,6 +249,12 @@ class mainVC: UIViewController, sendFinData, shareRevenueFinList, FODelegate, Fi
         }
         collectionView.reloadData()
     }
+    
+    // notification으로 변경된 보관함 배열 수신
+    @objc func savePinData(_ notification: NSNotification){
+        fixedFinList = notification.userInfo!["save"] as! [FixedExpenditure]
+        UserDefaults.standard.set(try? PropertyListEncoder().encode(fixedFinList), forKey: "fixedFinList")
+        }
 
     
     // 급여일을 설정했을 때 그걸 바탕으로 한달의 지출 기간을 셋팅

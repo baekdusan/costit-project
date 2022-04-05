@@ -879,7 +879,7 @@
                 </viewController>
                 <placeholder placeholderIdentifier="IBFirstResponder" id="IPP-aV-MtL" userLabel="First Responder" customClass="UIResponder" sceneMemberID="firstResponder"/>
             </objects>
-            <point key="canvasLocation" x="4422" y="-1898"/>
+            <point key="canvasLocation" x="5774" y="-1850"/>
         </scene>
         <!--MainVC-->
         <scene sceneID="tne-QT-ifu">
@@ -1082,22 +1082,13 @@
                                 </connections>
                             </barButtonItem>
                         </leftBarButtonItems>
-                        <rightBarButtonItems>
-                            <barButtonItem title="Item" id="3mL-dk-UNm">
-                                <imageReference key="image" image="calendar.badge.clock" catalog="system" symbolScale="medium"/>
-                                <color key="tintColor" name="customLabel"/>
-                                <connections>
-                                    <action selector="calendarVCTapped:" destination="BYZ-38-t0r" id="iTZ-En-90u"/>
-                                </connections>
-                            </barButtonItem>
-                            <barButtonItem id="s2w-rM-rJl">
-                                <imageReference key="image" image="pin.fill" catalog="system" symbolScale="medium"/>
-                                <color key="tintColor" name="customLabel"/>
-                                <connections>
-                                    <segue destination="eBd-1O-1rY" kind="presentation" identifier="fixedExpenditureVC" modalPresentationStyle="fullScreen" id="cHQ-N5-duv"/>
-                                </connections>
-                            </barButtonItem>
-                        </rightBarButtonItems>
+                        <barButtonItem key="rightBarButtonItem" title="Item" id="3mL-dk-UNm">
+                            <imageReference key="image" image="calendar.badge.clock" catalog="system" symbolScale="medium"/>
+                            <color key="tintColor" name="customLabel"/>
+                            <connections>
+                                <action selector="calendarVCTapped:" destination="BYZ-38-t0r" id="iTZ-En-90u"/>
+                            </connections>
+                        </barButtonItem>
                     </navigationItem>
                     <connections>
                         <outlet property="addFinBorder" destination="v5z-xx-rEi" id="A9X-q6-gTh"/>
@@ -1225,7 +1216,6 @@
         <image name="highlighter" catalog="system" width="128" height="119"/>
         <image name="lock.fill" catalog="system" width="128" height="128"/>
         <image name="person.fill" catalog="system" width="128" height="120"/>
-        <image name="pin.fill" catalog="system" width="119" height="128"/>
         <image name="plus" catalog="system" width="128" height="113"/>
         <image name="tape1" width="100" height="30"/>
         <image name="trash.square" catalog="system" width="128" height="114"/>

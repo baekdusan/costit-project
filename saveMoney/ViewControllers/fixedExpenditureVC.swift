@@ -22,10 +22,16 @@ class fixedExpenditureVC: UIViewController {
     
     var fixedData: [FixedExpenditure] = [] {
         didSet {
+            
+            // 달력 화면에 전달
             if let delegate = fixedDelegate {
                 delegate.fixedFinData(self, fixedData)
-                
+
             }
+            
+            // 홈 화면에 전달
+            NotificationCenter.default.post(name: NSNotification.Name("toMainVC"), object: nil, userInfo: ["save" : fixedData])
+            
             self.navigationBarTitle.text = totalCost()
             self.navigationBarTitle.sizeToFit()
         }

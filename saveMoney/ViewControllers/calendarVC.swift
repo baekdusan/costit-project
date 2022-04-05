@@ -24,6 +24,7 @@ class calendarVC: UIViewController {
     let dateFormatter = DateFormatter()
     var period = salaryDate()
     var purpose : Int = 0
+    var nickName : String = "User"
     
     let navTitle = UILabel()
     
@@ -68,16 +69,16 @@ class calendarVC: UIViewController {
         pTotal.text = totalF(pfinList)
         
         tableCellBorderLayout(totalBorder)
-    }
-    
-    override func viewDidAppear(_ animated: Bool) {
-        super.viewDidAppear(animated)
         
         navTitle.transform = CGAffineTransform(scaleX: 0, y: 0)
         UIView.animate(withDuration: 0.6, delay: 0.1, usingSpringWithDamping: 0.7, initialSpringVelocity: 2, options: .curveLinear, animations: {
             self.navTitle.alpha = 1.0;
             self.navTitle.transform = .identity
         }, completion: nil)
+    }
+    
+    override func viewDidAppear(_ animated: Bool) {
+        super.viewDidAppear(animated)
     }
     
     func filter(_ today: Date) {
@@ -142,8 +143,10 @@ class calendarVC: UIViewController {
         self.navigationController?.navigationBar.shadowImage = UIImage()
         
         // 왼쪽 버튼(검색 버튼)
-        let leftImage = UIImage(systemName: "magnifyingglass", withConfiguration: symbolScale)
-        let leftBtn = UIBarButtonItem(image: leftImage, style: .plain, target: self, action: #selector(toSearchVC))
+        let searchImage = UIImage(systemName: "magnifyingglass", withConfiguration: symbolScale)
+        let searchVCBtn = UIBarButtonItem(image: searchImage, style: .plain, target: self, action: #selector(toSearchVC))
+        let pinImage = UIImage(systemName: "pin.fill", withConfiguration: symbolScale)
+        let pinVCBtn = UIBarButtonItem(image: pinImage, style: .plain, target: self, action: #selector(toPinVC))
         
         // 타이틀
         navTitle.font = .systemFont(ofSize: 13, weight: .bold)
@@ -155,8 +158,10 @@ class calendarVC: UIViewController {
         let rightImage = UIImage(systemName: "xmark", withConfiguration: symbolScale)
         let rightBtn = UIBarButtonItem(image: rightImage, style: .done, target: self, action: #selector(dismissVC) )
         
-        self.navigationItem.leftBarButtonItem = leftBtn
-        self.navigationItem.leftBarButtonItem?.tintColor = UIColor(named: "customLabel")
+        self.navigationItem.leftBarButtonItems = [searchVCBtn, pinVCBtn]
+        self.navigationItem.leftBarButtonItems?.forEach {
+            $0.tintColor = UIColor(named: "customLabel")
+        }
         self.navigationItem.rightBarButtonItem = rightBtn
         self.navigationItem.rightBarButtonItem?.tintColor = UIColor(named: "customLabel")
         
@@ -180,9 +185,27 @@ class calendarVC: UIViewController {
         navigationController?.pushViewController(searchVC, animated: true)
     }
     
+    @objc func toPinVC() {
+        guard let pinVC = storyboard?.instantiateViewController(withIdentifier: "fixedExpenditureVC") as? fixedExpenditureVC else { return }
+        pinVC.fixedData = pfinList
+        pinVC.fixedDelegate = self
+        pinVC.modalPresentationStyle = .fullScreen
+        
+        self.present(pinVC, animated: true)
+    }
+    
     @objc func dismissVC() {
         self.dismiss(animated: true)
     }
+}
+
+extension calendarVC: FixedFinDataDelegate {
+    func fixedFinData(_ controller: fixedExpenditureVC, _ fixedData: [FixedExpenditure]) {
+        self.pfinList = fixedData
+        pTotal.text = totalF(pfinList)
+    }
+    
+    
 }
 
 
