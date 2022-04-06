@@ -4,7 +4,6 @@ import SwiftUI
 
 class searchVC: UIViewController {
     
-    @IBOutlet weak var searchBar: UISearchBar!
     @IBOutlet weak var tableView: UITableView!
     
     var efinList: [finData] = []
@@ -13,25 +12,28 @@ class searchVC: UIViewController {
     var eFiltered: [finData] = []
     var rFiltered: [finData] = []
     
+    var searchBar = UISearchBar()
+    
     override func viewDidLoad() {
         super.viewDidLoad()
+
+        self.navigationController?.navigationBar.topItem?.title = ""
+        self.navigationController?.navigationBar.tintColor = UIColor(named: "calendarBgColor")
         
-        let border = UIView()
-        border.backgroundColor = UIColor(named: "calendarBgColor")
-        border.autoresizingMask = [.flexibleWidth, .flexibleBottomMargin]
-        border.frame = CGRect(x: 18, y: searchBar.frame.origin.y + searchBar.frame.height + 8, width: view.frame.width - 36, height: 2)
-        view.addSubview(border)
+        self.navigationController?.navigationBar.setBackgroundImage(UIImage(), for: .default)
+        self.navigationController?.navigationBar.shadowImage = UIImage()
         
-        self.searchBar.searchTextField.borderStyle = .none
-        self.searchBar.setImage(UIImage(), for: .search, state: .normal)
-        self.searchBar.searchTextField.font = .systemFont(ofSize: 14, weight: .medium)
-        self.searchBar.searchTextField.leftView?.tintColor = UIColor(named: "calendarBgColor")
-        
-        self.searchBar.becomeFirstResponder()
+        searchBar.delegate = self
+
+        self.navigationItem.titleView = searchBar
+        searchBar.setImage(UIImage(), for: .search, state: .normal)
+        searchBar.searchTextField.backgroundColor = .clear
     }
     
-    @IBAction func popBtn(_ sender: UIButton) {
-        self.navigationController?.popViewController(animated: true)
+    override func viewDidAppear(_ animated: Bool) {
+        searchBar.searchTextField.font = UIFont.systemFont(ofSize: 14, weight: .semibold)
+        searchBar.placeholder = "품목을 입력해봐요 :)"
+        searchBar.becomeFirstResponder()
     }
 }
 

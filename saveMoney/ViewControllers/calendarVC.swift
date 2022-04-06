@@ -69,12 +69,6 @@ class calendarVC: UIViewController {
         pTotal.text = totalF(pfinList)
         
         tableCellBorderLayout(totalBorder)
-        
-        navTitle.transform = CGAffineTransform(scaleX: 0, y: 0)
-        UIView.animate(withDuration: 0.6, delay: 0.1, usingSpringWithDamping: 0.7, initialSpringVelocity: 2, options: .curveLinear, animations: {
-            self.navTitle.alpha = 1.0;
-            self.navTitle.transform = .identity
-        }, completion: nil)
     }
     
     override func viewDidAppear(_ animated: Bool) {
@@ -151,7 +145,6 @@ class calendarVC: UIViewController {
         // 타이틀
         navTitle.font = .systemFont(ofSize: 13, weight: .bold)
         navTitle.textColor = UIColor(named: "customLabel")
-        navTitle.alpha = 0
         self.navigationItem.titleView = navTitle
         
         // 오른쪽 버튼(dismiss)
