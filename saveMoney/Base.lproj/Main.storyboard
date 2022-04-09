@@ -505,7 +505,7 @@
                                                 <view contentMode="scaleToFill" translatesAutoresizingMaskIntoConstraints="NO" id="qbI-Ev-2AJ">
                                                     <rect key="frame" x="0.0" y="0.0" width="373" height="72"/>
                                                     <subviews>
-                                                        <button opaque="NO" alpha="0.32000000000000001" contentMode="scaleAspectFill" horizontalHuggingPriority="251" horizontalCompressionResistancePriority="751" contentHorizontalAlignment="center" contentVerticalAlignment="center" lineBreakMode="middleTruncation" translatesAutoresizingMaskIntoConstraints="NO" id="bcT-lX-fWE">
+                                                        <button opaque="NO" alpha="0.23999999999999999" contentMode="scaleAspectFill" horizontalHuggingPriority="251" horizontalCompressionResistancePriority="751" contentHorizontalAlignment="center" contentVerticalAlignment="center" lineBreakMode="middleTruncation" translatesAutoresizingMaskIntoConstraints="NO" id="bcT-lX-fWE">
                                                             <rect key="frame" x="10" y="25" width="14" height="22"/>
                                                             <color key="tintColor" systemColor="labelColor"/>
                                                             <state key="normal">
@@ -891,10 +891,12 @@
                                                     <fontDescription key="fontDescription" name="PretendardVariable-Regular" family="Pretendard Variable" pointSize="12"/>
                                                     <nil key="highlightedColor"/>
                                                 </label>
-                                                <button opaque="NO" alpha="0.32000000000000001" contentMode="scaleToFill" contentHorizontalAlignment="center" contentVerticalAlignment="center" lineBreakMode="middleTruncation" translatesAutoresizingMaskIntoConstraints="NO" id="lsd-ED-6IF">
-                                                    <rect key="frame" x="157.5" y="14.5" width="17.5" height="22"/>
+                                                <button opaque="NO" alpha="0.23999999999999999" contentMode="scaleToFill" contentHorizontalAlignment="center" contentVerticalAlignment="center" lineBreakMode="middleTruncation" translatesAutoresizingMaskIntoConstraints="NO" id="lsd-ED-6IF">
+                                                    <rect key="frame" x="161" y="10" width="14" height="22"/>
                                                     <color key="tintColor" systemColor="labelColor"/>
-                                                    <state key="normal" image="xmark" catalog="system"/>
+                                                    <state key="normal">
+                                                        <imageReference key="image" image="xmark" catalog="system" symbolScale="small"/>
+                                                    </state>
                                                 </button>
                                             </subviews>
                                             <color key="backgroundColor" name="memoPaperColor"/>
@@ -903,12 +905,12 @@
                                                 <constraint firstItem="HRY-wy-29U" firstAttribute="leading" secondItem="Vqo-eC-Vuj" secondAttribute="leading" constant="10" id="3fv-R5-Wlx"/>
                                                 <constraint firstAttribute="bottom" secondItem="Yu6-Bj-Ov6" secondAttribute="bottom" constant="18" id="97c-nc-tKf"/>
                                                 <constraint firstItem="zvb-8m-U2D" firstAttribute="leading" secondItem="Vqo-eC-Vuj" secondAttribute="leading" constant="10" id="9Zm-3X-heg"/>
+                                                <constraint firstItem="lsd-ED-6IF" firstAttribute="top" secondItem="Vqo-eC-Vuj" secondAttribute="top" constant="10" id="AG2-gD-wg7"/>
                                                 <constraint firstAttribute="trailing" secondItem="HRY-wy-29U" secondAttribute="trailing" constant="10" id="Gr2-7T-Inn"/>
                                                 <constraint firstAttribute="trailing" secondItem="Yu6-Bj-Ov6" secondAttribute="trailing" constant="10" id="J7l-zi-Oza"/>
+                                                <constraint firstItem="lsd-ED-6IF" firstAttribute="trailing" secondItem="Yu6-Bj-Ov6" secondAttribute="trailing" id="Jxl-Lq-hK4"/>
                                                 <constraint firstItem="zvb-8m-U2D" firstAttribute="top" secondItem="Vqo-eC-Vuj" secondAttribute="top" constant="18" id="MES-cQ-bCw"/>
                                                 <constraint firstItem="Yu6-Bj-Ov6" firstAttribute="leading" secondItem="Vqo-eC-Vuj" secondAttribute="leading" constant="10" id="VqG-AF-Kok"/>
-                                                <constraint firstItem="lsd-ED-6IF" firstAttribute="centerY" secondItem="zvb-8m-U2D" secondAttribute="centerY" id="ZQP-BZ-3SK"/>
-                                                <constraint firstItem="lsd-ED-6IF" firstAttribute="trailing" secondItem="zvb-8m-U2D" secondAttribute="trailing" id="vJt-NR-s49"/>
                                                 <constraint firstItem="HRY-wy-29U" firstAttribute="top" secondItem="zvb-8m-U2D" secondAttribute="bottom" constant="15" id="w4B-fP-o78"/>
                                             </constraints>
                                         </collectionViewCellContentView>
@@ -1036,22 +1038,13 @@
                         </constraints>
                     </view>
                     <navigationItem key="navigationItem" largeTitleDisplayMode="always" id="L5k-UH-xJH">
-                        <leftBarButtonItems>
-                            <barButtonItem title="Item" id="ZmI-C1-cCT">
-                                <imageReference key="image" image="person.fill" catalog="system" symbolScale="medium"/>
-                                <color key="tintColor" name="customLabel"/>
-                                <connections>
-                                    <segue destination="FqB-8i-DRy" kind="show" identifier="editProfile" id="PHu-JG-VVa"/>
-                                </connections>
-                            </barButtonItem>
-                            <barButtonItem title="Item" id="8ZC-mY-bdV">
-                                <imageReference key="image" image="lock.fill" catalog="system" symbolScale="medium"/>
-                                <color key="tintColor" name="customLabel"/>
-                                <connections>
-                                    <action selector="edit:" destination="BYZ-38-t0r" id="u1b-N7-jGw"/>
-                                </connections>
-                            </barButtonItem>
-                        </leftBarButtonItems>
+                        <barButtonItem key="leftBarButtonItem" title="Item" id="ZmI-C1-cCT">
+                            <imageReference key="image" image="person.fill" catalog="system" symbolScale="medium"/>
+                            <color key="tintColor" name="customLabel"/>
+                            <connections>
+                                <segue destination="FqB-8i-DRy" kind="show" identifier="editProfile" id="PHu-JG-VVa"/>
+                            </connections>
+                        </barButtonItem>
                         <barButtonItem key="rightBarButtonItem" title="Item" id="3mL-dk-UNm">
                             <imageReference key="image" image="calendar.badge.clock" catalog="system" symbolScale="medium"/>
                             <color key="tintColor" name="customLabel"/>
@@ -1065,7 +1058,6 @@
                         <outlet property="balance" destination="mge-4l-Ftl" id="tlr-sp-Zzk"/>
                         <outlet property="balanceCondition" destination="yRY-8j-YdZ" id="T7I-ar-gjV"/>
                         <outlet property="collectionView" destination="6C8-fl-DhC" id="Ivj-Ec-dQh"/>
-                        <outlet property="editbtn" destination="8ZC-mY-bdV" id="sbK-Kd-4gu"/>
                         <outlet property="revenueBorder" destination="sEU-hB-JaM" id="tD7-30-a3t"/>
                         <outlet property="topView" destination="99s-XD-Kig" id="BAE-OY-RCC"/>
                         <segue destination="FqB-8i-DRy" kind="show" identifier="firstOpen" id="mfo-1T-RCj"/>
@@ -1183,7 +1175,6 @@
         <image name="calendar.badge.clock" catalog="system" width="128" height="108"/>
         <image name="calendarTop" width="400" height="23"/>
         <image name="highlighter" catalog="system" width="128" height="119"/>
-        <image name="lock.fill" catalog="system" width="128" height="128"/>
         <image name="person.fill" catalog="system" width="128" height="120"/>
         <image name="plus" catalog="system" width="128" height="113"/>
         <image name="tape1" width="100" height="30"/>

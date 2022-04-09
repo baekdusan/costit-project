@@ -4,6 +4,7 @@ import SwiftUI
 
 class calendarVC: UIViewController {
     
+    // 지출, 수입, 고정 지출 총액 표시
     @IBOutlet weak var totalBorder: UIStackView!
     @IBOutlet weak var rTotal: UILabel!
     @IBOutlet weak var eTotal: UILabel!
@@ -17,14 +18,15 @@ class calendarVC: UIViewController {
     @IBOutlet weak var todayTotalRCost: UILabel!
     @IBOutlet weak var calendarCorner: UIView!
     
+    // 프로필 & 데이터
     var efinList: [finData] = []
     var rfinList: [finData] = []
     var pfinList: [FixedExpenditure] = []
+    var id = profile()
+    
     var filtered: [finData] = []
     let dateFormatter = DateFormatter()
     var period = salaryDate()
-    var purpose : Int = 0
-    var nickName : String = "User"
     
     let navTitle = UILabel()
     
@@ -37,13 +39,16 @@ class calendarVC: UIViewController {
     override func viewDidLoad() {
         super.viewDidLoad()
         
+        // 네비게이션 바 설정
         setNavigationBar()
         
+        // 캘린더 그림자 설정
         calendarView.layer.shadowColor = UIColor.black.cgColor
         calendarView.layer.shadowOpacity = 0.08
         calendarView.layer.shadowOffset = CGSize(width: 0, height: 4)
         calendarView.layer.masksToBounds = false
         
+        // 데이터 포맷
         dateFormatter.dateFormat = "yyyy-MM-dd"
         
         // 캘린더 디자인 셋팅
@@ -68,13 +73,11 @@ class calendarVC: UIViewController {
         eTotal.text = filteredbyMonth(period.startDate, period.endDate, list: efinList)
         pTotal.text = totalF(pfinList)
         
+        // 지출, 수입, 고정 지출 총액 스택 바 밑줄
         tableCellBorderLayout(totalBorder)
     }
     
-    override func viewDidAppear(_ animated: Bool) {
-        super.viewDidAppear(animated)
-    }
-    
+    // 날짜별 데이터 필터링
     func filter(_ today: Date) {
         let format = DateFormatter()
         format.dateFormat = "yyyyMMdd"
@@ -82,7 +85,9 @@ class calendarVC: UIViewController {
         filtered.sort(by: { $0.when > $1.when })
     }
     
+    // 총액 필터링
     func updateThisMonthTotalCost() -> [Int] {
+        
         var rtotal = 0
         var etotal = 0
         
@@ -100,6 +105,7 @@ class calendarVC: UIViewController {
         }
     }
     
+    // 테이블 뷰 데이터 보여주는 방식 및 알파값 설정
     func selectDate(_ date: Date) {
         pickDate.text = date.onlydate()
         filter(date)
@@ -139,6 +145,7 @@ class calendarVC: UIViewController {
         // 왼쪽 버튼(검색 버튼)
         let searchImage = UIImage(systemName: "magnifyingglass", withConfiguration: symbolScale)
         let searchVCBtn = UIBarButtonItem(image: searchImage, style: .plain, target: self, action: #selector(toSearchVC))
+        
         let pinImage = UIImage(systemName: "pin.fill", withConfiguration: symbolScale)
         let pinVCBtn = UIBarButtonItem(image: pinImage, style: .plain, target: self, action: #selector(toPinVC))
         
@@ -155,6 +162,7 @@ class calendarVC: UIViewController {
         self.navigationItem.leftBarButtonItems?.forEach {
             $0.tintColor = UIColor(named: "customLabel")
         }
+        
         self.navigationItem.rightBarButtonItem = rightBtn
         self.navigationItem.rightBarButtonItem?.tintColor = UIColor(named: "customLabel")
         
@@ -170,39 +178,39 @@ class calendarVC: UIViewController {
         }
     }
     
+    // 서치 뷰로
     @objc func toSearchVC() {
         guard let searchVC = storyboard?.instantiateViewController(withIdentifier: "searchVC") as? searchVC else { return }
         searchVC.efinList = efinList
         searchVC.rfinList = rfinList
-        
         navigationController?.pushViewController(searchVC, animated: true)
     }
     
+    // 고정 지출 뷰로
     @objc func toPinVC() {
         guard let pinVC = storyboard?.instantiateViewController(withIdentifier: "fixedExpenditureVC") as? fixedExpenditureVC else { return }
         pinVC.fixedData = pfinList
+        pinVC.id = id
         pinVC.fixedDelegate = self
         pinVC.modalPresentationStyle = .fullScreen
-        
         self.present(pinVC, animated: true)
     }
     
+    // 화면 닫기
     @objc func dismissVC() {
         self.dismiss(animated: true)
     }
 }
 
+// 고정 지출 데이터 변경시 캘린더 뷰 속 고정 지출 총액 변경 메서드
 extension calendarVC: FixedFinDataDelegate {
     func fixedFinData(_ controller: fixedExpenditureVC, _ fixedData: [FixedExpenditure]) {
         self.pfinList = fixedData
         pTotal.text = totalF(pfinList)
     }
-    
-    
 }
 
-
-
+// 캘린더 표시에 관한 설정들
 extension calendarVC: FSCalendarDelegate, FSCalendarDataSource, FSCalendarDelegateAppearance {
     
     func calendar(_ calendar: FSCalendar, didSelect date: Date, at monthPosition: FSCalendarMonthPosition) {
@@ -259,7 +267,7 @@ extension calendarVC: FSCalendarDelegate, FSCalendarDataSource, FSCalendarDelega
     
     func percent(_ date: Date) -> [Int] {
         filter(date)
-        let standard = Int(Double(purpose) / Double(Date().endOfMonth.onlydate())!)
+        let standard = Int(Double(id.outLay) / Double(Date().endOfMonth.onlydate())!)
         return [Int(Double(standard)), Int(Double(standard) * 1.5)]
     }
     
@@ -330,11 +338,11 @@ extension calendarVC: FSCalendarDelegate, FSCalendarDataSource, FSCalendarDelega
             return [event(date)]
         }
     }
-    
-  
 }
 
+// 테이블 뷰 표시에 관한 설정들
 extension calendarVC: UITableViewDelegate, UITableViewDataSource {
+    
     func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
         filtered.count
     }
@@ -355,10 +363,11 @@ extension calendarVC: UITableViewDelegate, UITableViewDataSource {
 }
 
 extension calendarVC {
+    
+    // 수입, 지출 총액 필터링
     func filteredbyMonth(_ startDate: Date, _ endDate: Date, list: [finData]) -> String {
         
         let filtered = list.filter { $0.when >= startDate && $0.when <= endDate}
-        
         var total = 0
         
         for i in filtered {
@@ -368,15 +377,16 @@ extension calendarVC {
         return total.toDecimal()
     }
     
+    // 고정 지출 총액 필터링
     func totalF(_ list: [FixedExpenditure]) -> String {
         var total = 0
         for i in list {
             total += i.how
         }
-        
         return total.toDecimal()
     }
     
+    // 스택바 아래 밑줄
     func tableCellBorderLayout(_ stackView : UIStackView) {
         let border = UIView()
         border.backgroundColor = .systemGray6
@@ -387,6 +397,7 @@ extension calendarVC {
     }
 }
 
+// 테이블 뷰 셀
 class dailyOutLay: UITableViewCell {
     
     @IBOutlet weak var what: UILabel!

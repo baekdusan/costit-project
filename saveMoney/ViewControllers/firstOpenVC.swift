@@ -29,6 +29,7 @@ class firstOpenVC: UIViewController, UIPickerViewDelegate, UIPickerViewDataSourc
     var purposeMoney: Int!
     var salaryDay: String!
     var profileData = profile()
+    var isFirstOpen: Bool = true
     
     @IBOutlet weak var confirmbtn: UIBarButtonItem!
     @IBOutlet weak var nicknameTF: UITextField!
@@ -63,11 +64,10 @@ class firstOpenVC: UIViewController, UIPickerViewDelegate, UIPickerViewDataSourc
         createToolbarBtn(purposeTF, [space, toSalaryButton])
         createToolbarBtn(salaryTF, [space, doneButton])
         
-    
-        if profileData.nickName != "User" {
+        salaryTF.text = "매월 " + profileData.period
+        if isFirstOpen {
             nicknameTF.text = profileData.nickName
             purposeTF.text = profileData.outLay.toDecimal()
-            salaryTF.text = "매월 " + profileData.period
         } else {
             nicknameTF.becomeFirstResponder()
         }

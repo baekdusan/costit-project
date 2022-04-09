@@ -44,7 +44,7 @@ class mainVC: UIViewController, sendFinData, shareRevenueFinList, FODelegate, Fi
     func sendRFinList(_ viewController: revenueVC, _ rFinList: [finData]) {
         rfinList = rFinList
     }
-    @IBOutlet weak var editbtn: UIBarButtonItem!
+//    @IBOutlet weak var editbtn: UIBarButtonItem!
     
     @IBOutlet weak var topView: UIView!
     @IBOutlet weak var balance: UILabel! // 남은 금액
@@ -91,8 +91,8 @@ class mainVC: UIViewController, sendFinData, shareRevenueFinList, FODelegate, Fi
     }
     var isFirstOpen: Bool! // 앱 첫실행 감지
     var filteredList: [[finData]] = [] // 필터링된 가계부 데이터
-    var isEditEnabled: Bool = false // 편집 가능 여부
-    var isEditMode: Bool = false // 편집 모드 여부
+//    var isEditEnabled: Bool = false // 편집 가능 여부
+//    var isEditMode: Bool = false // 편집 모드 여부
     let gradientView = CAGradientLayer()
     
     override func traitCollectionDidChange(_ previousTraitCollection: UITraitCollection?) {
@@ -128,6 +128,7 @@ class mainVC: UIViewController, sendFinData, shareRevenueFinList, FODelegate, Fi
         } else if segue.identifier == "firstOpen" {
             
             let vc = segue.destination as! firstOpenVC
+            vc.isFirstOpen = isFirstOpen
             vc.FODelegate = self
         } else if segue.identifier == "editProfile" {
             
@@ -225,8 +226,7 @@ class mainVC: UIViewController, sendFinData, shareRevenueFinList, FODelegate, Fi
         vc.efinList = efinList
         vc.rfinList = rfinList
         vc.pfinList = fixedFinList
-        vc.purpose = id.outLay
-        vc.nickName = id.nickName
+        vc.id = id
         vc.period = salaryData
         
         let navigationController = UINavigationController(rootViewController: vc)
@@ -238,17 +238,17 @@ class mainVC: UIViewController, sendFinData, shareRevenueFinList, FODelegate, Fi
     @IBAction func addFinbtn(_ sender: Any) {
     }
     
-    @IBAction func edit(_ sender: UIBarButtonItem) {
-        if isEditEnabled == false {
-                isEditEnabled = true
-            editbtn.image = UIImage(systemName: "lock.open.fill", withConfiguration: UIImage.SymbolConfiguration(scale: .medium))
-        } else {
-            isEditEnabled = false
-            isEditMode = false
-            editbtn.image = UIImage(systemName: "lock.fill", withConfiguration: UIImage.SymbolConfiguration(scale: .medium))
-        }
-        collectionView.reloadData()
-    }
+//    @IBAction func edit(_ sender: UIBarButtonItem) {
+//        if isEditEnabled == false {
+//                isEditEnabled = true
+//            editbtn.image = UIImage(systemName: "lock.open.fill", withConfiguration: UIImage.SymbolConfiguration(scale: .medium))
+//        } else {
+//            isEditEnabled = false
+//            isEditMode = false
+//            editbtn.image = UIImage(systemName: "lock.fill", withConfiguration: UIImage.SymbolConfiguration(scale: .medium))
+//        }
+//        collectionView.reloadData()
+//    }
     
     // notification으로 변경된 보관함 배열 수신
     @objc func savePinData(_ notification: NSNotification){
@@ -333,10 +333,21 @@ class mainVC: UIViewController, sendFinData, shareRevenueFinList, FODelegate, Fi
     
     // 가계부 삭제 버튼
     @objc func cancelButtonAction(sender : UIButton) {
-        
         let section = sender.tag / 1000
         let row = sender.tag % 1000
         
+        let alert = UIAlertController(title: "삭제", message: "해당 지출 내역을 삭제해요.", preferredStyle: .alert)
+        
+        let cancel = UIAlertAction(title: "취소", style: .cancel, handler: nil)
+        let ok = UIAlertAction(title: "확인", style: .default, handler: { _ in self.deleteExpenseFinData(section, row) })
+        
+        alert.addAction(cancel)
+        alert.addAction(ok)
+        
+        present(alert, animated: true)
+    }
+    
+    func deleteExpenseFinData(_ section: Int, _ row: Int) {
         collectionView.performBatchUpdates({
             
             collectionView.deleteItems(at: [IndexPath.init(row: row, section: section)])
@@ -353,7 +364,7 @@ class mainVC: UIViewController, sendFinData, shareRevenueFinList, FODelegate, Fi
             balanceCondition.text = "/ \(id.outLay.toDecimal()) 원"
             towidget()
             
-            isEditMode = true
+//            isEditMode = true
         }, completion: { [self] _ in
             collectionView.reloadData()})
     }
@@ -418,17 +429,17 @@ extension mainVC: UICollectionViewDelegate, UICollectionViewDataSource {
         cell.dismiss.addTarget(self, action: #selector(cancelButtonAction(sender:)), for: .touchUpInside)
         cell.border.addGestureRecognizer(deepTouchGesture)
         
-        if isEditEnabled {
-            if !isEditMode {
-                cell.dismiss.transform = CGAffineTransform(scaleX: 0, y: 0)
-                UIView.animate(withDuration: 0.6, delay: 0.1, usingSpringWithDamping: 0.6, initialSpringVelocity: 2, options: .curveLinear, animations: {
-                    cell.dismiss.alpha = 1.0;
-                    cell.dismiss.transform = .identity
-                }, completion: nil)
-            }
-        } else {
-            cell.dismiss.alpha = 0
-        }
+//        if isEditEnabled {
+//            if !isEditMode {
+//                cell.dismiss.transform = CGAffineTransform(scaleX: 0, y: 0)
+//                UIView.animate(withDuration: 0.6, delay: 0.1, usingSpringWithDamping: 0.6, initialSpringVelocity: 2, options: .curveLinear, animations: {
+//                    cell.dismiss.alpha = 1.0;
+//                    cell.dismiss.transform = .identity
+//                }, completion: nil)
+//            }
+//        } else {
+//            cell.dismiss.alpha = 0
+//        }
         return cell
     }
     

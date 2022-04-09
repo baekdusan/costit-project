@@ -18,8 +18,7 @@ class fixedExpenditureVC: UIViewController {
     
     let notificationCenter = UNUserNotificationCenter.current()
     
-    var name: String = "User"
-    
+    var id = profile()
     var fixedData: [FixedExpenditure] = [] {
         didSet {
             
@@ -97,7 +96,7 @@ class fixedExpenditureVC: UIViewController {
         if !fixedData.isEmpty {
             notificationCenter.removeAllPendingNotificationRequests()
             for i in fixedData {
-                notificationCenter.addNotificationRequest(to: name, by: i)
+                notificationCenter.addNotificationRequest(to: id.nickName, by: i)
             }
         }
     }
@@ -321,7 +320,7 @@ extension fixedExpenditureVC {
     @objc func addFixedData() {
         if isAllfilled() {
             let data = FixedExpenditure(day: when, towhat: toWhatTF.text, how: how)
-            notificationCenter.addNotificationRequest(to: name, by: data)
+            notificationCenter.addNotificationRequest(to: id.nickName, by: data)
             
             fixedData.append(data)
             filteredbyDays()
