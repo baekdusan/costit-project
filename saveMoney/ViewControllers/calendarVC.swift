@@ -148,6 +148,7 @@ class calendarVC: UIViewController {
         
         let pinImage = UIImage(systemName: "pin.fill", withConfiguration: symbolScale)
         let pinVCBtn = UIBarButtonItem(image: pinImage, style: .plain, target: self, action: #selector(toPinVC))
+//        let pinVCBtn = UIBarButtonItem(title: "📌", style: .plain, target: self, action: #selector(toPinVC))
         
         // 타이틀
         navTitle.font = .systemFont(ofSize: 13, weight: .bold)
