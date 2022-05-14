@@ -44,7 +44,6 @@ class mainVC: UIViewController, sendFinData, shareRevenueFinList, FODelegate, Fi
     func sendRFinList(_ viewController: revenueVC, _ rFinList: [finData]) {
         rfinList = rFinList
     }
-//    @IBOutlet weak var editbtn: UIBarButtonItem!
     
     @IBOutlet weak var topView: UIView!
     @IBOutlet weak var balance: UILabel! // 남은 금액
@@ -91,9 +90,15 @@ class mainVC: UIViewController, sendFinData, shareRevenueFinList, FODelegate, Fi
     }
     var isFirstOpen: Bool! // 앱 첫실행 감지
     var filteredList: [[finData]] = [] // 필터링된 가계부 데이터
-//    var isEditEnabled: Bool = false // 편집 가능 여부
-//    var isEditMode: Bool = false // 편집 모드 여부
     let gradientView = CAGradientLayer()
+    
+    // 기록 확인을 위한 데이트 피커
+    let datePicker = UIPickerView()
+    let titleTouch = UITextField()
+    
+    // 데이트 피커가 담을 년/월
+    var year : [Int] = []
+    let month = [Int](1...12)
     
     override func traitCollectionDidChange(_ previousTraitCollection: UITraitCollection?) {
         super.traitCollectionDidChange(previousTraitCollection)
@@ -141,6 +146,12 @@ class mainVC: UIViewController, sendFinData, shareRevenueFinList, FODelegate, Fi
     override func viewDidLoad() {
         super.viewDidLoad()
         
+        // 데이트 피커가 담을 년/월 셋팅
+        let setDateFormatter = DateFormatter()
+        setDateFormatter.dateFormat = "yyyy"
+        year = [Int](2021...Int(setDateFormatter.string(from: Date()))!)
+        
+        // 탑뷰 그라데이션 주기
         gradientView.frame = topView.bounds
         let colors: [CGColor] = [
             UIColor(named: "topViewColor")!.cgColor,
@@ -148,7 +159,6 @@ class mainVC: UIViewController, sendFinData, shareRevenueFinList, FODelegate, Fi
         ]
         gradientView.colors = colors
         topView.layer.addSublayer(gradientView)
-        
         collectionView.clipsToBounds = false
         
         // 지출 가계부 정보 받아오기
@@ -189,6 +199,10 @@ class mainVC: UIViewController, sendFinData, shareRevenueFinList, FODelegate, Fi
         balanceCondition.text = "/ \(id.outLay.toDecimal()) 원"
         
         self.collectionView.alwaysBounceVertical = true
+        
+        // 피커뷰 대리자 채택
+        self.datePicker.dataSource = self
+        self.datePicker.delegate = self
     }
     
     override func viewWillAppear(_ animated: Bool) {
@@ -206,12 +220,16 @@ class mainVC: UIViewController, sendFinData, shareRevenueFinList, FODelegate, Fi
     override func viewDidAppear(_ animated: Bool) {
         super .viewDidAppear(animated)
         
-        // 네비게이션 바 타이틀 레이아웃 설정
+        // 네비게이션 바 타이틀 레이아웃 설정 및 터치 이벤트 부여
         let title = UILabel()
         title.text = salaryData.startDate.toString(false) + " ~ " + salaryData.endDate.toString(false)
         title.font = UIFont.systemFont(ofSize: 12, weight: .semibold)
         title.textColor = UIColor(named: "customLabel")
         navigationItem.titleView = title
+        
+        let titleTouch = UITapGestureRecognizer(target: self, action: #selector(changeDate))
+        title.isUserInteractionEnabled = true
+        title.addGestureRecognizer(titleTouch)
         
         // 첫 실행 감지
         isFirstOpen = UserDefaults.standard.bool(forKey: "firstOpen")
@@ -238,23 +256,49 @@ class mainVC: UIViewController, sendFinData, shareRevenueFinList, FODelegate, Fi
     @IBAction func addFinbtn(_ sender: Any) {
     }
     
-//    @IBAction func edit(_ sender: UIBarButtonItem) {
-//        if isEditEnabled == false {
-//                isEditEnabled = true
-//            editbtn.image = UIImage(systemName: "lock.open.fill", withConfiguration: UIImage.SymbolConfiguration(scale: .medium))
-//        } else {
-//            isEditEnabled = false
-//            isEditMode = false
-//            editbtn.image = UIImage(systemName: "lock.fill", withConfiguration: UIImage.SymbolConfiguration(scale: .medium))
-//        }
-//        collectionView.reloadData()
-//    }
-    
     // notification으로 변경된 보관함 배열 수신
     @objc func savePinData(_ notification: NSNotification){
         fixedFinList = notification.userInfo!["save"] as! [FixedExpenditure]
         UserDefaults.standard.set(try? PropertyListEncoder().encode(fixedFinList), forKey: "fixedFinList")
         }
+    
+    // 상단 네비게이션 타이틀을 클릭했을 때 데이트 피커 노출
+    @objc func changeDate() {
+        view.addSubview(titleTouch)
+        
+        let toolbar = UIToolbar()
+        toolbar.barTintColor = UIColor(named: "topViewColor")
+        toolbar.sizeToFit()
+        
+        let reset = UIBarButtonItem(title: "초기화(취소)", style: .plain, target: self, action: #selector(reset))
+        reset.tintColor = UIColor(named: "customLabel")
+        let blank = UIBarButtonItem(systemItem: .flexibleSpace)
+        let ok = UIBarButtonItem(title: "설정", style: .done, target: self, action: #selector(setDate))
+        ok.tintColor = UIColor(named: "customLabel")
+        
+        toolbar.setItems([reset, blank, ok], animated: true)
+        
+        self.titleTouch.inputView = datePicker
+        self.titleTouch.inputAccessoryView = toolbar
+
+        titleTouch.becomeFirstResponder()
+    }
+    
+    // 초기화(이번 달 설정 날짜로 필터링)
+    @objc func reset() {
+        // 이번 달로 콜렉션 뷰 데이터 갱신
+        filteredbyMonth(salaryData.startDate, salaryData.endDate)
+        
+        // 레이아웃 셋팅 (이름, 남은 금액, 목표 기간)
+        balance.text = Int(id.outLay - updateThisMonthTotalCost()).toDecimal() + " 원"
+        balanceCondition.text = "/ \(id.outLay.toDecimal()) 원"
+        titleTouch.resignFirstResponder()
+    }
+    
+    // 원하는 날짜로 필터링
+    @objc func setDate() {
+        print("필터링 하기")
+    }
 
     
     // 급여일을 설정했을 때 그걸 바탕으로 한달의 지출 기간을 셋팅
@@ -428,18 +472,6 @@ extension mainVC: UICollectionViewDelegate, UICollectionViewDataSource {
         cell.dismiss.tag = indexPath.section * 1000 + indexPath.row
         cell.dismiss.addTarget(self, action: #selector(cancelButtonAction(sender:)), for: .touchUpInside)
         cell.border.addGestureRecognizer(deepTouchGesture)
-        
-//        if isEditEnabled {
-//            if !isEditMode {
-//                cell.dismiss.transform = CGAffineTransform(scaleX: 0, y: 0)
-//                UIView.animate(withDuration: 0.6, delay: 0.1, usingSpringWithDamping: 0.6, initialSpringVelocity: 2, options: .curveLinear, animations: {
-//                    cell.dismiss.alpha = 1.0;
-//                    cell.dismiss.transform = .identity
-//                }, completion: nil)
-//            }
-//        } else {
-//            cell.dismiss.alpha = 0
-//        }
         return cell
     }
     
@@ -557,5 +589,39 @@ extension mainVC : UIScrollViewDelegate {
                 },
             completion: nil
         )
+    }
+}
+
+// 데이트 피커 뷰 델리게이트
+extension mainVC: UIPickerViewDelegate, UIPickerViewDataSource {
+    func pickerView(_ pickerView: UIPickerView, numberOfRowsInComponent component: Int) -> Int {
+        
+        switch component {
+        case 0:
+            return year.count
+        case 1:
+            return month.count
+        default:
+            return 0
+        }
+    }
+    
+    func pickerView(_ pickerView: UIPickerView, titleForRow row: Int, forComponent component: Int) -> String? {
+        switch component {
+        case 0:
+            return "\(year[row])년"
+        case 1:
+            return "\(month[row])월"
+        default:
+            return ""
+        }
+    }
+    
+    func numberOfComponents(in pickerView: UIPickerView) -> Int {
+        2
+    }
+    
+    func pickerView(_ pickerView: UIPickerView, didSelectRow row: Int, inComponent component: Int) {
+        print("\(year[component])년 \(month[row])월")
     }
 }
