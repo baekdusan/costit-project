@@ -92,6 +92,8 @@ class mainVC: UIViewController, sendFinData, shareRevenueFinList, FODelegate, Fi
     var filteredList: [[finData]] = [] // 필터링된 가계부 데이터
     let gradientView = CAGradientLayer()
     
+    var navTitle = UILabel()
+    
     // 기록 확인을 위한 데이트 피커
     let datePicker = UIPickerView()
     let titleTouch = UITextField()
@@ -99,6 +101,9 @@ class mainVC: UIViewController, sendFinData, shareRevenueFinList, FODelegate, Fi
     // 데이트 피커가 담을 년/월
     var year : [Int] = []
     let month = [Int](1...12)
+    
+    // 지정 날짜의 Int값을 Date형식으로 변경해주기 전에 담는 곳
+    var stringDate: String = "202101"
     
     override func traitCollectionDidChange(_ previousTraitCollection: UITraitCollection?) {
         super.traitCollectionDidChange(previousTraitCollection)
@@ -221,15 +226,14 @@ class mainVC: UIViewController, sendFinData, shareRevenueFinList, FODelegate, Fi
         super .viewDidAppear(animated)
         
         // 네비게이션 바 타이틀 레이아웃 설정 및 터치 이벤트 부여
-        let title = UILabel()
-        title.text = salaryData.startDate.toString(false) + " ~ " + salaryData.endDate.toString(false)
-        title.font = UIFont.systemFont(ofSize: 12, weight: .semibold)
-        title.textColor = UIColor(named: "customLabel")
-        navigationItem.titleView = title
+        navTitle.text = salaryData.startDate.toString(false) + " - " + salaryData.endDate.toString(false)
+        navTitle.font = UIFont.systemFont(ofSize: 12, weight: .semibold)
+        navTitle.textColor = UIColor(named: "customLabel")
+        navigationItem.titleView = navTitle
         
         let titleTouch = UITapGestureRecognizer(target: self, action: #selector(changeDate))
-        title.isUserInteractionEnabled = true
-        title.addGestureRecognizer(titleTouch)
+        navTitle.isUserInteractionEnabled = true
+        navTitle.addGestureRecognizer(titleTouch)
         
         // 첫 실행 감지
         isFirstOpen = UserDefaults.standard.bool(forKey: "firstOpen")
@@ -290,14 +294,40 @@ class mainVC: UIViewController, sendFinData, shareRevenueFinList, FODelegate, Fi
         filteredbyMonth(salaryData.startDate, salaryData.endDate)
         
         // 레이아웃 셋팅 (이름, 남은 금액, 목표 기간)
+        navTitle.text = salaryData.startDate.toString(false) + " - " + salaryData.endDate.toString(false)
+        navTitle.sizeToFit()
+        
+        navigationItem.titleView = navTitle
         balance.text = Int(id.outLay - updateThisMonthTotalCost()).toDecimal() + " 원"
         balanceCondition.text = "/ \(id.outLay.toDecimal()) 원"
+        
         titleTouch.resignFirstResponder()
     }
     
     // 원하는 날짜로 필터링
     @objc func setDate() {
-        print("필터링 하기")
+        
+        // 필터링할 시간의 앞과 뒤
+        let start = stringDate.toDate()!.startOfMonth
+        let end = stringDate.toDate()!.endOfMonth
+        
+        // 필터링 후 레이아웃 셋팅(사용한 총액, 날짜)
+        filteredbyMonth(start, end) // 이번 달에 맞춰서 filteredList 할당
+        balance.text = updateThisMonthTotalCost().toDecimal() + " 원"
+        balanceCondition.text = "이만큼 사용했어요."
+        
+        let formatter = DateFormatter()
+        formatter.dateFormat = "yyyy년 MM월"
+        let settingDate = formatter.string(from: stringDate.toDate()!)
+
+        navTitle.text = settingDate
+        navTitle.sizeToFit()
+        navigationItem.titleView = navTitle
+        
+        // 콜렉션뷰 갱신, 키보드 내리기
+        collectionView.reloadData()
+        titleTouch.resignFirstResponder()
+        
     }
 
     
@@ -408,7 +438,6 @@ class mainVC: UIViewController, sendFinData, shareRevenueFinList, FODelegate, Fi
             balanceCondition.text = "/ \(id.outLay.toDecimal()) 원"
             towidget()
             
-//            isEditMode = true
         }, completion: { [self] _ in
             collectionView.reloadData()})
     }
@@ -623,5 +652,6 @@ extension mainVC: UIPickerViewDelegate, UIPickerViewDataSource {
     
     func pickerView(_ pickerView: UIPickerView, didSelectRow row: Int, inComponent component: Int) {
         print("\(year[component])년 \(month[row])월")
+        stringDate = "\(year[component])" + String(format: "%02d", month[row])
     }
 }

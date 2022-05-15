@@ -61,7 +61,7 @@ class addFinVC: UIViewController, UITextFieldDelegate {
     override func viewDidLoad() {
         super.viewDidLoad()
         
-        // 빈 화면에 스크롤제스처 추가
+        // 빈 화면에 스크롤 제스처 추가
         swipeRecognizer()
         
         // 날짜 텍스트 필드 노출 스타일 설정  ----- 변경금지 !! -----

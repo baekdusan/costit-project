@@ -126,8 +126,6 @@ extension Date {
     func dDay(_ endDate: Date) -> Int {
         return Calendar.current.dateComponents([.month, .day], from: self, to: endDate).day!
     }
-    
-
 }
 
 struct finData: Codable, Equatable {
@@ -209,5 +207,14 @@ extension UNUserNotificationCenter {
         self.add(request, withCompletionHandler:{_ in
             
         })
+    }
+}
+
+extension String {
+    func toDate() -> Date? {
+        let dateFormatter = DateFormatter()
+        dateFormatter.dateFormat = "yyyyMM"
+        dateFormatter.timeZone = TimeZone(identifier: "ko-KR")
+        if let date = dateFormatter.date(from: self) { return date } else { return nil }
     }
 }
