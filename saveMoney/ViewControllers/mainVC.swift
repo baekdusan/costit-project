@@ -20,7 +20,7 @@ class mainVC: UIViewController, sendFinData, shareRevenueFinList, FODelegate, Fi
         // 1. 기준일
         salaryData.startDate = setSalaryDate(salary).startDate
         salaryData.endDate = setSalaryDate(salary).endDate
-        navigationItem.title = salaryData.startDate.toString(false) + " - " + salaryData.endDate.toString(false)
+        navigationItem.title = salaryData.startDate.toString(false) + " ~ " + salaryData.endDate.toString(false)
         // 2. 남은 금액 및 상태
         updateLayout()
     }
@@ -54,7 +54,7 @@ class mainVC: UIViewController, sendFinData, shareRevenueFinList, FODelegate, Fi
     @IBOutlet weak var addFinBorder: UIButton!
     
     // 지출 가계부
-    var efinList: [finData] = [finData(when: Date(), towhat: "코스트잇 다운로드😎", how: 1200)] {
+    var efinList: [finData] = [] {
         didSet {
             // 가계부 데이터 변경시마다 저장 및 상태 변경
             UserDefaults.standard.set(try? PropertyListEncoder().encode(efinList), forKey:"finlist")
@@ -103,7 +103,8 @@ class mainVC: UIViewController, sendFinData, shareRevenueFinList, FODelegate, Fi
     let month = [Int](1...12)
     
     // 지정 날짜의 Int값을 Date형식으로 변경해주기 전에 담는 곳
-    var stringDate: String = "202101"
+    var selectedYear: String = "2021"
+    var selectedMonth: String = "01"
     
     override func traitCollectionDidChange(_ previousTraitCollection: UITraitCollection?) {
         super.traitCollectionDidChange(previousTraitCollection)
@@ -121,7 +122,6 @@ class mainVC: UIViewController, sendFinData, shareRevenueFinList, FODelegate, Fi
     override func prepare(for segue: UIStoryboardSegue, sender: Any?) {
         
         if segue.identifier == "addFinData" {
-            
             let vc = segue.destination as! addFinVC
             vc.fromWhere = .expense
             vc.mode = .new
@@ -129,19 +129,16 @@ class mainVC: UIViewController, sendFinData, shareRevenueFinList, FODelegate, Fi
             vc.end = salaryData.endDate
             vc.delegate = self
         } else if segue.identifier == "toRevenueVC" {
-            
             let vc = segue.destination as! revenueVC
             vc.rdelegate = self
             vc.rfinList = rfinList
             vc.start = salaryData.startDate
             vc.end = salaryData.endDate
         } else if segue.identifier == "firstOpen" {
-            
             let vc = segue.destination as! firstOpenVC
             vc.isFirstOpen = isFirstOpen
             vc.FODelegate = self
         } else if segue.identifier == "editProfile" {
-            
             let vc = segue.destination as! firstOpenVC
             vc.profileData = id
             vc.FODelegate = self
@@ -226,9 +223,10 @@ class mainVC: UIViewController, sendFinData, shareRevenueFinList, FODelegate, Fi
         super .viewDidAppear(animated)
         
         // 네비게이션 바 타이틀 레이아웃 설정 및 터치 이벤트 부여
-        navTitle.text = salaryData.startDate.toString(false) + " - " + salaryData.endDate.toString(false)
+        navTitle.text = salaryData.startDate.toString(false) + " ~ " + salaryData.endDate.toString(false)
         navTitle.font = UIFont.systemFont(ofSize: 12, weight: .semibold)
         navTitle.textColor = UIColor(named: "customLabel")
+        navTitle.sizeToFit()
         navigationItem.titleView = navTitle
         
         let titleTouch = UITapGestureRecognizer(target: self, action: #selector(changeDate))
@@ -240,6 +238,11 @@ class mainVC: UIViewController, sendFinData, shareRevenueFinList, FODelegate, Fi
         if isFirstOpen == false {
             performSegue(withIdentifier: "firstOpen", sender: self)
         }
+    }
+    
+    override func viewDidDisappear(_ animated: Bool) {
+        super.viewDidDisappear(animated)
+        reset()
     }
     
     // calendarVC를 네비게이션 컨트롤러가 품은 뷰로 만들어서 모달로 Push
@@ -274,7 +277,7 @@ class mainVC: UIViewController, sendFinData, shareRevenueFinList, FODelegate, Fi
         toolbar.barTintColor = UIColor(named: "topViewColor")
         toolbar.sizeToFit()
         
-        let reset = UIBarButtonItem(title: "초기화(취소)", style: .plain, target: self, action: #selector(reset))
+        let reset = UIBarButtonItem(title: "Reset", style: .plain, target: self, action: #selector(reset))
         reset.tintColor = UIColor(named: "customLabel")
         let blank = UIBarButtonItem(systemItem: .flexibleSpace)
         let ok = UIBarButtonItem(title: "설정", style: .done, target: self, action: #selector(setDate))
@@ -294,18 +297,20 @@ class mainVC: UIViewController, sendFinData, shareRevenueFinList, FODelegate, Fi
         filteredbyMonth(salaryData.startDate, salaryData.endDate)
         
         // 레이아웃 셋팅 (이름, 남은 금액, 목표 기간)
-        navTitle.text = salaryData.startDate.toString(false) + " - " + salaryData.endDate.toString(false)
+        navTitle.text = salaryData.startDate.toString(false) + " ~ " + salaryData.endDate.toString(false)
         navTitle.sizeToFit()
         
-        navigationItem.titleView = navTitle
         balance.text = Int(id.outLay - updateThisMonthTotalCost()).toDecimal() + " 원"
         balanceCondition.text = "/ \(id.outLay.toDecimal()) 원"
         
+        collectionView.reloadData()
         titleTouch.resignFirstResponder()
     }
     
     // 원하는 날짜로 필터링
     @objc func setDate() {
+        
+        let stringDate = selectedYear + selectedMonth
         
         // 필터링할 시간의 앞과 뒤
         let start = stringDate.toDate()!.startOfMonth
@@ -317,7 +322,7 @@ class mainVC: UIViewController, sendFinData, shareRevenueFinList, FODelegate, Fi
         balanceCondition.text = "이만큼 사용했어요."
         
         let formatter = DateFormatter()
-        formatter.dateFormat = "yyyy년 MM월"
+        formatter.dateFormat = "yyyy년 M월"
         let settingDate = formatter.string(from: stringDate.toDate()!)
 
         navTitle.text = settingDate
@@ -327,7 +332,6 @@ class mainVC: UIViewController, sendFinData, shareRevenueFinList, FODelegate, Fi
         // 콜렉션뷰 갱신, 키보드 내리기
         collectionView.reloadData()
         titleTouch.resignFirstResponder()
-        
     }
 
     
@@ -359,6 +363,9 @@ class mainVC: UIViewController, sendFinData, shareRevenueFinList, FODelegate, Fi
     
     // 이번 달 기준으로 리스트 필터링, 남은 금액, 그리고 재정 상태 표시
     func updateLayout() {
+        navTitle.text = salaryData.startDate.toString(false) + " ~ " + salaryData.endDate.toString(false)
+        navTitle.sizeToFit()
+        
         filteredbyMonth(salaryData.startDate, salaryData.endDate) // 이번 달에 맞춰서 filteredList 할당
         balance.text = Int(id.outLay - updateThisMonthTotalCost()).toDecimal() + " 원" // 남은 금액 = 목표 금액 - 이번 달 총 지출 비용
         balanceCondition.text = "/ \(id.outLay.toDecimal()) 원"
@@ -576,6 +583,7 @@ extension mainVC : UIScrollViewDelegate {
     func scrollViewDidScroll(_ scrollView: UIScrollView) {
         self.addFinBorder.btnLayout(true)
         self.revenueBorder.btnLayout(true)
+        self.titleTouch.resignFirstResponder()
     }
     
     // 스크롤이 끝에 닿았을 때
@@ -651,7 +659,13 @@ extension mainVC: UIPickerViewDelegate, UIPickerViewDataSource {
     }
     
     func pickerView(_ pickerView: UIPickerView, didSelectRow row: Int, inComponent component: Int) {
-        print("\(year[component])년 \(month[row])월")
-        stringDate = "\(year[component])" + String(format: "%02d", month[row])
+        switch component {
+          case 0:
+              selectedYear = String(year[row])
+          case 1:
+              selectedMonth = String(format: "%02d", month[row])
+          default:
+              break
+          }
     }
 }

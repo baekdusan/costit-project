@@ -36,6 +36,20 @@ class revenueVC: UIViewController, sendRevenueFinData {
     var end: Date!
     var rdelegate: shareRevenueFinList!
     
+    let navTitle = UILabel()
+    
+    // 기록 확인을 위한 데이트 피커
+    let datePicker = UIPickerView()
+    let titleTouch = UITextField()
+    
+    // 데이트 피커가 담을 년/월
+    var year : [Int] = []
+    let month = [Int](1...12)
+    
+    // 지정 날짜의 Int값을 Date형식으로 변경해주기 전에 담는 곳
+    var selectedYear: String = "2021"
+    var selectedMonth: String = "01"
+    
     override func prepare(for segue: UIStoryboardSegue, sender: Any?) {
         if segue.identifier == "addRevenueFinData" {
             // 소득을 추가할 때는 기간 내에 시작과 끝점, 그리고 추가 뷰가 소득 뷰에서부터 왔다는 것을 알려줘야함
@@ -51,16 +65,20 @@ class revenueVC: UIViewController, sendRevenueFinData {
     override func viewDidLoad() {
         super.viewDidLoad()
         
+        // 데이트 피커가 담을 년/월 셋팅
+        let setDateFormatter = DateFormatter()
+        setDateFormatter.dateFormat = "yyyy"
+        year = [Int](2021...Int(setDateFormatter.string(from: Date()))!)
+        
         // 네비게이션 바 투명처리
         navigation.setBackgroundImage(UIImage(), for: UIBarMetrics.default)
         navigation.shadowImage = UIImage()
         
         // 네비게이션 바 타이틀 레이아웃 설정
-        let title = UILabel()
-        title.text = start.toString(false) + " ~ " + end.toString(false)
-        title.font = UIFont.systemFont(ofSize: 12, weight: .semibold)
-        title.textColor = UIColor(named: "customLabel")
-        navigation.topItem?.titleView = title
+        navTitle.text = start.toString(false) + " ~ " + end.toString(false)
+        navTitle.font = UIFont.systemFont(ofSize: 12, weight: .semibold)
+        navTitle.textColor = UIColor(named: "customLabel")
+        navigation.topItem?.titleView = navTitle
         
         // 버튼 동그랗게 + 투명도 조절
         addBtnLayOut.btnLayout(false)
@@ -68,10 +86,83 @@ class revenueVC: UIViewController, sendRevenueFinData {
         
         // 지출 뷰에서 받아온 기간으로 가계부 데이터 필터링
         filteredbyMonth(start, end)
+        
+        // 피커뷰 대리자 채택
+        self.datePicker.dataSource = self
+        self.datePicker.delegate = self
     }
+    
+    override func viewDidAppear(_ animated: Bool) {
+        super.viewDidAppear(animated)
+        
+        let titleTouch = UITapGestureRecognizer(target: self, action: #selector(changeDate))
+        navTitle.isUserInteractionEnabled = true
+        navTitle.addGestureRecognizer(titleTouch)
+    }
+    
     @IBAction func dismissBtn(_ sender: UIButton) {
         dismiss(animated: true, completion: nil)
             
+    }
+    
+    // 상단 네비게이션 타이틀을 클릭했을 때 데이트 피커 노출
+    @objc func changeDate() {
+        view.addSubview(titleTouch)
+        
+        let toolbar = UIToolbar()
+        toolbar.barTintColor = UIColor(named: "pinColor")
+        toolbar.sizeToFit()
+        
+        let reset = UIBarButtonItem(title: "Reset", style: .plain, target: self, action: #selector(reset))
+        reset.tintColor = UIColor(named: "customLabel")
+        let blank = UIBarButtonItem(systemItem: .flexibleSpace)
+        let ok = UIBarButtonItem(title: "설정", style: .done, target: self, action: #selector(setDate))
+        ok.tintColor = UIColor(named: "customLabel")
+        
+        toolbar.setItems([reset, blank, ok], animated: true)
+        
+        self.titleTouch.inputView = datePicker
+        self.titleTouch.inputAccessoryView = toolbar
+
+        titleTouch.becomeFirstResponder()
+    }
+    
+    // 초기화(이번 달 설정 날짜로 필터링)
+    @objc func reset() {
+        // 이번 달로 콜렉션 뷰 데이터 갱신
+        filteredbyMonth(start, end)
+        
+        // 레이아웃 셋팅 (이름, 남은 금액, 목표 기간)
+        navTitle.text = start.toString(false) + " ~ " + end.toString(false)
+        navTitle.sizeToFit()
+        
+        collectionView.reloadData()
+        titleTouch.resignFirstResponder()
+    }
+    
+    // 원하는 날짜로 필터링
+    @objc func setDate() {
+        
+        let stringDate = selectedYear + selectedMonth
+        
+        // 필터링할 시간의 앞과 뒤
+        let start = stringDate.toDate()!.startOfMonth
+        let end = stringDate.toDate()!.endOfMonth
+        
+        // 필터링 후 레이아웃 셋팅(사용한 총액, 날짜)
+        filteredbyMonth(start, end) // 이번 달에 맞춰서 filteredList 할당
+        
+        let formatter = DateFormatter()
+        formatter.dateFormat = "yyyy년 M월"
+        let settingDate = formatter.string(from: stringDate.toDate()!)
+
+        navTitle.text = settingDate
+        navTitle.sizeToFit()
+        navigationItem.titleView = navTitle
+        
+        // 콜렉션뷰 갱신, 키보드 내리기
+        collectionView.reloadData()
+        titleTouch.resignFirstResponder()
     }
     
     func updateLayout() {
@@ -246,3 +337,43 @@ class rheader: UICollectionReusableView {
     }
 }
 
+// 데이트 피커 뷰 델리게이트
+extension revenueVC: UIPickerViewDelegate, UIPickerViewDataSource {
+    func pickerView(_ pickerView: UIPickerView, numberOfRowsInComponent component: Int) -> Int {
+        
+        switch component {
+        case 0:
+            return year.count
+        case 1:
+            return month.count
+        default:
+            return 0
+        }
+    }
+    
+    func pickerView(_ pickerView: UIPickerView, titleForRow row: Int, forComponent component: Int) -> String? {
+        switch component {
+        case 0:
+            return "\(year[row])년"
+        case 1:
+            return "\(month[row])월"
+        default:
+            return ""
+        }
+    }
+    
+    func numberOfComponents(in pickerView: UIPickerView) -> Int {
+        2
+    }
+    
+    func pickerView(_ pickerView: UIPickerView, didSelectRow row: Int, inComponent component: Int) {
+        switch component {
+          case 0:
+              selectedYear = String(year[row])
+          case 1:
+              selectedMonth = String(format: "%02d", month[row])
+          default:
+              break
+          }
+    }
+}
