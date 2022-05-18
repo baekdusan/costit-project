@@ -115,16 +115,14 @@ extension Date {
     
     func onlydate() -> String {
         let dateFormatter = DateFormatter()
-        dateFormatter.dateFormat = "dd"
-        let text = dateFormatter.string(from: self).map { String($0) }
-        if text[0] == "0" {
-            return text[1]
-        }
-        return text[0] + text[1]
+        dateFormatter.dateFormat = "d"
+        return dateFormatter.string(from: self)
     }
     
-    func dDay(_ endDate: Date) -> Int {
-        return Calendar.current.dateComponents([.month, .day], from: self, to: endDate).day!
+    func onlyMonth() -> Int {
+        let dateFormatter = DateFormatter()
+        dateFormatter.dateFormat = "M"
+        return Int(dateFormatter.string(from: self))!
     }
 }
 

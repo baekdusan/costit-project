@@ -260,9 +260,6 @@ class mainVC: UIViewController, sendFinData, shareRevenueFinList, FODelegate, Fi
         present(navigationController, animated: true)
     }
     
-    @IBAction func addFinbtn(_ sender: Any) {
-    }
-    
     // notification으로 변경된 보관함 배열 수신
     @objc func savePinData(_ notification: NSNotification){
         fixedFinList = notification.userInfo!["save"] as! [FixedExpenditure]
@@ -319,17 +316,18 @@ class mainVC: UIViewController, sendFinData, shareRevenueFinList, FODelegate, Fi
         // 필터링 후 레이아웃 셋팅(사용한 총액, 날짜)
         filteredbyMonth(start, end) // 이번 달에 맞춰서 filteredList 할당
         balance.text = updateThisMonthTotalCost().toDecimal() + " 원"
-        balanceCondition.text = "이만큼 사용했어요."
+        balanceCondition.text = "이만큼 사용했어요"
         
         let formatter = DateFormatter()
         formatter.dateFormat = "yyyy년 M월"
         let settingDate = formatter.string(from: stringDate.toDate()!)
 
-        navTitle.text = settingDate
+        navTitle.text =  "🗓 " + settingDate
         navTitle.sizeToFit()
         navigationItem.titleView = navTitle
         
-        // 콜렉션뷰 갱신, 키보드 내리기
+        // 콜렉션뷰 갱신, 키보드 내리기, 지출 입력 금지
+        
         collectionView.reloadData()
         titleTouch.resignFirstResponder()
     }

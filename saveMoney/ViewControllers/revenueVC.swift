@@ -114,10 +114,10 @@ class revenueVC: UIViewController, sendRevenueFinData {
         toolbar.sizeToFit()
         
         let reset = UIBarButtonItem(title: "Reset", style: .plain, target: self, action: #selector(reset))
-        reset.tintColor = UIColor(named: "customLabel")
+        reset.tintColor = UIColor.black.withAlphaComponent(0.72)
         let blank = UIBarButtonItem(systemItem: .flexibleSpace)
         let ok = UIBarButtonItem(title: "설정", style: .done, target: self, action: #selector(setDate))
-        ok.tintColor = UIColor(named: "customLabel")
+        ok.tintColor = UIColor.black.withAlphaComponent(0.72)
         
         toolbar.setItems([reset, blank, ok], animated: true)
         
@@ -156,7 +156,7 @@ class revenueVC: UIViewController, sendRevenueFinData {
         formatter.dateFormat = "yyyy년 M월"
         let settingDate = formatter.string(from: stringDate.toDate()!)
 
-        navTitle.text = settingDate
+        navTitle.text = "🗓 " + settingDate
         navTitle.sizeToFit()
         navigationItem.titleView = navTitle
         

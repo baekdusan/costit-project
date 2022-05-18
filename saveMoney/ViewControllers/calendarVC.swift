@@ -10,9 +10,10 @@ class calendarVC: UIViewController {
     @IBOutlet weak var eTotal: UILabel!
     @IBOutlet weak var pTotal: UILabel!
     
+    // 달력, 테이블 뷰 표시
     @IBOutlet weak var calendarView: FSCalendar!
+    
     @IBOutlet weak var tableView: UITableView!
-   
     @IBOutlet weak var pickDate: UILabel!
     @IBOutlet weak var todayTotalCost: UILabel!
     @IBOutlet weak var todayTotalRCost: UILabel!
@@ -54,7 +55,7 @@ class calendarVC: UIViewController {
         // 캘린더 디자인 셋팅
         calendarView.locale = Locale(identifier: "ko_KR")
         
-        calendarView.appearance.headerDateFormat = "yyyy년 MM월"
+        calendarView.appearance.headerDateFormat = "yyyy년 M월"
         calendarView.appearance.headerTitleFont = UIFont.systemFont(ofSize: 16, weight: .medium)
         calendarView.appearance.weekdayFont = UIFont.systemFont(ofSize: 18, weight: .semibold)
         calendarView.appearance.titleFont = UIFont.systemFont(ofSize: 14, weight: .semibold)
@@ -86,7 +87,7 @@ class calendarVC: UIViewController {
     }
     
     // 총액 필터링
-    func updateThisMonthTotalCost() -> [Int] {
+    func updateTodayTotalCost() -> [Int] {
         
         var rtotal = 0
         var etotal = 0
@@ -109,20 +110,20 @@ class calendarVC: UIViewController {
     func selectDate(_ date: Date) {
         pickDate.text = date.onlydate()
         filter(date)
-        todayTotalCost.text = "- " + updateThisMonthTotalCost()[0].toDecimal() + " 원"
-        todayTotalRCost.text = "+ " + updateThisMonthTotalCost()[1].toDecimal() + " 원"
+        todayTotalCost.text = "- " + updateTodayTotalCost()[0].toDecimal() + " 원"
+        todayTotalRCost.text = "+ " + updateTodayTotalCost()[1].toDecimal() + " 원"
         
         tableView.reloadData()
         
-        if updateThisMonthTotalCost()[0] * updateThisMonthTotalCost()[1] == 0 {
+        if updateTodayTotalCost()[0] * updateTodayTotalCost()[1] == 0 {
             
-            if updateThisMonthTotalCost()[0] == 0 {
+            if updateTodayTotalCost()[0] == 0 {
                 todayTotalRCost.alpha = 1
             } else {
                 todayTotalRCost.alpha = 0
             }
             
-            if updateThisMonthTotalCost()[1] == 0 {
+            if updateTodayTotalCost()[1] == 0 {
                 todayTotalCost.alpha = 1
             } else {
                 todayTotalCost.alpha = 0
@@ -133,6 +134,7 @@ class calendarVC: UIViewController {
         }
     }
     
+    // 네비게이션 바 디자인 레이아웃
     func setNavigationBar() {
         
         // 버튼 사이즈 조정
@@ -142,32 +144,31 @@ class calendarVC: UIViewController {
         self.navigationController?.navigationBar.setBackgroundImage(UIImage(), for: .default)
         self.navigationController?.navigationBar.shadowImage = UIImage()
         
-        // 왼쪽 버튼(검색 버튼)
+        // 검색, 고정 지출 버튼
         let searchImage = UIImage(systemName: "magnifyingglass", withConfiguration: symbolScale)
         let searchVCBtn = UIBarButtonItem(image: searchImage, style: .plain, target: self, action: #selector(toSearchVC))
         
         let pinImage = UIImage(systemName: "pin.fill", withConfiguration: symbolScale)
         let pinVCBtn = UIBarButtonItem(image: pinImage, style: .plain, target: self, action: #selector(toPinVC))
-//        let pinVCBtn = UIBarButtonItem(title: "📌", style: .plain, target: self, action: #selector(toPinVC))
         
         // 타이틀
         navTitle.font = .systemFont(ofSize: 13, weight: .bold)
         navTitle.textColor = UIColor(named: "customLabel")
         self.navigationItem.titleView = navTitle
         
-        // 오른쪽 버튼(dismiss)
+        // dismiss 버튼
         let rightImage = UIImage(systemName: "xmark", withConfiguration: symbolScale)
         let rightBtn = UIBarButtonItem(image: rightImage, style: .done, target: self, action: #selector(dismissVC) )
         
+        // 바 버튼 아이템 라벨 색 지정
         self.navigationItem.leftBarButtonItems = [searchVCBtn, pinVCBtn]
         self.navigationItem.leftBarButtonItems?.forEach {
             $0.tintColor = UIColor(named: "customLabel")
         }
-        
         self.navigationItem.rightBarButtonItem = rightBtn
         self.navigationItem.rightBarButtonItem?.tintColor = UIColor(named: "customLabel")
         
-        let dday = Date().dDay(period.endDate)
+        let dday = Calendar.current.dateComponents([.month, .day], from: Date(), to: period.endDate).day!
         
         switch dday {
         case 0:
@@ -254,9 +255,9 @@ extension calendarVC: FSCalendarDelegate, FSCalendarDataSource, FSCalendarDelega
     func event(_ date: Date) -> UIColor {
         if date >= period.startDate && date <= period.endDate {
             
-            if updateThisMonthTotalCost()[0] > percent(date)[1] {
+            if updateTodayTotalCost()[0] > percent(date)[1] {
                 return .systemPink.withAlphaComponent(1)
-            } else if updateThisMonthTotalCost()[0] > percent(date)[0] {
+            } else if updateTodayTotalCost()[0] > percent(date)[0] {
                 return .systemPink.withAlphaComponent(0.6)
             } else {
                 return .systemPink.withAlphaComponent(0.2)

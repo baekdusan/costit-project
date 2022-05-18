@@ -83,11 +83,12 @@ class addFinVC: UIViewController, UITextFieldDelegate {
         // 툴바 및 데이트 피커 설정
         let space = UIBarButtonItem(barButtonSystemItem: .flexibleSpace, target: nil, action: nil)
         let dateTotowhat = UIBarButtonItem(title: "다음", style: .done, target: nil, action: #selector(dateTotowhat))
-        dateTotowhat.tintColor = UIColor(named: "customLabel")
         let towhatTohow = UIBarButtonItem(title: "다음", style: .done, target: nil, action: #selector(towhatTohow))
-        towhatTohow.tintColor = UIColor(named: "customLabel")
         let done = UIBarButtonItem(title: "붙이기", style: .done, target: nil, action: #selector(donePressed))
-        done.tintColor = UIColor(named: "customLabel")
+        
+        [dateTotowhat, towhatTohow, done].forEach {
+            (fromWhere == .expense) ? ($0.tintColor = UIColor(named: "customLabel")) : ($0.tintColor = UIColor.black.withAlphaComponent(0.72))
+        }
         
         toolbarSetting(whenTextField, [space, dateTotowhat])
         toolbarSetting(towhatTextField, [space, towhatTohow])

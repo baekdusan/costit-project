@@ -351,8 +351,6 @@ extension fixedExpenditureVC {
                 if previousNextable {
                     
                     let previousButton = UIBarButtonItem(title: "이전", style: .plain, target: nil, action: nil)
-                    previousButton.width = 30
-                    previousButton.tintColor = .white
                     
                     if textField == textFields.first {
                         previousButton.isEnabled = false
@@ -362,8 +360,11 @@ extension fixedExpenditureVC {
                     }
 
                     let nextButton = UIBarButtonItem(title: "다음", style: .plain, target: nil, action: nil)
-                    nextButton.width = 30
-                    nextButton.tintColor = .white
+                    
+                    [previousButton, nextButton].forEach {
+                        $0.width = 30
+                        $0.tintColor = .white
+                    }
                     
                     if textField == textFields.last {
                         nextButton.isEnabled = false

@@ -996,7 +996,6 @@
                                     <imageReference key="image" image="highlighter" catalog="system" symbolScale="large" renderingMode="template"/>
                                 </state>
                                 <connections>
-                                    <action selector="addFinbtn:" destination="BYZ-38-t0r" eventType="touchUpInside" id="SWz-TI-cYK"/>
                                     <segue destination="swU-1T-EKX" kind="presentation" identifier="addFinData" modalPresentationStyle="overFullScreen" id="gmf-He-0fF"/>
                                 </connections>
                             </button>
