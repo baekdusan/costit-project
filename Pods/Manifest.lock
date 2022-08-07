@@ -1,5 +1,5 @@
 PODS:
-  - FSCalendar (2.8.2)
+  - FSCalendar (2.8.4)
 
 DEPENDENCIES:
   - FSCalendar
@@ -9,8 +9,8 @@ SPEC REPOS:
     - FSCalendar
 
 SPEC CHECKSUMS:
-  FSCalendar: e6a2eb9c571bf0719ed797ef807e08426753c241
+  FSCalendar: 2d1d0d9398f12d439f55c1fe0f01525b151b8260
 
 PODFILE CHECKSUM: e23a8fb7364ab7011bfc21bb96f58a838dd791b1
 
-COCOAPODS: 1.11.2
+COCOAPODS: 1.11.3

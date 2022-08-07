@@ -338,47 +338,47 @@ extension fixedExpenditureVC {
     
     func addInputAccessoryForTextFields(textFields: [UITextField], dismissable: Bool = true, previousNextable: Bool = false) {
         
-            for (index, textField) in textFields.enumerated() {
-                let toolbar: UIToolbar = UIToolbar()
-                toolbar.sizeToFit()
-                toolbar.barTintColor = UIColor(named: "fixedColor")
+        for (index, textField) in textFields.enumerated() {
+            let toolbar: UIToolbar = UIToolbar()
+            toolbar.sizeToFit()
+            toolbar.barTintColor = UIColor(named: "fixedColor")
 
-                var items = [UIBarButtonItem]()
+            var items = [UIBarButtonItem]()
+            
+            let spacer = UIBarButtonItem(barButtonSystemItem: .flexibleSpace, target: nil, action: nil)
+            
+            
+            if previousNextable {
                 
-                let spacer = UIBarButtonItem(barButtonSystemItem: .flexibleSpace, target: nil, action: nil)
+                let previousButton = UIBarButtonItem(title: "이전", style: .plain, target: nil, action: nil)
                 
-                
-                if previousNextable {
-                    
-                    let previousButton = UIBarButtonItem(title: "이전", style: .plain, target: nil, action: nil)
-                    
-                    if textField == textFields.first {
-                        previousButton.isEnabled = false
-                    } else {
-                        previousButton.target = textFields[index - 1]
-                        previousButton.action = #selector(UITextField.becomeFirstResponder)
-                    }
+                if textField == textFields.first {
+                    previousButton.isEnabled = false
+                } else {
+                    previousButton.target = textFields[index - 1]
+                    previousButton.action = #selector(UITextField.becomeFirstResponder)
+                }
 
-                    let nextButton = UIBarButtonItem(title: "다음", style: .plain, target: nil, action: nil)
-                    
-                    [previousButton, nextButton].forEach {
-                        $0.width = 30
-                        $0.tintColor = .white
-                    }
-                    
-                    if textField == textFields.last {
-                        nextButton.isEnabled = false
-                    } else {
-                        nextButton.target = textFields[index + 1]
-                        nextButton.action = #selector(UITextField.becomeFirstResponder)
-                    }
-                    items.append(contentsOf: [previousButton, spacer, nextButton])
+                let nextButton = UIBarButtonItem(title: "다음", style: .plain, target: nil, action: nil)
+                
+                [previousButton, nextButton].forEach {
+                    $0.width = 30
+                    $0.tintColor = .white
                 }
                 
-                toolbar.setItems(items, animated: false)
-                textField.inputAccessoryView = toolbar
+                if textField == textFields.last {
+                    nextButton.isEnabled = false
+                } else {
+                    nextButton.target = textFields[index + 1]
+                    nextButton.action = #selector(UITextField.becomeFirstResponder)
+                }
+                items.append(contentsOf: [previousButton, spacer, nextButton])
             }
+            
+            toolbar.setItems(items, animated: false)
+            textField.inputAccessoryView = toolbar
         }
+    }
     
     func requestNotificationAuthorization() {
         let authOptions: UNAuthorizationOptions = [.alert, .sound, .badge]

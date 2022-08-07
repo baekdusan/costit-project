@@ -1,92 +1,38 @@
 import UIKit
 import WidgetKit
 
-class mainVC: UIViewController, sendFinData, shareRevenueFinList, FODelegate, FixedFinDataDelegate {
-    func fixedFinData(_ controller: fixedExpenditureVC, _ fixedData: [FixedExpenditure]) {
-        fixedFinList = fixedData
-    }
-    
-    // 앱 첫 오픈시에 데이터 입력을 넘겨받는 프로토콜
-    func initialData(_ controller: firstOpenVC, _ nickName: String, _ pm: Int, _ salary: String) {
-        
-        // 첫 실행 저장
-        isFirstOpen = true
-        UserDefaults.standard.setValue(isFirstOpen, forKey: "firstOpen")
-        
-        // 프로필 셋팅
-        id = profile(nickName: nickName, outLay: pm, period: salary)
-        
-        // 레이아웃
-        // 1. 기준일
-        salaryData.startDate = setSalaryDate(salary).startDate
-        salaryData.endDate = setSalaryDate(salary).endDate
-        navigationItem.title = salaryData.startDate.toString(false) + " ~ " + salaryData.endDate.toString(false)
-        // 2. 남은 금액 및 상태
-        updateLayout()
-    }
-    
-    // 데이터 추가 뷰에서 넘겨받는 프로토콜
-    func sendFinanceSource(_ controller: addFinVC, _ originData: finData, _ revisedData: finData) {
-        
-        // 일반적인 추가
-        if originData == revisedData {
-            efinList.append(revisedData)
-        // 수정일 때 -> 원래 데이터 삭제 후, 새로운 데이터 추가
-        } else {
-            let removedData = originData
-            efinList.remove(at: efinList.firstIndex(where: {$0 == removedData})!)
-            efinList.append(revisedData)
-        }
-        updateLayout()
-    }
-    
-    // 수입 가계부에서 받는 프로토콜
-    func sendRFinList(_ viewController: revenueVC, _ rFinList: [finData]) {
-        rfinList = rFinList
-    }
+class mainVC: UIViewController {
     
     @IBOutlet weak var topView: UIView!
-    @IBOutlet weak var balance: UILabel! // 남은 금액
-    @IBOutlet weak var balanceCondition: UILabel! // 목표 금액
-    
-    @IBOutlet weak var collectionView: UICollectionView! // 콜렉션 뷰
+    // 남은 금액, 목표 금액
+    @IBOutlet weak var balance: UILabel!
+    @IBOutlet weak var balanceCondition: UILabel!
+
+    @IBOutlet weak var collectionView: UICollectionView!
+    // 수입 화면, 지출 입력 버튼
     @IBOutlet weak var revenueBorder: UIButton!
     @IBOutlet weak var addFinBorder: UIButton!
     
     // 지출 가계부
     var efinList: [finData] = [] {
-        didSet {
-            // 가계부 데이터 변경시마다 저장 및 상태 변경
-            UserDefaults.standard.set(try? PropertyListEncoder().encode(efinList), forKey:"finlist")
-            balanceCondition.text = "/ \(id.outLay.toDecimal()) 원"
-        }
+        didSet { UserDefaults.standard.set(try? PropertyListEncoder().encode(efinList), forKey:"finlist")
+            balanceCondition.text = "/ \(id.outLay.toDecimal()) 원" }
     }
     // 수입 가계부
     var rfinList: [finData] = [] {
-        didSet {
-            // 가계부 데이터 변경시마다 저장 및 상태 변경
-            UserDefaults.standard.set(try? PropertyListEncoder().encode(rfinList), forKey:"rfinList")
-        }
+        didSet { UserDefaults.standard.set(try? PropertyListEncoder().encode(rfinList), forKey:"rfinList") }
     }
-    
+    // 고정 지출 내역
     var fixedFinList: [FixedExpenditure] = [] {
-        didSet {
-            UserDefaults.standard.set(try? PropertyListEncoder().encode(fixedFinList), forKey: "fixedFinList")
-        }
+        didSet { UserDefaults.standard.set(try? PropertyListEncoder().encode(fixedFinList), forKey: "fixedFinList") }
     }
-    
+    // 급여 날짜 저장
     var salaryData = salaryDate() {
-        // 급여 날짜 저장
-        didSet {
-            UserDefaults.standard.set(try? PropertyListEncoder().encode(salaryData), forKey: "salarydata")
-        }
+        didSet { UserDefaults.standard.set(try? PropertyListEncoder().encode(salaryData), forKey: "salarydata") }
     }
-    
+    // 프로필 담기
     var id = profile() {
-        // 프로필 담기
-        didSet {
-            UserDefaults.standard.set(try? PropertyListEncoder().encode(id), forKey: "profile")
-        }
+        didSet { UserDefaults.standard.set(try? PropertyListEncoder().encode(id), forKey: "profile") }
     }
     var isFirstOpen: Bool! // 앱 첫실행 감지
     var filteredList: [[finData]] = [] // 필터링된 가계부 데이터
@@ -147,11 +93,6 @@ class mainVC: UIViewController, sendFinData, shareRevenueFinList, FODelegate, Fi
     
     override func viewDidLoad() {
         super.viewDidLoad()
-        
-        // 데이트 피커가 담을 년/월 셋팅
-        let setDateFormatter = DateFormatter()
-        setDateFormatter.dateFormat = "yyyy"
-        year = [Int](2021...Int(setDateFormatter.string(from: Date()))!)
         
         // 탑뷰 그라데이션 주기
         gradientView.frame = topView.bounds
@@ -238,6 +179,20 @@ class mainVC: UIViewController, sendFinData, shareRevenueFinList, FODelegate, Fi
         if isFirstOpen == false {
             performSegue(withIdentifier: "firstOpen", sender: self)
         }
+        
+        // 데이트 피커가 담을 년 셋팅
+        let setDateFormatter = DateFormatter()
+        setDateFormatter.dateFormat = "yyyy"
+        year = [Int](2021...Int(setDateFormatter.string(from: Date()))!)
+        selectedYear = String(year[year.count - 1])
+        
+        // 데이트 피커가 담을 월 셋팅
+        setDateFormatter.dateFormat = "MM"
+        selectedMonth = setDateFormatter.string(from: Date())
+        
+        // 데이트 피커 default value 설정
+        datePicker.selectRow(year.count - 1, inComponent: 0, animated: true)
+        datePicker.selectRow(Int(selectedMonth)! - 1, inComponent: 1, animated: true)
     }
     
     override func viewDidDisappear(_ animated: Bool) {
@@ -479,7 +434,52 @@ class mainVC: UIViewController, sendFinData, shareRevenueFinList, FODelegate, Fi
     }
 }
 
-extension mainVC: UICollectionViewDelegate, UICollectionViewDataSource {
+extension mainVC: sendFinData, shareRevenueFinList, FODelegate, FixedFinDataDelegate {
+    func fixedFinData(_ controller: fixedExpenditureVC, _ fixedData: [FixedExpenditure]) {
+        fixedFinList = fixedData
+    }
+    
+    // 앱 첫 오픈시에 데이터 입력을 넘겨받는 프로토콜
+    func initialData(_ controller: firstOpenVC, _ nickName: String, _ pm: Int, _ salary: String) {
+        
+        // 첫 실행 저장
+        isFirstOpen = true
+        UserDefaults.standard.setValue(isFirstOpen, forKey: "firstOpen")
+        
+        // 프로필 셋팅
+        id = profile(nickName: nickName, outLay: pm, period: salary)
+        
+        // 레이아웃
+        // 1. 기준일
+        salaryData.startDate = setSalaryDate(salary).startDate
+        salaryData.endDate = setSalaryDate(salary).endDate
+        navigationItem.title = salaryData.startDate.toString(false) + " ~ " + salaryData.endDate.toString(false)
+        // 2. 남은 금액 및 상태
+        updateLayout()
+    }
+    
+    // 데이터 추가 뷰에서 넘겨받는 프로토콜
+    func sendFinanceSource(_ controller: addFinVC, _ originData: finData, _ revisedData: finData) {
+        
+        // 일반적인 추가
+        if originData == revisedData {
+            efinList.append(revisedData)
+        // 수정일 때 -> 원래 데이터 삭제 후, 새로운 데이터 추가
+        } else {
+            let removedData = originData
+            efinList.remove(at: efinList.firstIndex(where: {$0 == removedData})!)
+            efinList.append(revisedData)
+        }
+        updateLayout()
+    }
+    
+    // 수입 가계부에서 받는 프로토콜
+    func sendRFinList(_ viewController: revenueVC, _ rFinList: [finData]) {
+        rfinList = rFinList
+    }
+}
+
+extension mainVC: UICollectionViewDelegate, UICollectionViewDataSource, UICollectionViewDelegateFlowLayout {
     
     
     // 섹션 개수 -> 최대 31개(한달 최대 일수)
@@ -521,10 +521,8 @@ extension mainVC: UICollectionViewDelegate, UICollectionViewDataSource {
             return UICollectionReusableView()
         }
     }
-}
-
-// 컬렉션 뷰 크기, 위치
-extension mainVC: UICollectionViewDelegateFlowLayout {
+    
+    // 메모지 크기 설정(정사각형)
     func collectionView(_ collectionView: UICollectionView, layout collectionViewLayout: UICollectionViewLayout, sizeForItemAt indexPath: IndexPath) -> CGSize {
         
         let width = (view.bounds.width - 48) * 0.5
