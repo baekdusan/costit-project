@@ -265,8 +265,8 @@ class mainVC: UIViewController {
         let stringDate = selectedYear + selectedMonth
         
         // 필터링할 시간의 앞과 뒤
-        let start = stringDate.toDate()!.startOfMonth
-        let end = stringDate.toDate()!.endOfMonth
+        let start = stringDate.toDate()!.startOfThisMonth
+        let end = stringDate.toDate()!.endOfThisMonth
         
         // 필터링 후 레이아웃 셋팅(사용한 총액, 날짜)
         filteredbyMonth(start, end) // 이번 달에 맞춰서 filteredList 할당
@@ -290,28 +290,36 @@ class mainVC: UIViewController {
     
     // 급여일을 설정했을 때 그걸 바탕으로 한달의 지출 기간을 셋팅
     func setSalaryDate(_ salary: String) -> salaryDate {
-        switch salary {
-        case "1일":
-            
-            return salaryDate(startDate: Date().startOfMonth, endDate: Date().endOfMonth)
-        case "마지막 날", "마지막날":
-            
-            return salaryDate(startDate: Date().endofLastMonth, endDate: Date().yesterDayofLastDayofMonth)
-        default:
-            
-            let int = salary.map { String($0) }
-            let salaryDay = Int(int[0..<int.count - 1].joined())!
-            let formatter = DateFormatter()
-            formatter.locale = Locale(identifier: "ko")
-            formatter.dateFormat = "dd"
-            let today = Int(formatter.string(from: Date()))!
-            
-            if today >= salaryDay {
-                return salaryDate(startDate: Date().startOfSomeDay(salaryDay), endDate: Date().endOfSomeDay(salaryDay))
-            } else {
-                return salaryDate(startDate: Date().startOfLastSomeDay(salaryDay), endDate: Date().endOfLastSomeDay(salaryDay))
+        let formatter = DateFormatter()
+        formatter.locale = Locale(identifier: "ko")
+        formatter.dateFormat = "dd"
+        let today = Int(formatter.string(from: Date()))! // 오늘이 30일이면 30
+        
+        if salary == "마지막 날" {
+            // 오늘이 마지막 날인 경우 -> 오늘부터 다음 달의 끝 전날까지
+            if today == Int(formatter.string(from: Date().endOfThisMonth)) {
+                return salaryDate(startDate: Date().endOfThisMonth, endDate: Date().yesterdayOfEndOfNextMonth)
             }
+            
+            // 아닐 경우 -> 지난 달의 끝부터 이번 달의 끝 전날까지
+            return salaryDate(startDate: Date().endOfLastMonth, endDate: Date().yesterdayOfEndOfThisMonth)
         }
+        
+        if salary == "1일" {
+            return salaryDate(startDate: Date().startOfThisMonth, endDate: Date().endOfThisMonth)
+        }
+        
+        let int = salary.map { String($0) } // ex) ["2", "9", "일"]
+        let salaryDay = Int(int[0..<int.count - 1].joined())! // 29
+        
+        
+        
+        if today >= salaryDay {
+            return salaryDate(startDate: Date().startOfSomeDay(salaryDay), endDate: Date().endOfSomeDay(salaryDay))
+        } else {
+            return salaryDate(startDate: Date().startOfLastSomeDay(salaryDay), endDate: Date().endOfLastSomeDay(salaryDay))
+        }
+    
     }
     
     // 이번 달 기준으로 리스트 필터링, 남은 금액, 그리고 재정 상태 표시
@@ -405,6 +413,7 @@ class mainVC: UIViewController {
     // 수정 버튼(꾹 누르는 제스처)
     @objc func longPress(_ longPressGestureRecognizer: UILongPressGestureRecognizer) {
 
+        
         if longPressGestureRecognizer.state == UIGestureRecognizer.State.began {
             let touchPoint = longPressGestureRecognizer.location(in: collectionView)
             if let index = collectionView.indexPathForItem(at: touchPoint) {

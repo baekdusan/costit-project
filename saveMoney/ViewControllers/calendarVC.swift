@@ -269,7 +269,7 @@ extension calendarVC: FSCalendarDelegate, FSCalendarDataSource, FSCalendarDelega
     
     func percent(_ date: Date) -> [Int] {
         filter(date)
-        let standard = Int(Double(id.outLay) / Double(Date().endOfMonth.onlydate())!)
+        let standard = Int(Double(id.outLay) / Double(Date().endOfThisMonth.onlydate())!)
         return [Int(Double(standard)), Int(Double(standard) * 1.5)]
     }
     

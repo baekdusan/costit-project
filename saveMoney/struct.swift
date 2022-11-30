@@ -4,12 +4,12 @@ import UIKit
 
 extension Date {
     
-    // 하루의 시작
+    // 어떤 하루의 시작
     var startOfDay: Date {
         return Calendar.current.startOfDay(for: self)
     }
     
-    // 하루의 끝
+    // 어떤 하루의 끝
     var endOfDay: Date {
         var components = DateComponents()
         components.day = 1
@@ -18,7 +18,7 @@ extension Date {
     }
 
     // 이번 달의 시작
-    var startOfMonth: Date {
+    var startOfThisMonth: Date {
 
         let calendar = Calendar(identifier: .gregorian)
         let components = calendar.dateComponents([.year, .month], from: self)
@@ -27,27 +27,36 @@ extension Date {
     }
 
     // 이번 달의 끝
-    var endOfMonth: Date {
+    var endOfThisMonth: Date {
         var components = DateComponents()
         components.month = 1
         components.second = -1
-        return Calendar(identifier: .gregorian).date(byAdding: components, to: startOfMonth)!
+        return Calendar(identifier: .gregorian).date(byAdding: components, to: startOfThisMonth)!
     }
     
-    // 이번 달의 끝 전날
-    var yesterDayofLastDayofMonth: Date {
+    // 다음 달의 끝 전 날
+    var yesterdayOfEndOfNextMonth: Date {
+        var components = DateComponents()
+        components.month = 2
+        components.day = -1
+        components.second = -1
+        return Calendar(identifier: .gregorian).date(byAdding: components, to: startOfThisMonth)!
+    }
+    
+    // 이번 달의 끝 전 날
+    var yesterdayOfEndOfThisMonth: Date {
         var components = DateComponents()
         components.month = 1
         components.second = -1
         components.day = -1
-        return Calendar(identifier: .gregorian).date(byAdding: components, to: startOfMonth)!
+        return Calendar(identifier: .gregorian).date(byAdding: components, to: startOfThisMonth)!
     }
     
     // 지난 달의 끝
-    var endofLastMonth: Date {
+    var endOfLastMonth: Date {
         var components = DateComponents()
         components.day = -1
-        return Calendar(identifier: .gregorian).date(byAdding: components, to: startOfMonth)!
+        return Calendar(identifier: .gregorian).date(byAdding: components, to: startOfThisMonth)!
     }
     
     // 지난 어느 날의 시작
@@ -55,7 +64,7 @@ extension Date {
         var components = DateComponents()
         components.month = -1
         components.day = day - 1
-        return Calendar.current.date(byAdding: components, to: startOfMonth)!
+        return Calendar.current.date(byAdding: components, to: startOfThisMonth)!
     }
     
     // 지난 어느 날의 끝
@@ -63,14 +72,14 @@ extension Date {
         var components = DateComponents()
         components.day = day - 1
         components.second = -1
-        return Calendar.current.date(byAdding: components, to: startOfMonth)!
+        return Calendar.current.date(byAdding: components, to: startOfThisMonth)!
     }
     
     // 이번 어느 날의 시작
     func startOfSomeDay(_ day: Int) -> Date {
         var components = DateComponents()
         components.day = day - 1
-        return Calendar.current.date(byAdding: components, to: startOfMonth)!
+        return Calendar.current.date(byAdding: components, to: startOfThisMonth)!
     }
     
     // 다음 어느 날의 끝
@@ -133,8 +142,8 @@ struct finData: Codable, Equatable {
 }
 
 struct salaryDate: Codable {
-    var startDate: Date = Date().startOfMonth
-    var endDate: Date = Date().endOfMonth
+    var startDate: Date = Date().startOfThisMonth
+    var endDate: Date = Date().endOfThisMonth
 }
 
 struct profile: Codable {

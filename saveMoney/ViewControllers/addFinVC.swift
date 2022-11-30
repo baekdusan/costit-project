@@ -80,20 +80,6 @@ class addFinVC: UIViewController, UITextFieldDelegate {
             when = datepick.date
         }
         
-        // 툴바 및 데이트 피커 설정
-        let space = UIBarButtonItem(barButtonSystemItem: .flexibleSpace, target: nil, action: nil)
-        let dateTotowhat = UIBarButtonItem(title: "다음", style: .done, target: nil, action: #selector(dateTotowhat))
-        let towhatTohow = UIBarButtonItem(title: "다음", style: .done, target: nil, action: #selector(towhatTohow))
-        let done = UIBarButtonItem(title: "붙이기", style: .done, target: nil, action: #selector(donePressed))
-        
-        [dateTotowhat, towhatTohow, done].forEach {
-            (fromWhere == .expense) ? ($0.tintColor = UIColor(named: "customLabel")) : ($0.tintColor = UIColor.black.withAlphaComponent(0.72))
-        }
-        
-        toolbarSetting(whenTextField, [space, dateTotowhat])
-        toolbarSetting(towhatTextField, [space, towhatTohow])
-        toolbarSetting(howTextField, [space, done])
-        
         //assign datepicker to the textfield, 텍스트 필드에 datepicker 할당
         whenTextField.inputView = datepick
 
@@ -103,7 +89,7 @@ class addFinVC: UIViewController, UITextFieldDelegate {
         datepick.maximumDate = end
         datepick.locale = Locale(identifier: "ko-KR")
         datepick.preferredDatePickerStyle = .wheels
-        towhatTextField.becomeFirstResponder()
+        
         
         datepick.addTarget(self, action: #selector(valuechange), for: .valueChanged)
         
@@ -113,6 +99,9 @@ class addFinVC: UIViewController, UITextFieldDelegate {
         memoPaper.layer.shadowOffset = CGSize(width: 0, height: 3)
         memoPaper.layer.shadowRadius = 5
         memoPaper.layer.shadowOpacity = 0.2
+        
+        addInputAccessoryForTextFields(textFields: [whenTextField, towhatTextField, howTextField], dismissable: true, previousNextable: true)
+        whenTextField.becomeFirstResponder()
     }
     
     // 이 뷰가 노출될 때마다 메인에서 받아온 수정 데이터 셋팅
@@ -136,34 +125,49 @@ class addFinVC: UIViewController, UITextFieldDelegate {
             whenTextField.text = formatter.string(from: datepick.date)
         }
     }
-    
-    func toolbarSetting(_ textfield: UITextField, _ composition: [UIBarButtonItem]) {
-        //toolbar 만들기, done 버튼이 들어갈 곳
-        let toolbar = UIToolbar()
-        toolbar.barTintColor = UIColor(named: fromWhere == .expense ? "topViewColor" : "pinColor")
-        toolbar.sizeToFit() //view 스크린에 딱 맞게 사이즈 조정
-        toolbar.setItems(composition, animated: true)
-        textfield.inputAccessoryView = toolbar
-    }
-    
-    @objc func cancel() {
-        dismiss(animated: true, completion: nil)
-    }
-    
-    // 날짜 키보드에서 다음을 눌렀을 때
-    @objc func dateTotowhat() {
-        when = datepick.date
-        towhatTextField.becomeFirstResponder()
-    }
-    
-    // towhat 키보드에서 다음을 눌렀을 때
-    @objc func towhatTohow() {
-        howTextField.becomeFirstResponder()
-    }
-    
+
     // towhat 키보드에서 키보드 속 다음을 눌렀을 때
     func textFieldShouldReturn(_ textField: UITextField) -> Bool {
         howTextField.becomeFirstResponder()
+    }
+    
+    func addInputAccessoryForTextFields(textFields: [UITextField], dismissable: Bool = true, previousNextable: Bool = false) {
+          for (index, textField) in textFields.enumerated() {
+              let toolbar: UIToolbar = UIToolbar()
+              toolbar.sizeToFit()
+              toolbar.barTintColor = UIColor(named: fromWhere == .expense ? "topViewColor" : "pinColor")
+              var items = [UIBarButtonItem]()
+              if previousNextable {
+                  let previousButton = UIBarButtonItem(image: UIImage(systemName: "chevron.up"), style: .plain, target: nil, action: nil)
+                  previousButton.width = 30
+              if textField == textFields.first {
+                  previousButton.isEnabled = false
+              } else {
+                  previousButton.target = textFields[index - 1]
+                  previousButton.action = #selector(UITextField.becomeFirstResponder)
+              }
+
+                  let nextButton = UIBarButtonItem(image: UIImage(systemName: "chevron.down"), style: .plain, target: nil, action: nil)
+                  nextButton.width = 30
+              if textField == textFields.last {
+                 nextButton.isEnabled = false
+              } else {
+                  nextButton.target = textFields[index + 1]
+                  nextButton.action = #selector(UITextField.becomeFirstResponder)
+              }
+              items.append(contentsOf: [previousButton, nextButton])
+              }
+
+              let spacer = UIBarButtonItem(barButtonSystemItem: .flexibleSpace, target: nil, action: nil)
+              let doneButton = UIBarButtonItem(barButtonSystemItem: .done, target: nil, action: #selector(donePressed))
+              items.append(contentsOf: [spacer, doneButton])
+              items.forEach {
+                  (fromWhere == .expense) ? ($0.tintColor = UIColor(named: "customLabel")) : ($0.tintColor = UIColor.black.withAlphaComponent(0.72))
+              }
+
+              toolbar.setItems(items, animated: false)
+              textField.inputAccessoryView = toolbar
+          }
     }
     
     // 지출 키보드에서 다음을 눌렀을 때

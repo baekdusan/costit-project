@@ -146,8 +146,8 @@ class revenueVC: UIViewController, sendRevenueFinData {
         let stringDate = selectedYear + selectedMonth
         
         // 필터링할 시간의 앞과 뒤
-        let start = stringDate.toDate()!.startOfMonth
-        let end = stringDate.toDate()!.endOfMonth
+        let start = stringDate.toDate()!.startOfThisMonth
+        let end = stringDate.toDate()!.endOfThisMonth
         
         // 필터링 후 레이아웃 셋팅(사용한 총액, 날짜)
         filteredbyMonth(start, end) // 이번 달에 맞춰서 filteredList 할당

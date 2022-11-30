@@ -25,7 +25,8 @@ class firstOpenVC: UIViewController, UIPickerViewDelegate, UIPickerViewDataSourc
 
     var FODelegate: FODelegate?
     let datepick = UIPickerView()
-    let salaryList: [String] = ["1일", "5일", "10일", "15일", "20일", "25일", "마지막 날"]
+    let salaryList: [String] = [Int](1...30).map { String($0) + "일" } + ["마지막 날"]
+//    ["1일", "5일", "10일", "15일", "20일", "25일", "마지막 날"]
     var purposeMoney: Int!
     var salaryDay: String!
     var profileData = profile()
