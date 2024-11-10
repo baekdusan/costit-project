@@ -5,15 +5,15 @@ struct Provider: TimelineProvider {
     func placeholder(in context: Context) -> SimpleEntry {
         SimpleEntry(date: Date())
     }
-
+    
     func getSnapshot(in context: Context, completion: @escaping (SimpleEntry) -> ()) {
         let entry = SimpleEntry(date: Date())
         completion(entry)
     }
-
+    
     func getTimeline(in context: Context, completion: @escaping (Timeline<Entry>) -> ()) {
         var entries: [SimpleEntry] = []
-
+        
         // Generate a timeline consisting of five entries an hour apart, starting from the current date.
         let currentDate = Date()
         for hourOffset in 0 ..< 5 {
@@ -21,7 +21,7 @@ struct Provider: TimelineProvider {
             let entry = SimpleEntry(date: entryDate)
             entries.append(entry)
         }
-
+        
         let timeline = Timeline(entries: entries, policy: .atEnd)
         completion(timeline)
     }
@@ -43,55 +43,55 @@ struct widgetEntryView : View {
         let emoji: String = int >= 20 ? (int >= 40 ? (int >= 60 ? (int >= 80 ? "🤑" : "😊") : "🙂") : "🤔") : "😱"
         GeometryReader { geometry in
             
-                // 위젯 배경색
-                Color("WidgetBackground")
+            // 위젯 배경색
+//            Color("WidgetBackground")
             
-                // 세로로 글자 배치 : 전체의 72% 차지
-                VStack(alignment: .trailing, spacing: 0) {
-                    Text(wdata[0])
-                        .font(.system(size: 12, weight: .bold))
-                        .frame(height: geometry.size.height * 0.1)
-                        .opacity(0.72)
-                    Text(wdata[1])
-                        .font(.system(size: 24, weight: .bold))
-                        .frame(height: geometry.size.height * 0.2)
+            // 세로로 글자 배치 : 전체의 72% 차지
+            VStack(alignment: .trailing, spacing: 0) {
+                Text(wdata[0])
+                    .font(.system(size: 12, weight: .bold))
+                    .frame(height: geometry.size.height * 0.1)
+                    .opacity(0.72)
+                Text(wdata[1])
+                    .font(.system(size: 24, weight: .bold))
+                    .frame(height: geometry.size.height * 0.2)
+                    .opacity(0.84)
+                    .minimumScaleFactor(0.72)
+                Text(wdata[2])
+                    .font(.system(size: 12, weight: .bold))
+                    .frame(height: geometry.size.height * 0.1)
+                    .opacity(0.72)
+                
+                // 가로로 퍼센트, 이모티콘 배치
+                HStack(alignment: .bottom, spacing: 0) {
+                    Text(wdata[3] + "%")
+                        .font(.system(size: 28, weight: .semibold))
+                        .frame(width: geometry.size.width * 0.45, height: nil, alignment: .leading)
                         .opacity(0.84)
                         .minimumScaleFactor(0.72)
-                    Text(wdata[2])
-                        .font(.system(size: 12, weight: .bold))
-                        .frame(height: geometry.size.height * 0.1)
-                        .opacity(0.72)
-                    
-                    // 가로로 퍼센트, 이모티콘 배치
-                    HStack(alignment: .bottom, spacing: 0) {
-                        Text(wdata[3] + "%")
-                            .font(.system(size: 28, weight: .semibold))
-                            .frame(width: geometry.size.width * 0.45, height: nil, alignment: .leading)
-                            .opacity(0.84)
-                            .minimumScaleFactor(0.72)
-                        Text(emoji)
-                            .font(.system(size: 30))
-                            .frame(width: geometry.size.width * 0.45, height: nil, alignment: .trailing)
-                    }.frame(width: geometry.size.width * 0.9, height: geometry.size.height * 0.32, alignment: .bottom)
-                }.frame(width: geometry.size.width, height: geometry.size.height * 0.92, alignment: .center)
+                    Text(emoji)
+                        .font(.system(size: 30))
+                        .frame(width: geometry.size.width * 0.45, height: nil, alignment: .trailing)
+                }.frame(width: geometry.size.width * 0.9, height: geometry.size.height * 0.32, alignment: .bottom)
+            }.frame(width: geometry.size.width, height: geometry.size.height * 0.92, alignment: .center)
             
-                // 아래 배터리 상태바 : 전체 길이의 8% 차지
-                ZStack(alignment: .leading) {
-                    Color("WidgetStatusBarBackground")
-                        .frame(width: geometry.size.width , height: geometry.size.height * 0.08)
-                    Color(color)
-//                        .cornerRadius(geometry.size.height * 0.08 / 2, corners: [.topRight, .bottomRight])
-                        .frame(width: geometry.size.width * CGFloat(condition) , height: geometry.size.height * 0.08)
-                        
-                   }.frame(width: geometry.size.width, height: geometry.size.height, alignment: .bottom)
-               }
+            // 아래 배터리 상태바 : 전체 길이의 8% 차지
+            ZStack(alignment: .leading) {
+                Color("WidgetStatusBarBackground")
+                    .frame(width: geometry.size.width , height: geometry.size.height * 0.08)
+                Color(color)
+                //                        .cornerRadius(geometry.size.height * 0.08 / 2, corners: [.topRight, .bottomRight])
+                    .frame(width: geometry.size.width * CGFloat(condition) , height: geometry.size.height * 0.08)
+                
+            }.frame(width: geometry.size.width, height: geometry.size.height, alignment: .bottom)
+        }.widgetBackground(Color("WidgetBackground"))
     }
 }
 
 @main
 struct widget: Widget {
     let kind: String = "widget"
-
+    
     var body: some WidgetConfiguration {
         StaticConfiguration(kind: kind, provider: Provider()) { entry in
             widgetEntryView(entry: entry)
@@ -99,6 +99,7 @@ struct widget: Widget {
         .configurationDisplayName("코스트잇")
         .description("나의 코스트 배터리는 몇% 남았을까요?")
         .supportedFamilies([.systemSmall])
+        .contentMarginsDisabledIfAvailable()
     }
 }
 
@@ -110,10 +111,10 @@ struct widget_Previews: PreviewProvider {
 }
 
 struct RoundedCorner: Shape {
-
+    
     var radius: CGFloat = .infinity
     var corners: UIRectCorner = .allCorners
-
+    
     func path(in rect: CGRect) -> Path {
         let path = UIBezierPath(roundedRect: rect, byRoundingCorners: corners, cornerRadii: CGSize(width: radius, height: radius))
         return Path(path.cgPath)
@@ -123,5 +124,21 @@ struct RoundedCorner: Shape {
 extension View {
     func cornerRadius(_ radius: CGFloat, corners: UIRectCorner) -> some View {
         clipShape(RoundedCorner(radius: radius, corners: corners))
+    }
+    
+    func widgetBackground(_ backgroundColor: Color) -> some View {
+        if #available(iOSApplicationExtension 17.0, *) {
+            return self.containerBackground(backgroundColor, for: .widget)
+        } else {
+            return self.background(backgroundColor)
+        }
+    }
+}
+
+extension WidgetConfiguration {
+    func contentMarginsDisabledIfAvailable() -> some WidgetConfiguration {
+        if #available(iOSApplicationExtension 17.0, *) {
+            return self.contentMarginsDisabled()
+        } else { return self }
     }
 }

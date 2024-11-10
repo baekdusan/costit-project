@@ -19,7 +19,7 @@ enum mode {
 }
 
 class addFinVC: UIViewController, UITextFieldDelegate {
-
+    
     @IBOutlet weak var whenTextField: UITextField!
     @IBOutlet weak var towhatTextField: UITextField!
     @IBOutlet weak var howTextField: UITextField!
@@ -42,11 +42,11 @@ class addFinVC: UIViewController, UITextFieldDelegate {
     
     
     func swipeRecognizer() {
-            let swipeDown = UISwipeGestureRecognizer(target: self, action: #selector(self.respondToSwipeGesture(_:)))
+        let swipeDown = UISwipeGestureRecognizer(target: self, action: #selector(self.respondToSwipeGesture(_:)))
         swipeDown.direction = UISwipeGestureRecognizer.Direction.down
-            self.view.addGestureRecognizer(swipeDown)
+        self.view.addGestureRecognizer(swipeDown)
     }
-        
+    
     @objc func respondToSwipeGesture(_ gesture: UIGestureRecognizer){
         if let swipeGesture = gesture as? UISwipeGestureRecognizer {
             switch swipeGesture.direction{
@@ -73,8 +73,8 @@ class addFinVC: UIViewController, UITextFieldDelegate {
         if let _ = originData {
             whenTextField.text = formatter.string(from: originData.when)
             when = originData.when
-        
-        // 일반적인 추가일 때에는 현재 시간대를 할당
+            
+            // 일반적인 추가일 때에는 현재 시간대를 할당
         } else {
             whenTextField.text = formatter.string(from: Date())
             when = datepick.date
@@ -82,7 +82,7 @@ class addFinVC: UIViewController, UITextFieldDelegate {
         
         //assign datepicker to the textfield, 텍스트 필드에 datepicker 할당
         whenTextField.inputView = datepick
-
+        
         //datePicker 형식 바꾸기
         datepick.datePickerMode = .date
         datepick.minimumDate = start
@@ -125,49 +125,49 @@ class addFinVC: UIViewController, UITextFieldDelegate {
             whenTextField.text = formatter.string(from: datepick.date)
         }
     }
-
+    
     // towhat 키보드에서 키보드 속 다음을 눌렀을 때
     func textFieldShouldReturn(_ textField: UITextField) -> Bool {
         howTextField.becomeFirstResponder()
     }
     
     func addInputAccessoryForTextFields(textFields: [UITextField], dismissable: Bool = true, previousNextable: Bool = false) {
-          for (index, textField) in textFields.enumerated() {
-              let toolbar: UIToolbar = UIToolbar()
-              toolbar.sizeToFit()
-              toolbar.barTintColor = UIColor(named: fromWhere == .expense ? "topViewColor" : "pinColor")
-              var items = [UIBarButtonItem]()
-              if previousNextable {
-                  let previousButton = UIBarButtonItem(image: UIImage(systemName: "chevron.up"), style: .plain, target: nil, action: nil)
-                  previousButton.width = 30
-              if textField == textFields.first {
-                  previousButton.isEnabled = false
-              } else {
-                  previousButton.target = textFields[index - 1]
-                  previousButton.action = #selector(UITextField.becomeFirstResponder)
-              }
-
-                  let nextButton = UIBarButtonItem(image: UIImage(systemName: "chevron.down"), style: .plain, target: nil, action: nil)
-                  nextButton.width = 30
-              if textField == textFields.last {
-                 nextButton.isEnabled = false
-              } else {
-                  nextButton.target = textFields[index + 1]
-                  nextButton.action = #selector(UITextField.becomeFirstResponder)
-              }
-              items.append(contentsOf: [previousButton, nextButton])
-              }
-
-              let spacer = UIBarButtonItem(barButtonSystemItem: .flexibleSpace, target: nil, action: nil)
-              let doneButton = UIBarButtonItem(barButtonSystemItem: .done, target: nil, action: #selector(donePressed))
-              items.append(contentsOf: [spacer, doneButton])
-              items.forEach {
-                  (fromWhere == .expense) ? ($0.tintColor = UIColor(named: "customLabel")) : ($0.tintColor = UIColor.black.withAlphaComponent(0.72))
-              }
-
-              toolbar.setItems(items, animated: false)
-              textField.inputAccessoryView = toolbar
-          }
+        for (index, textField) in textFields.enumerated() {
+            let toolbar: UIToolbar = UIToolbar()
+            toolbar.sizeToFit()
+            toolbar.barTintColor = UIColor(named: fromWhere == .expense ? "topViewColor" : "pinColor")
+            var items = [UIBarButtonItem]()
+            if previousNextable {
+                let previousButton = UIBarButtonItem(image: UIImage(systemName: "chevron.up"), style: .plain, target: nil, action: nil)
+                previousButton.width = 30
+                if textField == textFields.first {
+                    previousButton.isEnabled = false
+                } else {
+                    previousButton.target = textFields[index - 1]
+                    previousButton.action = #selector(UITextField.becomeFirstResponder)
+                }
+                
+                let nextButton = UIBarButtonItem(image: UIImage(systemName: "chevron.down"), style: .plain, target: nil, action: nil)
+                nextButton.width = 30
+                if textField == textFields.last {
+                    nextButton.isEnabled = false
+                } else {
+                    nextButton.target = textFields[index + 1]
+                    nextButton.action = #selector(UITextField.becomeFirstResponder)
+                }
+                items.append(contentsOf: [previousButton, nextButton])
+            }
+            
+            let spacer = UIBarButtonItem(barButtonSystemItem: .flexibleSpace, target: nil, action: nil)
+            let doneButton = UIBarButtonItem(barButtonSystemItem: .done, target: nil, action: #selector(donePressed))
+            items.append(contentsOf: [spacer, doneButton])
+            items.forEach {
+                (fromWhere == .expense) ? ($0.tintColor = UIColor(named: "customLabel")) : ($0.tintColor = UIColor.black.withAlphaComponent(0.72))
+            }
+            
+            toolbar.setItems(items, animated: false)
+            textField.inputAccessoryView = toolbar
+        }
     }
     
     // 지출 키보드에서 다음을 눌렀을 때
@@ -218,14 +218,14 @@ class addFinVC: UIViewController, UITextFieldDelegate {
     
     // 금액 최대 글자수는 15로 제한, 메모는 30자
     func textField(_ textField: UITextField, shouldChangeCharactersIn range: NSRange, replacementString string: String) -> Bool {
-            let newLength = (textField.text?.count)! + string.count - range.length
+        let newLength = (textField.text?.count)! + string.count - range.length
         
         if textField == howTextField {
             return !(newLength > 15)
         } else {
             return !(newLength > 30)
         }
-            
+        
     }
     
     // 지출 키보드에서 실시간으로 반점 찍어주기

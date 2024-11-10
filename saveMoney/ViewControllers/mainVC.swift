@@ -7,7 +7,7 @@ class mainVC: UIViewController {
     // 남은 금액, 목표 금액
     @IBOutlet weak var balance: UILabel!
     @IBOutlet weak var balanceCondition: UILabel!
-
+    
     @IBOutlet weak var collectionView: UICollectionView!
     // 수입 화면, 지출 입력 버튼
     @IBOutlet weak var revenueBorder: UIButton!
@@ -54,7 +54,7 @@ class mainVC: UIViewController {
     
     override func traitCollectionDidChange(_ previousTraitCollection: UITraitCollection?) {
         super.traitCollectionDidChange(previousTraitCollection)
-
+        
         gradientView.removeFromSuperlayer()
         let colors: [CGColor] = [
             UIColor(named: "topViewColor")!.cgColor,
@@ -211,7 +211,7 @@ class mainVC: UIViewController {
         
         let navigationController = UINavigationController(rootViewController: vc)
         navigationController.modalPresentationStyle = .fullScreen
-
+        
         present(navigationController, animated: true)
     }
     
@@ -219,7 +219,7 @@ class mainVC: UIViewController {
     @objc func savePinData(_ notification: NSNotification){
         fixedFinList = notification.userInfo!["save"] as! [FixedExpenditure]
         UserDefaults.standard.set(try? PropertyListEncoder().encode(fixedFinList), forKey: "fixedFinList")
-        }
+    }
     
     // 상단 네비게이션 타이틀을 클릭했을 때 데이트 피커 노출
     @objc func changeDate() {
@@ -239,7 +239,7 @@ class mainVC: UIViewController {
         
         self.titleTouch.inputView = datePicker
         self.titleTouch.inputAccessoryView = toolbar
-
+        
         titleTouch.becomeFirstResponder()
     }
     
@@ -276,7 +276,7 @@ class mainVC: UIViewController {
         let formatter = DateFormatter()
         formatter.dateFormat = "yyyy년 M월"
         let settingDate = formatter.string(from: stringDate.toDate()!)
-
+        
         navTitle.text =  "🗓 " + settingDate
         navTitle.sizeToFit()
         navigationItem.titleView = navTitle
@@ -286,7 +286,7 @@ class mainVC: UIViewController {
         collectionView.reloadData()
         titleTouch.resignFirstResponder()
     }
-
+    
     
     // 급여일을 설정했을 때 그걸 바탕으로 한달의 지출 기간을 셋팅
     func setSalaryDate(_ salary: String) -> salaryDate {
@@ -319,7 +319,7 @@ class mainVC: UIViewController {
         } else {
             return salaryDate(startDate: Date().startOfLastSomeDay(salaryDay), endDate: Date().endOfLastSomeDay(salaryDay))
         }
-    
+        
     }
     
     // 이번 달 기준으로 리스트 필터링, 남은 금액, 그리고 재정 상태 표시
@@ -335,7 +335,7 @@ class mainVC: UIViewController {
         collectionView.reloadData()
         towidget()
     }
-
+    
     // 이번 달의 전체 지출 비용
     func updateThisMonthTotalCost() -> Int {
         
@@ -412,7 +412,7 @@ class mainVC: UIViewController {
     
     // 수정 버튼(꾹 누르는 제스처)
     @objc func longPress(_ longPressGestureRecognizer: UILongPressGestureRecognizer) {
-
+        
         
         if longPressGestureRecognizer.state == UIGestureRecognizer.State.began {
             let touchPoint = longPressGestureRecognizer.location(in: collectionView)
@@ -473,7 +473,7 @@ extension mainVC: sendFinData, shareRevenueFinList, FODelegate, FixedFinDataDele
         // 일반적인 추가
         if originData == revisedData {
             efinList.append(revisedData)
-        // 수정일 때 -> 원래 데이터 삭제 후, 새로운 데이터 추가
+            // 수정일 때 -> 원래 데이터 삭제 후, 새로운 데이터 추가
         } else {
             let removedData = originData
             efinList.remove(at: efinList.firstIndex(where: {$0 == removedData})!)
@@ -665,12 +665,12 @@ extension mainVC: UIPickerViewDelegate, UIPickerViewDataSource {
     
     func pickerView(_ pickerView: UIPickerView, didSelectRow row: Int, inComponent component: Int) {
         switch component {
-          case 0:
-              selectedYear = String(year[row])
-          case 1:
-              selectedMonth = String(format: "%02d", month[row])
-          default:
-              break
-          }
+        case 0:
+            selectedYear = String(year[row])
+        case 1:
+            selectedMonth = String(format: "%02d", month[row])
+        default:
+            break
+        }
     }
 }
