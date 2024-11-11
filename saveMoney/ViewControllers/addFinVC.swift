@@ -69,7 +69,7 @@ class addFinVC: UIViewController, UITextFieldDelegate {
         formatter.timeStyle = .medium
         formatter.dateFormat = "yyyy. MM. dd."
         
-        // 가져온 날짜 표시(새로운 데이터를 추가할 때만)
+        // 가져온 날짜 표시(데이터를 수정할 때만)
         if let _ = originData {
             whenTextField.text = formatter.string(from: originData.when)
             when = originData.when
@@ -85,8 +85,8 @@ class addFinVC: UIViewController, UITextFieldDelegate {
         
         //datePicker 형식 바꾸기
         datepick.datePickerMode = .date
-        datepick.minimumDate = start
-        datepick.maximumDate = end
+//        datepick.minimumDate = start
+//        datepick.maximumDate = end
         datepick.locale = Locale(identifier: "ko-KR")
         datepick.preferredDatePickerStyle = .wheels
         
@@ -123,6 +123,7 @@ class addFinVC: UIViewController, UITextFieldDelegate {
     @objc func valuechange() {
         if whenTextField.isEditing {
             whenTextField.text = formatter.string(from: datepick.date)
+            when = datepick.date // datepick.date 값을 when에 반영
         }
     }
     
