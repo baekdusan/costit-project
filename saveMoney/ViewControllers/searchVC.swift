@@ -19,7 +19,7 @@ class searchVC: UIViewController {
     
     override func viewDidLoad() {
         super.viewDidLoad()
-
+        
         
         // 네비게이션 바 커스텀
         self.navigationController?.navigationBar.topItem?.title = ""
@@ -45,7 +45,7 @@ class searchVC: UIViewController {
 }
 
 extension searchVC: UISearchBarDelegate {
-
+    
     // 텍스트 입력할 때마다 필터링 & 테이블 뷰 갱신
     func searchBar(_ searchBar: UISearchBar, textDidChange searchText: String) {
         guard let text = searchBar.text?.lowercased() else { return }
@@ -123,10 +123,10 @@ extension searchVC: UITableViewDelegate {
         myLabel.font = UIFont.boldSystemFont(ofSize: 12)
         myLabel.alpha = 0.72
         myLabel.text = self.tableView(tableView, titleForHeaderInSection: section)
-
+        
         let headerView = UIView()
         headerView.addSubview(myLabel)
-
+        
         return headerView
     }
     
@@ -142,7 +142,7 @@ class searchCell: UITableViewCell {
     @IBOutlet weak var when: UILabel!
     @IBOutlet weak var towhat: UILabel!
     @IBOutlet weak var how: UILabel!
-
+    
     func set(_ list: [finData], _ row: Int) {
         when.text = list[row].when.toFullString()
         towhat.text = list[row].towhat

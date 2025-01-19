@@ -25,7 +25,7 @@ class fixedExpenditureVC: UIViewController {
             // 달력 화면에 전달
             if let delegate = fixedDelegate {
                 delegate.fixedFinData(self, fixedData)
-
+                
             }
             
             // 홈 화면에 전달
@@ -118,12 +118,12 @@ class fixedExpenditureVC: UIViewController {
     @IBAction func addFixedDataBtn(_ sender: UIBarButtonItem) {
         addFixedData()
     }
-
+    
     @IBAction func dismissBtn(_ sender: UIBarButtonItem) {
         dismiss(animated: true, completion: nil)
     }
     
-
+    
 }
 
 extension fixedExpenditureVC: UITableViewDelegate, UITableViewDataSource {
@@ -145,11 +145,11 @@ extension fixedExpenditureVC: UITableViewDelegate, UITableViewDataSource {
         cell.layout(filteredFixedData, indexPath.section, indexPath.row)
         cell.tableCellBorderLayout()
         
-//        cell.addBtn.tag = indexPath.section * 1000 + indexPath.row
+        //        cell.addBtn.tag = indexPath.section * 1000 + indexPath.row
         cell.trashBtn.tag = indexPath.section * 1000 + indexPath.row
         
         cell.trashBtn.addTarget(self, action: #selector(trashBtnTapped(sender:)), for: .touchUpInside)
-//        cell.addBtn.addTarget(self, action: #selector(addBtnTapped(sender:)), for: .touchUpInside)
+        //        cell.addBtn.addTarget(self, action: #selector(addBtnTapped(sender:)), for: .touchUpInside)
         return cell
     }
     
@@ -159,17 +159,17 @@ extension fixedExpenditureVC: UITableViewDelegate, UITableViewDataSource {
         myLabel.font = UIFont.boldSystemFont(ofSize: 12)
         myLabel.alpha = 0.4
         myLabel.text = self.tableView(tableView, titleForHeaderInSection: section)
-
+        
         let headerView = UIView()
         headerView.addSubview(myLabel)
-
+        
         return headerView
     }
     
     func tableView(_ tableView: UITableView, heightForHeaderInSection section: Int) -> CGFloat {
         return 30
     }
-
+    
 }
 
 extension fixedExpenditureVC: UIPickerViewDelegate, UIPickerViewDataSource {
@@ -197,14 +197,14 @@ extension fixedExpenditureVC: UITextFieldDelegate {
     
     // 금액 최대 글자수는 15로 제한, 메모는 30자
     func textField(_ textField: UITextField, shouldChangeCharactersIn range: NSRange, replacementString string: String) -> Bool {
-            let newLength = (textField.text?.count)! + string.count - range.length
+        let newLength = (textField.text?.count)! + string.count - range.length
         
         if textField == howTF {
             return !(newLength > 11)
         } else {
             return !(newLength > 15)
         }
-            
+        
     }
     
     // 지출 키보드에서 실시간으로 반점 찍어주기
@@ -292,9 +292,9 @@ extension fixedExpenditureVC {
         present(alert, animated: true, completion: nil)
     }
     
-//    @objc func addBtnTapped(sender: UIButton) {
-//        print(sender)
-//    }
+    //    @objc func addBtnTapped(sender: UIButton) {
+    //        print(sender)
+    //    }
     
     func deleteData(_ row: Int, _ section: Int) {
         tableView.performBatchUpdates({
@@ -312,10 +312,10 @@ extension fixedExpenditureVC {
         }, completion: {[self] _ in
             tableView.reloadData()
         }
-    )
+        )
         
     }
-
+    
     
     @objc func addFixedData() {
         if isAllfilled() {
@@ -342,7 +342,7 @@ extension fixedExpenditureVC {
             let toolbar: UIToolbar = UIToolbar()
             toolbar.sizeToFit()
             toolbar.barTintColor = UIColor(named: "fixedColor")
-
+            
             var items = [UIBarButtonItem]()
             
             let spacer = UIBarButtonItem(barButtonSystemItem: .flexibleSpace, target: nil, action: nil)
@@ -358,7 +358,7 @@ extension fixedExpenditureVC {
                     previousButton.target = textFields[index - 1]
                     previousButton.action = #selector(UITextField.becomeFirstResponder)
                 }
-
+                
                 let nextButton = UIBarButtonItem(title: "다음", style: .plain, target: nil, action: nil)
                 
                 [previousButton, nextButton].forEach {
@@ -382,7 +382,7 @@ extension fixedExpenditureVC {
     
     func requestNotificationAuthorization() {
         let authOptions: UNAuthorizationOptions = [.alert, .sound, .badge]
-
+        
         notificationCenter.requestAuthorization(options: authOptions) { success, error in
             if let error = error {
                 print(error)

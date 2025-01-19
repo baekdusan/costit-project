@@ -16,16 +16,16 @@ extension Date {
         components.second = -1
         return Calendar.current.date(byAdding: components, to: startOfDay)!
     }
-
+    
     // 이번 달의 시작
     var startOfThisMonth: Date {
-
+        
         let calendar = Calendar(identifier: .gregorian)
         let components = calendar.dateComponents([.year, .month], from: self)
-
+        
         return  calendar.date(from: components)!
     }
-
+    
     // 이번 달의 끝
     var endOfThisMonth: Date {
         var components = DateComponents()
@@ -90,7 +90,7 @@ extension Date {
         components.second = -1
         return Calendar.current.date(byAdding: components, to: startOfSomeDay(day))!
     }
-
+    
     // 오늘이 월요일인지?
     func isMonday() -> Bool {
         let calendar = Calendar(identifier: .gregorian)
@@ -116,9 +116,9 @@ extension Date {
     func toFullString() -> String {
         let dateFormatter = DateFormatter()
         dateFormatter.dateFormat = "yyyy. MM. dd"
-            
+        
         dateFormatter.timeZone = TimeZone(identifier: "ko-KR")
-            
+        
         return dateFormatter.string(from: self)
     }
     

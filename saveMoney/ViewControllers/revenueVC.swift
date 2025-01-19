@@ -10,7 +10,7 @@ class revenueVC: UIViewController, sendRevenueFinData {
         // 일반적인 추가
         if originData == revisedData {
             rfinList.append(revisedData)
-        // 수정일 때 -> 원래 데이터 삭제 후, 새로운 데이터 추가
+            // 수정일 때 -> 원래 데이터 삭제 후, 새로운 데이터 추가
         } else {
             let removedData = originData
             rfinList.remove(at: rfinList.firstIndex(where: {$0 == removedData})!)
@@ -102,7 +102,7 @@ class revenueVC: UIViewController, sendRevenueFinData {
     
     @IBAction func dismissBtn(_ sender: UIButton) {
         dismiss(animated: true, completion: nil)
-            
+        
     }
     
     // 상단 네비게이션 타이틀을 클릭했을 때 데이트 피커 노출
@@ -123,7 +123,7 @@ class revenueVC: UIViewController, sendRevenueFinData {
         
         self.titleTouch.inputView = datePicker
         self.titleTouch.inputAccessoryView = toolbar
-
+        
         titleTouch.becomeFirstResponder()
     }
     
@@ -155,7 +155,7 @@ class revenueVC: UIViewController, sendRevenueFinData {
         let formatter = DateFormatter()
         formatter.dateFormat = "yyyy년 M월"
         let settingDate = formatter.string(from: stringDate.toDate()!)
-
+        
         navTitle.text = "🗓 " + settingDate
         navTitle.sizeToFit()
         navigationItem.titleView = navTitle
@@ -220,7 +220,7 @@ class revenueVC: UIViewController, sendRevenueFinData {
     
     // 수정 버튼(꾹 누르는 제스처)
     @objc func longPress(_ longPressGestureRecognizer: UILongPressGestureRecognizer) {
-
+        
         if longPressGestureRecognizer.state == UIGestureRecognizer.State.began {
             let touchPoint = longPressGestureRecognizer.location(in: collectionView)
             if let index = collectionView.indexPathForItem(at: touchPoint) {
@@ -298,11 +298,11 @@ class rCell: UICollectionViewCell {
     @IBOutlet weak var border: UIView!
     
     func updateUI(_ model: [finData], _ row: Int) {
-    
-    when.text = model[row].when.toString(false)
-    towhat.text = model[row].towhat
-    how.text = "+ " + model[row].how.toDecimal()
-}
+        
+        when.text = model[row].when.toString(false)
+        towhat.text = model[row].towhat
+        how.text = "+ " + model[row].how.toDecimal()
+    }
     
     func makeShadow() {
         layer.shadowColor = UIColor.black.cgColor
@@ -314,11 +314,11 @@ class rCell: UICollectionViewCell {
 
 // 컬렉션 헤더 뷰 클래스
 class rheader: UICollectionReusableView {
-
+    
     @IBOutlet weak var headerDate: UILabel!
     
     func updateHeader(_ arr: [finData], _ index: Int) {
-            
+        
         if arr.isEmpty {
             headerDate.text = "₩ 0"
         } else {
@@ -368,12 +368,12 @@ extension revenueVC: UIPickerViewDelegate, UIPickerViewDataSource {
     
     func pickerView(_ pickerView: UIPickerView, didSelectRow row: Int, inComponent component: Int) {
         switch component {
-          case 0:
-              selectedYear = String(year[row])
-          case 1:
-              selectedMonth = String(format: "%02d", month[row])
-          default:
-              break
-          }
+        case 0:
+            selectedYear = String(year[row])
+        case 1:
+            selectedMonth = String(format: "%02d", month[row])
+        default:
+            break
+        }
     }
 }

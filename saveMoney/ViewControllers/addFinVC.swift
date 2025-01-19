@@ -30,7 +30,7 @@ class addFinVC: UIViewController, UITextFieldDelegate {
     
     var datepick = UIDatePicker() // 데이트 피커
     var when: Date! // 가계부 데이터에 넣을 시간(화면 표시와 달라서 따로 저장 후 추가나 변경 시에 사용)
-    var outlay: Int! // 지출액
+    var outlay: Int? // 지출액
     var start: Date!
     var end: Date!
     let formatter = DateFormatter()
@@ -85,8 +85,8 @@ class addFinVC: UIViewController, UITextFieldDelegate {
         
         //datePicker 형식 바꾸기
         datepick.datePickerMode = .date
-//        datepick.minimumDate = start
-//        datepick.maximumDate = end
+        //        datepick.minimumDate = start
+        //        datepick.maximumDate = end
         datepick.locale = Locale(identifier: "ko-KR")
         datepick.preferredDatePickerStyle = .wheels
         
@@ -112,6 +112,7 @@ class addFinVC: UIViewController, UITextFieldDelegate {
             whenTextField.text = formatter.string(from: findata.when)
             towhatTextField.text = findata.towhat
             howTextField.text = findata.how.toDecimal()
+            outlay = findata.how // 초기 값 설정
         }
     }
     
@@ -173,49 +174,41 @@ class addFinVC: UIViewController, UITextFieldDelegate {
     
     // 지출 키보드에서 다음을 눌렀을 때
     @objc func donePressed() {
-        if !whenTextField.text!.isEmpty, !towhatTextField.text!.isEmpty, !howTextField.text!.isEmpty {
-            let writenData = finData(when: when, towhat: towhatTextField.text, how: outlay)
-            if mode == .edit {
-                guard let originData = originData else { return }
-                switch fromWhere {
-                case .expense:
-                    if originData != writenData {
-                        if let delegate = delegate {
-                            delegate.sendFinanceSource(self, originData, writenData)
-                        }
-                    } else {
-                    }
-                case .revenue:
-                    if originData != writenData {
-                        if let delegate = rDelegate {
-                            delegate.sendRevenueData(self, originData, writenData)
-                        }
-                    } else {
-                    }
-                default:
-                    break
-                }
-            } else if mode == .new {
-                switch fromWhere {
-                case .expense:
-                    if let delegate = delegate {
-                        delegate.sendFinanceSource(self, writenData, writenData)
-                    }
-                case .revenue:
-                    if let delegate = rDelegate {
-                        delegate.sendRevenueData(self, writenData, writenData)
-                    }
-                default:
-                    break
+        guard
+            let whenText = whenTextField.text, !whenText.isEmpty,
+            let towhatText = towhatTextField.text, !towhatText.isEmpty,
+            let howText = howTextField.text, !howText.isEmpty
+        else {
+            print("empty")
+            return
+        }
+        
+        // `outlay`가 nil이면 `howTextField.text`를 다시 파싱
+        if outlay == nil {
+            outlay = Int(howText.replacingOccurrences(of: ",", with: "")) ?? 0
+        }
+        
+        let writenData = finData(when: when, towhat: towhatText, how: outlay ?? 0)
+        
+        if mode == .edit {
+            guard let originData = originData else { return }
+            if originData != writenData {
+                if fromWhere == .expense {
+                    delegate?.sendFinanceSource(self, originData, writenData)
+                } else if fromWhere == .revenue {
+                    rDelegate?.sendRevenueData(self, originData, writenData)
                 }
             }
-            dismiss(animated: true, completion: nil)
-        } else {
-            print("empty")
+        } else if mode == .new {
+            if fromWhere == .expense {
+                delegate?.sendFinanceSource(self, writenData, writenData)
+            } else if fromWhere == .revenue {
+                rDelegate?.sendRevenueData(self, writenData, writenData)
+            }
         }
+        
+        dismiss(animated: true, completion: nil)
     }
-    
-    
     
     // 금액 최대 글자수는 15로 제한, 메모는 30자
     func textField(_ textField: UITextField, shouldChangeCharactersIn range: NSRange, replacementString string: String) -> Bool {
@@ -230,16 +223,27 @@ class addFinVC: UIViewController, UITextFieldDelegate {
     }
     
     // 지출 키보드에서 실시간으로 반점 찍어주기
+    //    func textFieldDidChangeSelection(_ textField: UITextField) {
+    //        if textField == howTextField {
+    //            let money = textField.text!
+    //            if money == "" {
+    //            } else {
+    //                textField.text = numberFormatter(number: Int(money.split(separator: ",").joined())!)
+    //                outlay = textField.text!.toInt()
+    //            }
+    //        }
+    //    }
+    
     func textFieldDidChangeSelection(_ textField: UITextField) {
-        if textField == howTextField {
-            let money = textField.text!
-            if money == "" {
-            } else {
-                textField.text = numberFormatter(number: Int(money.split(separator: ",").joined())!)
-                outlay = textField.text!.toInt()
-            }
+        if textField == howTextField, let moneyText = textField.text?.replacingOccurrences(of: ",", with: ""),
+           let money = Int(moneyText) {
+            textField.text = numberFormatter(number: money)
+            outlay = money
+        } else {
+            outlay = nil
         }
     }
+    
     
     // 반점 찍어주는 메서드
     func numberFormatter(number: Int) -> String {

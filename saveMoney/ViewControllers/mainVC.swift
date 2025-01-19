@@ -104,14 +104,10 @@ class mainVC: UIViewController {
         topView.layer.addSublayer(gradientView)
         collectionView.clipsToBounds = false
         
-        // 지출 가계부 정보 받아오기
-        if let fData = UserDefaults.standard.value(forKey:"finlist") as? Data {
-            efinList = try! PropertyListDecoder().decode([finData].self, from: fData)
-        }
-        // 수입 가계부 정보 받아오기
-        if let rfData = UserDefaults.standard.value(forKey: "rfinList") as? Data {
-            rfinList = try! PropertyListDecoder().decode([finData].self, from: rfData)
-        }
+        // 지출 가계부와 수입 가계부 데이터 로드 (how 값 보정 포함)
+        efinList = loadAndFixFinData(forKey: "finlist")
+        rfinList = loadAndFixFinData(forKey: "rfinList")
+        
         // 고정 지출 정보 가져오기
         if let fFData = UserDefaults.standard.value(forKey: "fixedFinList") as? Data {
             fixedFinList = try! PropertyListDecoder().decode([FixedExpenditure].self, from: fFData)
@@ -198,6 +194,28 @@ class mainVC: UIViewController {
     override func viewDidDisappear(_ animated: Bool) {
         super.viewDidDisappear(animated)
         reset()
+    }
+    
+    private func loadAndFixFinData(forKey key: String) -> [finData] {
+        guard let data = UserDefaults.standard.value(forKey: key) as? Data else { return [] }
+        do {
+            // 데이터를 디코딩
+            var finList = try PropertyListDecoder().decode([finData].self, from: data)
+            
+            // `how` 값 보정
+            finList = finList.map { item in
+                if item.how == nil { // `how`가 nil이면 기본값으로 변경
+                    var fixedItem = item
+                    fixedItem.how = 0
+                    return fixedItem
+                }
+                return item
+            }
+            return finList
+        } catch {
+            print("Failed to decode \(key): \(error)")
+            return []
+        }
     }
     
     // calendarVC를 네비게이션 컨트롤러가 품은 뷰로 만들어서 모달로 Push

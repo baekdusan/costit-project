@@ -4,7 +4,7 @@ class fixedExpenditureCell: UITableViewCell {
     
     @IBOutlet weak var towhat: UILabel!
     @IBOutlet weak var how: UILabel!
-//    @IBOutlet weak var addBtn: UIButton!
+    //    @IBOutlet weak var addBtn: UIButton!
     @IBOutlet weak var trashBtn: UIButton!
     @IBOutlet weak var tableCellBorder: UIStackView!
     

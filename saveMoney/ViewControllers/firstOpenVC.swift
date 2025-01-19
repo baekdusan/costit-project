@@ -22,11 +22,11 @@ class firstOpenVC: UIViewController, UIPickerViewDelegate, UIPickerViewDataSourc
         salaryDay = salaryList[row]
         salaryTF.text = "매월 " + salaryList[row]
     }
-
+    
     var FODelegate: FODelegate?
     let datepick = UIPickerView()
     let salaryList: [String] = [Int](1...30).map { String($0) + "일" } + ["마지막 날"]
-//    ["1일", "5일", "10일", "15일", "20일", "25일", "마지막 날"]
+    //    ["1일", "5일", "10일", "15일", "20일", "25일", "마지막 날"]
     var purposeMoney: Int!
     var salaryDay: String!
     var profileData = profile()
@@ -143,9 +143,9 @@ extension firstOpenVC: UITextFieldDelegate {
     }
     
     func textField(_ textField: UITextField, shouldChangeCharactersIn range: NSRange, replacementString string: String) -> Bool {
-            let newLength = (textField.text?.count)! + string.count - range.length
-            return !(newLength > 15)
-        }
+        let newLength = (textField.text?.count)! + string.count - range.length
+        return !(newLength > 15)
+    }
     
     func textFieldDidChangeSelection(_ textField: UITextField) {
         if textField == purposeTF {
