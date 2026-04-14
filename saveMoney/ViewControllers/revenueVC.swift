@@ -10,10 +10,11 @@ class revenueVC: UIViewController, sendRevenueFinData {
         // 일반적인 추가
         if originData == revisedData {
             rfinList.append(revisedData)
-            // 수정일 때 -> 원래 데이터 삭제 후, 새로운 데이터 추가
         } else {
-            let removedData = originData
-            rfinList.remove(at: rfinList.firstIndex(where: {$0 == removedData})!)
+            // 수정일 때 -> 원래 데이터 삭제 후, 새로운 데이터 추가
+            if let index = rfinList.firstIndex(where: { $0 == originData }) {
+                rfinList.remove(at: index)
+            }
             rfinList.append(revisedData)
         }
         updateLayout()
@@ -32,9 +33,9 @@ class revenueVC: UIViewController, sendRevenueFinData {
         }
     }
     var filtered: [finData] = [] // 필터링된 소득 가계부 데이터
-    var start: Date!
-    var end: Date!
-    var rdelegate: shareRevenueFinList!
+    var start: Date = Date()
+    var end: Date = Date()
+    var rdelegate: shareRevenueFinList?
     
     let navTitle = UILabel()
     
@@ -68,7 +69,8 @@ class revenueVC: UIViewController, sendRevenueFinData {
         // 데이트 피커가 담을 년/월 셋팅
         let setDateFormatter = DateFormatter()
         setDateFormatter.dateFormat = "yyyy"
-        year = [Int](2021...Int(setDateFormatter.string(from: Date()))!)
+        let currentYear = Int(setDateFormatter.string(from: Date())) ?? 2021
+        year = [Int](2021...currentYear)
         
         // 네비게이션 바 투명처리
         navigation.setBackgroundImage(UIImage(), for: UIBarMetrics.default)
@@ -142,24 +144,24 @@ class revenueVC: UIViewController, sendRevenueFinData {
     
     // 원하는 날짜로 필터링
     @objc func setDate() {
-        
         let stringDate = selectedYear + selectedMonth
-        
+        guard let date = stringDate.toDate() else { return }
+
         // 필터링할 시간의 앞과 뒤
-        let start = stringDate.toDate()!.startOfThisMonth
-        let end = stringDate.toDate()!.endOfThisMonth
-        
+        let start = date.startOfThisMonth
+        let end = date.endOfThisMonth
+
         // 필터링 후 레이아웃 셋팅(사용한 총액, 날짜)
-        filteredbyMonth(start, end) // 이번 달에 맞춰서 filteredList 할당
-        
+        filteredbyMonth(start, end)
+
         let formatter = DateFormatter()
         formatter.dateFormat = "yyyy년 M월"
-        let settingDate = formatter.string(from: stringDate.toDate()!)
-        
+        let settingDate = formatter.string(from: date)
+
         navTitle.text = "🗓 " + settingDate
         navTitle.sizeToFit()
         navigationItem.titleView = navTitle
-        
+
         // 콜렉션뷰 갱신, 키보드 내리기
         collectionView.reloadData()
         titleTouch.resignFirstResponder()
@@ -210,11 +212,11 @@ class revenueVC: UIViewController, sendRevenueFinData {
     
     func deleteRFindata(_ row: Int) {
         collectionView.performBatchUpdates({
-            
             collectionView.deleteItems(at: [IndexPath.init(row: row, section: 0)])
             let removedStr = filtered.remove(at: row)
-            rfinList.remove(at: rfinList.firstIndex(where: {$0 == removedStr})!)
-            
+            if let index = rfinList.firstIndex(where: { $0 == removedStr }) {
+                rfinList.remove(at: index)
+            }
         }, completion: { [self] _ in collectionView.reloadData()})
     }
     

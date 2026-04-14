@@ -197,26 +197,23 @@ extension fixedExpenditureVC: UITextFieldDelegate {
     
     // 금액 최대 글자수는 15로 제한, 메모는 30자
     func textField(_ textField: UITextField, shouldChangeCharactersIn range: NSRange, replacementString string: String) -> Bool {
-        let newLength = (textField.text?.count)! + string.count - range.length
-        
+        let newLength = (textField.text?.count ?? 0) + string.count - range.length
+
         if textField == howTF {
             return !(newLength > 11)
         } else {
             return !(newLength > 15)
         }
-        
     }
-    
+
     // 지출 키보드에서 실시간으로 반점 찍어주기
     func textFieldDidChangeSelection(_ textField: UITextField) {
-        
-        if textField == howTF {
-            let money = textField.text!
-            if money == "" {
-            } else {
-                textField.text = numberFormatter(number: Int(money.split(separator: ",").joined())!)
-                how = textField.text!.toInt()
-            }
+        if textField == howTF,
+           let moneyText = textField.text?.replacingOccurrences(of: ",", with: ""),
+           !moneyText.isEmpty,
+           let money = Int(moneyText) {
+            textField.text = numberFormatter(number: money)
+            how = money
         }
     }
     
@@ -232,7 +229,7 @@ extension fixedExpenditureVC: UITextFieldDelegate {
     func numberFormatter(number: Int) -> String {
         let numberFormatter = NumberFormatter()
         numberFormatter.numberStyle = .decimal
-        return numberFormatter.string(from: NSNumber(value: number))!
+        return numberFormatter.string(from: NSNumber(value: number)) ?? "\(number)"
     }
     
     func textFieldDidBeginEditing(_ textField: UITextField) {
@@ -251,9 +248,7 @@ extension fixedExpenditureVC {
     }
     
     func isAllfilled() -> Bool {
-        
-        return !whenTF.text!.isEmpty && !toWhatTF.text!.isEmpty && !howTF.text!.isEmpty
-        
+        return !(whenTF.text ?? "").isEmpty && !(toWhatTF.text ?? "").isEmpty && !(howTF.text ?? "").isEmpty
     }
     
     func filteredbyDays() {
@@ -298,17 +293,18 @@ extension fixedExpenditureVC {
     
     func deleteData(_ row: Int, _ section: Int) {
         tableView.performBatchUpdates({
-            
             tableView.deleteRows(at: [IndexPath.init(row: row, section: section)], with: .fade)
             let removedData = filteredFixedData[section].remove(at: row)
             notificationCenter.removePendingNotificationRequests(withIdentifiers: [removedData.id])
-            
+
             if filteredFixedData[section].isEmpty {
                 tableView.deleteSections([section], with: .fade)
                 filteredFixedData.remove(at: section)
             }
-            
-            fixedData.remove(at: fixedData.firstIndex(where: {$0 == removedData})!)
+
+            if let index = fixedData.firstIndex(where: { $0 == removedData }) {
+                fixedData.remove(at: index)
+            }
         }, completion: {[self] _ in
             tableView.reloadData()
         }
@@ -319,7 +315,7 @@ extension fixedExpenditureVC {
     
     @objc func addFixedData() {
         if isAllfilled() {
-            let data = FixedExpenditure(day: when, towhat: toWhatTF.text, how: how)
+            let data = FixedExpenditure(day: when, towhat: toWhatTF.text ?? "", how: how ?? 0)
             notificationCenter.addNotificationRequest(to: id.nickName, by: data)
             
             fixedData.append(data)

@@ -34,7 +34,7 @@ class mainVC: UIViewController {
     var id = profile() {
         didSet { UserDefaults.standard.set(try? PropertyListEncoder().encode(id), forKey: "profile") }
     }
-    var isFirstOpen: Bool! // 앱 첫실행 감지
+    var isFirstOpen: Bool = false // 앱 첫실행 감지
     var filteredList: [[finData]] = [] // 필터링된 가계부 데이터
     let gradientView = CAGradientLayer()
     
@@ -54,11 +54,11 @@ class mainVC: UIViewController {
     
     override func traitCollectionDidChange(_ previousTraitCollection: UITraitCollection?) {
         super.traitCollectionDidChange(previousTraitCollection)
-        
+
         gradientView.removeFromSuperlayer()
         let colors: [CGColor] = [
-            UIColor(named: "topViewColor")!.cgColor,
-            UIColor(named: "backgroundColor")!.withAlphaComponent(0).cgColor
+            (UIColor(named: "topViewColor") ?? .systemBackground).cgColor,
+            (UIColor(named: "backgroundColor") ?? .systemBackground).withAlphaComponent(0).cgColor
         ]
         gradientView.colors = colors
         topView.layer.addSublayer(gradientView)
@@ -97,8 +97,8 @@ class mainVC: UIViewController {
         // 탑뷰 그라데이션 주기
         gradientView.frame = topView.bounds
         let colors: [CGColor] = [
-            UIColor(named: "topViewColor")!.cgColor,
-            UIColor(named: "backgroundColor")!.withAlphaComponent(0).cgColor
+            (UIColor(named: "topViewColor") ?? .systemBackground).cgColor,
+            (UIColor(named: "backgroundColor") ?? .systemBackground).withAlphaComponent(0).cgColor
         ]
         gradientView.colors = colors
         topView.layer.addSublayer(gradientView)
@@ -109,16 +109,19 @@ class mainVC: UIViewController {
         rfinList = loadAndFixFinData(forKey: "rfinList")
         
         // 고정 지출 정보 가져오기
-        if let fFData = UserDefaults.standard.value(forKey: "fixedFinList") as? Data {
-            fixedFinList = try! PropertyListDecoder().decode([FixedExpenditure].self, from: fFData)
+        if let fFData = UserDefaults.standard.value(forKey: "fixedFinList") as? Data,
+           let decoded = try? PropertyListDecoder().decode([FixedExpenditure].self, from: fFData) {
+            fixedFinList = decoded
         }
         // 프로필 데이터 받아오기
-        if let pData = UserDefaults.standard.value(forKey: "profile") as? Data {
-            id = try! PropertyListDecoder().decode(profile.self, from: pData)
+        if let pData = UserDefaults.standard.value(forKey: "profile") as? Data,
+           let decoded = try? PropertyListDecoder().decode(profile.self, from: pData) {
+            id = decoded
         }
         // 급여 날짜 받아오기
-        if let sData = UserDefaults.standard.value(forKey: "salarydata") as? Data {
-            salaryData = try! PropertyListDecoder().decode(salaryDate.self, from: sData)
+        if let sData = UserDefaults.standard.value(forKey: "salarydata") as? Data,
+           let decoded = try? PropertyListDecoder().decode(salaryDate.self, from: sData) {
+            salaryData = decoded
         }
         
         NotificationCenter.default.addObserver(self, selector: #selector(savePinData(_:)), name: NSNotification.Name("toMainVC"), object: nil)
@@ -179,16 +182,17 @@ class mainVC: UIViewController {
         // 데이트 피커가 담을 년 셋팅
         let setDateFormatter = DateFormatter()
         setDateFormatter.dateFormat = "yyyy"
-        year = [Int](2021...Int(setDateFormatter.string(from: Date()))!)
+        let currentYear = Int(setDateFormatter.string(from: Date())) ?? 2021
+        year = [Int](2021...currentYear)
         selectedYear = String(year[year.count - 1])
-        
+
         // 데이트 피커가 담을 월 셋팅
         setDateFormatter.dateFormat = "MM"
         selectedMonth = setDateFormatter.string(from: Date())
-        
+
         // 데이트 피커 default value 설정
         datePicker.selectRow(year.count - 1, inComponent: 0, animated: true)
-        datePicker.selectRow(Int(selectedMonth)! - 1, inComponent: 1, animated: true)
+        datePicker.selectRow((Int(selectedMonth) ?? 1) - 1, inComponent: 1, animated: true)
     }
     
     override func viewDidDisappear(_ animated: Bool) {
@@ -235,7 +239,8 @@ class mainVC: UIViewController {
     
     // notification으로 변경된 보관함 배열 수신
     @objc func savePinData(_ notification: NSNotification){
-        fixedFinList = notification.userInfo!["save"] as! [FixedExpenditure]
+        guard let data = notification.userInfo?["save"] as? [FixedExpenditure] else { return }
+        fixedFinList = data
         UserDefaults.standard.set(try? PropertyListEncoder().encode(fixedFinList), forKey: "fixedFinList")
     }
     
@@ -279,28 +284,27 @@ class mainVC: UIViewController {
     
     // 원하는 날짜로 필터링
     @objc func setDate() {
-        
         let stringDate = selectedYear + selectedMonth
-        
+        guard let date = stringDate.toDate() else { return }
+
         // 필터링할 시간의 앞과 뒤
-        let start = stringDate.toDate()!.startOfThisMonth
-        let end = stringDate.toDate()!.endOfThisMonth
-        
+        let start = date.startOfThisMonth
+        let end = date.endOfThisMonth
+
         // 필터링 후 레이아웃 셋팅(사용한 총액, 날짜)
         filteredbyMonth(start, end) // 이번 달에 맞춰서 filteredList 할당
         balance.text = updateThisMonthTotalCost().toDecimal() + " 원"
         balanceCondition.text = "이만큼 사용했어요"
-        
+
         let formatter = DateFormatter()
         formatter.dateFormat = "yyyy년 M월"
-        let settingDate = formatter.string(from: stringDate.toDate()!)
-        
-        navTitle.text =  "🗓 " + settingDate
+        let settingDate = formatter.string(from: date)
+
+        navTitle.text = "🗓 " + settingDate
         navTitle.sizeToFit()
         navigationItem.titleView = navTitle
-        
+
         // 콜렉션뷰 갱신, 키보드 내리기, 지출 입력 금지
-        
         collectionView.reloadData()
         titleTouch.resignFirstResponder()
     }
@@ -311,33 +315,29 @@ class mainVC: UIViewController {
         let formatter = DateFormatter()
         formatter.locale = Locale(identifier: "ko")
         formatter.dateFormat = "dd"
-        let today = Int(formatter.string(from: Date()))! // 오늘이 30일이면 30
-        
+        let today = Int(formatter.string(from: Date())) ?? 1
+
         if salary == "마지막 날" {
-            // 오늘이 마지막 날인 경우 -> 오늘부터 다음 달의 끝 전날까지
-            if today == Int(formatter.string(from: Date().endOfThisMonth)) {
+            let endOfMonthDay = Int(formatter.string(from: Date().endOfThisMonth)) ?? 28
+            if today == endOfMonthDay {
                 return salaryDate(startDate: Date().endOfThisMonth, endDate: Date().yesterdayOfEndOfNextMonth)
             }
-            
-            // 아닐 경우 -> 지난 달의 끝부터 이번 달의 끝 전날까지
             return salaryDate(startDate: Date().endOfLastMonth, endDate: Date().yesterdayOfEndOfThisMonth)
         }
-        
+
         if salary == "1일" {
             return salaryDate(startDate: Date().startOfThisMonth, endDate: Date().endOfThisMonth)
         }
-        
-        let int = salary.map { String($0) } // ex) ["2", "9", "일"]
-        let salaryDay = Int(int[0..<int.count - 1].joined())! // 29
-        
-        
-        
+
+        // "29일" → 29 추출
+        let digits = salary.filter { $0.isNumber }
+        let salaryDay = Int(digits) ?? 1
+
         if today >= salaryDay {
             return salaryDate(startDate: Date().startOfSomeDay(salaryDay), endDate: Date().endOfSomeDay(salaryDay))
         } else {
             return salaryDate(startDate: Date().startOfLastSomeDay(salaryDay), endDate: Date().endOfLastSomeDay(salaryDay))
         }
-        
     }
     
     // 이번 달 기준으로 리스트 필터링, 남은 금액, 그리고 재정 상태 표시
@@ -409,21 +409,23 @@ class mainVC: UIViewController {
     
     func deleteExpenseFinData(_ section: Int, _ row: Int) {
         collectionView.performBatchUpdates({
-            
+
             collectionView.deleteItems(at: [IndexPath.init(row: row, section: section)])
             let removedData = filteredList[section].remove(at: row)
-            
+
             if filteredList[section].isEmpty {
                 collectionView.deleteSections([section])
                 filteredList.remove(at: section)
             }
-            
-            efinList.remove(at: efinList.firstIndex(where: {$0 == removedData})!)
-            
+
+            if let index = efinList.firstIndex(where: { $0 == removedData }) {
+                efinList.remove(at: index)
+            }
+
             balance.text = Int(id.outLay - updateThisMonthTotalCost()).toDecimal() + " 원"
             balanceCondition.text = "/ \(id.outLay.toDecimal()) 원"
             towidget()
-            
+
         }, completion: { [self] _ in
             collectionView.reloadData()})
     }
@@ -487,14 +489,14 @@ extension mainVC: sendFinData, shareRevenueFinList, FODelegate, FixedFinDataDele
     
     // 데이터 추가 뷰에서 넘겨받는 프로토콜
     func sendFinanceSource(_ controller: addFinVC, _ originData: finData, _ revisedData: finData) {
-        
         // 일반적인 추가
         if originData == revisedData {
             efinList.append(revisedData)
-            // 수정일 때 -> 원래 데이터 삭제 후, 새로운 데이터 추가
         } else {
-            let removedData = originData
-            efinList.remove(at: efinList.firstIndex(where: {$0 == removedData})!)
+            // 수정일 때 -> 원래 데이터 삭제 후, 새로운 데이터 추가
+            if let index = efinList.firstIndex(where: { $0 == originData }) {
+                efinList.remove(at: index)
+            }
             efinList.append(revisedData)
         }
         updateLayout()

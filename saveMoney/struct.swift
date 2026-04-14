@@ -14,81 +14,78 @@ extension Date {
         var components = DateComponents()
         components.day = 1
         components.second = -1
-        return Calendar.current.date(byAdding: components, to: startOfDay)!
+        return Calendar.current.date(byAdding: components, to: startOfDay) ?? startOfDay
     }
-    
+
     // 이번 달의 시작
     var startOfThisMonth: Date {
-        
         let calendar = Calendar(identifier: .gregorian)
         let components = calendar.dateComponents([.year, .month], from: self)
-        
-        return  calendar.date(from: components)!
+        return calendar.date(from: components) ?? self
     }
-    
+
     // 이번 달의 끝
     var endOfThisMonth: Date {
         var components = DateComponents()
         components.month = 1
         components.second = -1
-        return Calendar(identifier: .gregorian).date(byAdding: components, to: startOfThisMonth)!
+        return Calendar(identifier: .gregorian).date(byAdding: components, to: startOfThisMonth) ?? self
     }
-    
+
     // 다음 달의 끝 전 날
     var yesterdayOfEndOfNextMonth: Date {
         var components = DateComponents()
         components.month = 2
         components.day = -1
         components.second = -1
-        return Calendar(identifier: .gregorian).date(byAdding: components, to: startOfThisMonth)!
+        return Calendar(identifier: .gregorian).date(byAdding: components, to: startOfThisMonth) ?? self
     }
-    
+
     // 이번 달의 끝 전 날
     var yesterdayOfEndOfThisMonth: Date {
         var components = DateComponents()
         components.month = 1
         components.second = -1
         components.day = -1
-        return Calendar(identifier: .gregorian).date(byAdding: components, to: startOfThisMonth)!
+        return Calendar(identifier: .gregorian).date(byAdding: components, to: startOfThisMonth) ?? self
     }
-    
+
     // 지난 달의 끝
     var endOfLastMonth: Date {
         var components = DateComponents()
         components.day = -1
-        return Calendar(identifier: .gregorian).date(byAdding: components, to: startOfThisMonth)!
+        return Calendar(identifier: .gregorian).date(byAdding: components, to: startOfThisMonth) ?? self
     }
-    
+
     // 지난 어느 날의 시작
     func startOfLastSomeDay(_ day: Int) -> Date {
         var components = DateComponents()
         components.month = -1
         components.day = day - 1
-        return Calendar.current.date(byAdding: components, to: startOfThisMonth)!
+        return Calendar.current.date(byAdding: components, to: startOfThisMonth) ?? self
     }
-    
+
     // 지난 어느 날의 끝
     func endOfLastSomeDay(_ day: Int) -> Date {
         var components = DateComponents()
         components.day = day - 1
         components.second = -1
-        return Calendar.current.date(byAdding: components, to: startOfThisMonth)!
+        return Calendar.current.date(byAdding: components, to: startOfThisMonth) ?? self
     }
-    
+
     // 이번 어느 날의 시작
     func startOfSomeDay(_ day: Int) -> Date {
         var components = DateComponents()
         components.day = day - 1
-        return Calendar.current.date(byAdding: components, to: startOfThisMonth)!
+        return Calendar.current.date(byAdding: components, to: startOfThisMonth) ?? self
     }
-    
+
     // 다음 어느 날의 끝
     func endOfSomeDay(_ day: Int) -> Date {
         var components = DateComponents()
-        
         components.month = 1
         components.second = -1
-        return Calendar.current.date(byAdding: components, to: startOfSomeDay(day))!
+        return Calendar.current.date(byAdding: components, to: startOfSomeDay(day)) ?? self
     }
     
     // 오늘이 월요일인지?
@@ -131,14 +128,28 @@ extension Date {
     func onlyMonth() -> Int {
         let dateFormatter = DateFormatter()
         dateFormatter.dateFormat = "M"
-        return Int(dateFormatter.string(from: self))!
+        return Int(dateFormatter.string(from: self)) ?? 1
     }
 }
 
 struct finData: Codable, Equatable {
-    var when: Date!
-    var towhat: String!
-    var how: Int!
+    var when: Date
+    var towhat: String
+    var how: Int
+
+    // 기존 IUO(Optional) 데이터와의 호환을 위한 커스텀 디코더
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        when = try container.decode(Date.self, forKey: .when)
+        towhat = try container.decode(String.self, forKey: .towhat)
+        how = try container.decodeIfPresent(Int.self, forKey: .how) ?? 0
+    }
+
+    init(when: Date, towhat: String, how: Int) {
+        self.when = when
+        self.towhat = towhat
+        self.how = how
+    }
 }
 
 struct salaryDate: Codable {
@@ -154,22 +165,20 @@ struct profile: Codable {
 
 extension String {
     func toInt() -> Int {
-        if self.map({ String($0) }).contains(",") {
-            return Int(self.split(separator: ",").joined())!
+        if self.contains(",") {
+            return Int(self.split(separator: ",").joined()) ?? 0
         } else {
-            return Int(self)!
+            return Int(self) ?? 0
         }
     }
 }
 
 extension Int {
     func toDecimal() -> String {
-        
         let nsnum = NSNumber(value: self)
         let nf = NumberFormatter()
         nf.numberStyle = .decimal
-        
-        return nf.string(from: nsnum)!
+        return nf.string(from: nsnum) ?? "\(self)"
     }
 }
 
@@ -182,9 +191,25 @@ extension UIButton {
 
 struct FixedExpenditure: Codable, Equatable {
     var id: String = UUID().uuidString
-    var day: Int!
-    var towhat: String!
-    var how: Int!
+    var day: Int
+    var towhat: String
+    var how: Int
+
+    // 기존 IUO(Optional) 데이터와의 호환을 위한 커스텀 디코더
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        id = try container.decodeIfPresent(String.self, forKey: .id) ?? UUID().uuidString
+        day = try container.decodeIfPresent(Int.self, forKey: .day) ?? 1
+        towhat = try container.decodeIfPresent(String.self, forKey: .towhat) ?? ""
+        how = try container.decodeIfPresent(Int.self, forKey: .how) ?? 0
+    }
+
+    init(id: String = UUID().uuidString, day: Int, towhat: String, how: Int) {
+        self.id = id
+        self.day = day
+        self.towhat = towhat
+        self.how = how
+    }
 }
 
 extension UNUserNotificationCenter {
@@ -200,12 +225,12 @@ extension UNUserNotificationCenter {
         
         
         let date = Date().startOfSomeDay(alert.day)
-        
+
         var components = DateComponents()
         components.hour = -6
-        
-        let alertTime = Calendar.current.date(byAdding: components, to: date)!
-        
+
+        let alertTime = Calendar.current.date(byAdding: components, to: date) ?? date
+
         let component = Calendar.current.dateComponents([.day, .hour], from: alertTime)
         let trigger = UNCalendarNotificationTrigger(dateMatching: component, repeats: true)
         

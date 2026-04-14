@@ -168,7 +168,7 @@ class calendarVC: UIViewController {
         self.navigationItem.rightBarButtonItem = rightBtn
         self.navigationItem.rightBarButtonItem?.tintColor = UIColor(named: "customLabel")
         
-        let dday = Calendar.current.dateComponents([.month, .day], from: Date(), to: period.endDate).day!
+        let dday = Calendar.current.dateComponents([.month, .day], from: Date(), to: period.endDate).day ?? 0
         
         switch dday {
         case 0:
@@ -269,8 +269,9 @@ extension calendarVC: FSCalendarDelegate, FSCalendarDataSource, FSCalendarDelega
     
     func percent(_ date: Date) -> [Int] {
         filter(date)
-        let standard = Int(Double(id.outLay) / Double(Date().endOfThisMonth.onlydate())!)
-        return [Int(Double(standard)), Int(Double(standard) * 1.5)]
+        let daysInMonth = Int(Date().endOfThisMonth.onlydate()) ?? 30
+        let standard = daysInMonth > 0 ? id.outLay / daysInMonth : 0
+        return [standard, Int(Double(standard) * 1.5)]
     }
     
     func calendar(_ calendar: FSCalendar, numberOfEventsFor date: Date) -> Int {

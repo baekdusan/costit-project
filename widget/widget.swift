@@ -37,7 +37,7 @@ struct widgetEntryView : View {
     @ViewBuilder
     var body: some View {
         let wdata = UserDefaults.init(suiteName: "group.costit")?.stringArray(forKey: "string") ?? ["User", "0원", "지출 추가하기", "0"]
-        let condition = Double(wdata[3])! / 100
+        let condition = (Double(wdata[3]) ?? 0) / 100
         let int = condition * 100
         let color: CGColor = int > 20 ? ( int > 50 ? #colorLiteral(red: 0.3518846035, green: 0.6747873425, blue: 0.622913003, alpha: 1) : #colorLiteral(red: 0.9529411793, green: 0.6862745285, blue: 0.1333333403, alpha: 1)) : #colorLiteral(red: 0.9464814067, green: 0.240496546, blue: 0.2090002298, alpha: 1)
         let emoji: String = int >= 20 ? (int >= 40 ? (int >= 60 ? (int >= 80 ? "🤑" : "😊") : "🙂") : "🤔") : "😱"

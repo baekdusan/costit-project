@@ -27,8 +27,8 @@ class firstOpenVC: UIViewController, UIPickerViewDelegate, UIPickerViewDataSourc
     let datepick = UIPickerView()
     let salaryList: [String] = [Int](1...30).map { String($0) + "일" } + ["마지막 날"]
     //    ["1일", "5일", "10일", "15일", "20일", "25일", "마지막 날"]
-    var purposeMoney: Int!
-    var salaryDay: String!
+    var purposeMoney: Int?
+    var salaryDay: String?
     var profileData = profile()
     var isFirstOpen: Bool = true
     
@@ -81,9 +81,9 @@ class firstOpenVC: UIViewController, UIPickerViewDelegate, UIPickerViewDataSourc
     }
     
     @IBAction func confirm(_ sender: UIBarButtonItem) {
-        if isAllfilled() {
+        if isAllfilled(), let nickname = nicknameTF.text {
             if let delegate = FODelegate {
-                delegate.initialData(self, nicknameTF.text!, profileData.outLay, salaryDay ?? profileData.period)
+                delegate.initialData(self, nickname, profileData.outLay, salaryDay ?? profileData.period)
                 _ = navigationController?.popViewController(animated: true)
             }
         }
@@ -98,7 +98,7 @@ class firstOpenVC: UIViewController, UIPickerViewDelegate, UIPickerViewDataSourc
     }
     
     func isAllfilled() -> Bool {
-        return !nicknameTF.text!.isEmpty && !purposeTF.text!.isEmpty && !salaryTF.text!.isEmpty
+        return !(nicknameTF.text ?? "").isEmpty && !(purposeTF.text ?? "").isEmpty && !(salaryTF.text ?? "").isEmpty
     }
     
     func createToolbarBtn(_ TF: UITextField, _ composition: [UIBarButtonItem]) {
@@ -120,9 +120,9 @@ class firstOpenVC: UIViewController, UIPickerViewDelegate, UIPickerViewDataSourc
     }
     
     @objc func donePressed(_ textField: UITextField) {
-        if isAllfilled() {
+        if isAllfilled(), let nickname = nicknameTF.text {
             if let delegate = FODelegate {
-                delegate.initialData(self, nicknameTF.text!, profileData.outLay, salaryDay ?? "1일")
+                delegate.initialData(self, nickname, profileData.outLay, salaryDay ?? "1일")
                 _ = navigationController?.popViewController(animated: true)
             }
         }
@@ -131,8 +131,7 @@ class firstOpenVC: UIViewController, UIPickerViewDelegate, UIPickerViewDataSourc
     func numberFormatter(number: Int) -> String {
         let numberFormatter = NumberFormatter()
         numberFormatter.numberStyle = .decimal
-        
-        return numberFormatter.string(from: NSNumber(value: number))!
+        return numberFormatter.string(from: NSNumber(value: number)) ?? "\(number)"
     }
 }
 
@@ -143,18 +142,17 @@ extension firstOpenVC: UITextFieldDelegate {
     }
     
     func textField(_ textField: UITextField, shouldChangeCharactersIn range: NSRange, replacementString string: String) -> Bool {
-        let newLength = (textField.text?.count)! + string.count - range.length
+        let newLength = (textField.text?.count ?? 0) + string.count - range.length
         return !(newLength > 15)
     }
-    
+
     func textFieldDidChangeSelection(_ textField: UITextField) {
-        if textField == purposeTF {
-            let money = textField.text!
-            if money == "" {
-            } else {
-                textField.text = numberFormatter(number: Int(money.split(separator: ",").joined())!)
-                profileData.outLay = (textField.text)!.toInt()
-            }
+        if textField == purposeTF,
+           let moneyText = textField.text?.replacingOccurrences(of: ",", with: ""),
+           !moneyText.isEmpty,
+           let money = Int(moneyText) {
+            textField.text = numberFormatter(number: money)
+            profileData.outLay = money
         }
     }
     

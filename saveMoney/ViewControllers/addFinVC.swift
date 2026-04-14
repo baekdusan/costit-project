@@ -25,20 +25,20 @@ class addFinVC: UIViewController, UITextFieldDelegate {
     @IBOutlet weak var howTextField: UITextField!
     @IBOutlet weak var memoPaper: UIImageView!
     
-    var delegate: sendFinData! // 지출화면으로 보내는 대리자
-    var rDelegate: sendRevenueFinData! // 수입화면으로 보내는 대리자
-    
+    var delegate: sendFinData? // 지출화면으로 보내는 대리자
+    var rDelegate: sendRevenueFinData? // 수입화면으로 보내는 대리자
+
     var datepick = UIDatePicker() // 데이트 피커
-    var when: Date! // 가계부 데이터에 넣을 시간(화면 표시와 달라서 따로 저장 후 추가나 변경 시에 사용)
+    var when: Date = Date() // 가계부 데이터에 넣을 시간
     var outlay: Int? // 지출액
-    var start: Date!
-    var end: Date!
+    var start: Date = Date()
+    var end: Date = Date()
     let formatter = DateFormatter()
-    
+
     var fromWhere: sourceView?
     var mode: mode?
-    
-    var originData: finData! // 수정할 때 잠시 담아두는 데이터
+
+    var originData: finData? // 수정할 때 잠시 담아두는 데이터
     
     
     func swipeRecognizer() {
@@ -70,12 +70,11 @@ class addFinVC: UIViewController, UITextFieldDelegate {
         formatter.dateFormat = "yyyy. MM. dd."
         
         // 가져온 날짜 표시(데이터를 수정할 때만)
-        if let _ = originData {
-            whenTextField.text = formatter.string(from: originData.when)
-            when = originData.when
-            
-            // 일반적인 추가일 때에는 현재 시간대를 할당
+        if let data = originData {
+            whenTextField.text = formatter.string(from: data.when)
+            when = data.when
         } else {
+            // 일반적인 추가일 때에는 현재 시간대를 할당
             whenTextField.text = formatter.string(from: Date())
             when = datepick.date
         }
@@ -179,17 +178,16 @@ class addFinVC: UIViewController, UITextFieldDelegate {
             let towhatText = towhatTextField.text, !towhatText.isEmpty,
             let howText = howTextField.text, !howText.isEmpty
         else {
-            print("empty")
             return
         }
-        
+
         // `outlay`가 nil이면 `howTextField.text`를 다시 파싱
         if outlay == nil {
             outlay = Int(howText.replacingOccurrences(of: ",", with: "")) ?? 0
         }
-        
+
         let writenData = finData(when: when, towhat: towhatText, how: outlay ?? 0)
-        
+
         if mode == .edit {
             guard let originData = originData else { return }
             if originData != writenData {
@@ -206,13 +204,13 @@ class addFinVC: UIViewController, UITextFieldDelegate {
                 rDelegate?.sendRevenueData(self, writenData, writenData)
             }
         }
-        
+
         dismiss(animated: true, completion: nil)
     }
     
     // 금액 최대 글자수는 15로 제한, 메모는 30자
     func textField(_ textField: UITextField, shouldChangeCharactersIn range: NSRange, replacementString string: String) -> Bool {
-        let newLength = (textField.text?.count)! + string.count - range.length
+        let newLength = (textField.text?.count ?? 0) + string.count - range.length
         
         if textField == howTextField {
             return !(newLength > 15)
@@ -249,6 +247,6 @@ class addFinVC: UIViewController, UITextFieldDelegate {
     func numberFormatter(number: Int) -> String {
         let numberFormatter = NumberFormatter()
         numberFormatter.numberStyle = .decimal
-        return numberFormatter.string(from: NSNumber(value: number))!
+        return numberFormatter.string(from: NSNumber(value: number)) ?? "\(number)"
     }
 }
