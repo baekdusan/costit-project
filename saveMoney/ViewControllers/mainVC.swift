@@ -1,4 +1,6 @@
 import UIKit
+import SwiftUI
+import SwiftData
 import WidgetKit
 
 class mainVC: UIViewController {
@@ -13,26 +15,45 @@ class mainVC: UIViewController {
     @IBOutlet weak var revenueBorder: UIButton!
     @IBOutlet weak var addFinBorder: UIButton!
     
+    // SwiftData에도 동시 기록하기 위한 어댑터.
+    // (점진 전환 기간: UserDefaults는 롤백 안전망으로 유지, SwiftData가 위젯/CloudKit의 진짜 source of truth)
+    private let repo = FinRepository()
+
     // 지출 가계부
     var efinList: [finData] = [] {
-        didSet { UserDefaults.standard.set(try? PropertyListEncoder().encode(efinList), forKey:"finlist")
-            balanceCondition.text = "/ \(id.outLay.toDecimal()) 원" }
+        didSet {
+            UserDefaults.standard.set(try? PropertyListEncoder().encode(efinList), forKey:"finlist")
+            repo.saveExpenses(efinList)
+            balanceCondition.text = "/ \(id.outLay.toDecimal()) 원"
+        }
     }
     // 수입 가계부
     var rfinList: [finData] = [] {
-        didSet { UserDefaults.standard.set(try? PropertyListEncoder().encode(rfinList), forKey:"rfinList") }
+        didSet {
+            UserDefaults.standard.set(try? PropertyListEncoder().encode(rfinList), forKey:"rfinList")
+            repo.saveRevenues(rfinList)
+        }
     }
     // 고정 지출 내역
     var fixedFinList: [FixedExpenditure] = [] {
-        didSet { UserDefaults.standard.set(try? PropertyListEncoder().encode(fixedFinList), forKey: "fixedFinList") }
+        didSet {
+            UserDefaults.standard.set(try? PropertyListEncoder().encode(fixedFinList), forKey: "fixedFinList")
+            repo.saveFixedExpenditures(fixedFinList)
+        }
     }
     // 급여 날짜 저장
     var salaryData = salaryDate() {
-        didSet { UserDefaults.standard.set(try? PropertyListEncoder().encode(salaryData), forKey: "salarydata") }
+        didSet {
+            UserDefaults.standard.set(try? PropertyListEncoder().encode(salaryData), forKey: "salarydata")
+            repo.saveSalaryPeriod(salaryData)
+        }
     }
     // 프로필 담기
     var id = profile() {
-        didSet { UserDefaults.standard.set(try? PropertyListEncoder().encode(id), forKey: "profile") }
+        didSet {
+            UserDefaults.standard.set(try? PropertyListEncoder().encode(id), forKey: "profile")
+            repo.saveProfile(id)
+        }
     }
     var isFirstOpen: Bool = false // 앱 첫실행 감지
     var filteredList: [[finData]] = [] // 필터링된 가계부 데이터
@@ -66,7 +87,6 @@ class mainVC: UIViewController {
     
     // segue시 데이터 전달
     override func prepare(for segue: UIStoryboardSegue, sender: Any?) {
-        
         if segue.identifier == "addFinData" {
             let vc = segue.destination as! addFinVC
             vc.fromWhere = .expense
@@ -74,21 +94,73 @@ class mainVC: UIViewController {
             vc.start = salaryData.startDate
             vc.end = salaryData.endDate
             vc.delegate = self
-        } else if segue.identifier == "toRevenueVC" {
-            let vc = segue.destination as! revenueVC
-            vc.rdelegate = self
-            vc.rfinList = rfinList
-            vc.start = salaryData.startDate
-            vc.end = salaryData.endDate
-        } else if segue.identifier == "firstOpen" {
-            let vc = segue.destination as! firstOpenVC
-            vc.isFirstOpen = isFirstOpen
-            vc.FODelegate = self
-        } else if segue.identifier == "editProfile" {
-            let vc = segue.destination as! firstOpenVC
-            vc.profileData = id
-            vc.FODelegate = self
         }
+        // "toRevenueVC", "firstOpen", "editProfile" segue는 더 이상 사용하지 않음.
+        // SwiftUI 화면을 UIHostingController로 직접 띄우는 방식으로 교체됨.
+    }
+
+    // storyboard "toRevenueVC" segue 대신 호출되는 메서드.
+    // 수입 버튼 액션이 이 함수로 가도록 storyboard에서 segue → action으로 변경 필요.
+    @IBAction func addFinTapped(_ sender: Any) {
+        presentAddFin(mode: .new)
+    }
+
+    func presentAddFin(mode: AddFinView.Mode) {
+        let view = AddFinView(source: .expense, mode: mode)
+            .modelContainer(PersistenceController.shared)
+        let host = UIHostingController(rootView: view)
+        host.modalPresentationStyle = .overFullScreen
+        host.view.backgroundColor = .clear
+        present(host, animated: false)
+    }
+
+    @IBAction func revenueButtonTapped(_ sender: Any) {
+        let view = RevenueView(start: salaryData.startDate, end: salaryData.endDate)
+            .modelContainer(PersistenceController.shared)
+        let host = UIHostingController(rootView: view)
+        host.modalPresentationStyle = .fullScreen
+        present(host, animated: false)
+    }
+
+    @IBAction func editProfileTapped(_ sender: Any) {
+        presentEditProfile()
+    }
+
+    func presentFirstOpen() {
+        let view = FirstOpenView { [weak self] nickname, outLay, period in
+            guard let self else { return }
+            self.handleProfileInput(nickname: nickname, outLay: outLay, period: period)
+            self.navigationController?.popViewController(animated: true)
+        }
+        navigationController?.pushViewController(
+            UIHostingController(rootView: view),
+            animated: true
+        )
+    }
+
+    func presentEditProfile() {
+        let view = FirstOpenView(editing: id) { [weak self] nickname, outLay, period in
+            guard let self else { return }
+            self.handleProfileInput(nickname: nickname, outLay: outLay, period: period)
+            self.navigationController?.popViewController(animated: true)
+        }
+        navigationController?.pushViewController(
+            UIHostingController(rootView: view),
+            animated: true
+        )
+    }
+
+    private func handleProfileInput(nickname: String, outLay: Int, period: String) {
+        // 기존 FODelegate.initialData 와 동일한 동작
+        isFirstOpen = true
+        UserDefaults.standard.setValue(isFirstOpen, forKey: "firstOpen")
+
+        id = profile(nickName: nickname, outLay: outLay, period: period)
+
+        salaryData.startDate = setSalaryDate(period).startDate
+        salaryData.endDate = setSalaryDate(period).endDate
+        navigationItem.title = salaryData.startDate.toString(false) + " ~ " + salaryData.endDate.toString(false)
+        updateLayout()
     }
     
     override func viewDidLoad() {
@@ -149,14 +221,22 @@ class mainVC: UIViewController {
     
     override func viewWillAppear(_ animated: Bool) {
         super .viewWillAppear(animated)
-        
+
         // 가계부 작성 버튼 곡률, 그림자 layout
         addFinBorder.btnLayout(false)
         revenueBorder.btnLayout(false)
-        
+
         // 네비게이션 바 투명처리
         navigationController?.navigationBar.setBackgroundImage(UIImage(), for: .default)
         navigationController?.navigationBar.shadowImage = UIImage()
+
+        // AddFinView에서 돌아올 때 SwiftData 기준으로 재로드
+        let fresh = repo.fetchAllExpenses()
+        if fresh.count != efinList.count || zip(fresh, efinList).contains(where: { $0 != $1 }) {
+            efinList = fresh
+            filteredbyMonth(salaryData.startDate, salaryData.endDate)
+            updateLayout()
+        }
     }
     
     override func viewDidAppear(_ animated: Bool) {
@@ -176,7 +256,7 @@ class mainVC: UIViewController {
         // 첫 실행 감지
         isFirstOpen = UserDefaults.standard.bool(forKey: "firstOpen")
         if isFirstOpen == false {
-            performSegue(withIdentifier: "firstOpen", sender: self)
+            presentFirstOpen()
         }
         
         // 데이트 피커가 담을 년 셋팅
@@ -432,34 +512,25 @@ class mainVC: UIViewController {
     
     // 수정 버튼(꾹 누르는 제스처)
     @objc func longPress(_ longPressGestureRecognizer: UILongPressGestureRecognizer) {
-        
-        
         if longPressGestureRecognizer.state == UIGestureRecognizer.State.began {
             let touchPoint = longPressGestureRecognizer.location(in: collectionView)
             if let index = collectionView.indexPathForItem(at: touchPoint) {
                 let section = index[0]
                 let row = index[1]
-                guard let vc = self.storyboard?.instantiateViewController(withIdentifier: "addFinData") as? addFinVC else { return }
-                vc.modalPresentationStyle = .overFullScreen
-                vc.fromWhere = .expense
-                vc.mode = .edit
-                vc.originData = filteredList[section][row]
-                vc.delegate = self
-                self.present(vc, animated: true, completion: nil)
+                let item = filteredList[section][row]
+                // SwiftData에서 해당 항목 찾기
+                let descriptor = FetchDescriptor<FinDataEntity>(
+                    predicate: #Predicate { $0.isRevenue == false && $0.towhat == item.towhat && $0.how == item.how }
+                )
+                guard let entity = (try? ModelContext(PersistenceController.shared).fetch(descriptor))?.first else { return }
+                presentAddFin(mode: .edit(entity))
             }
         }
     }
     
-    // 위젯으로 데이터 전송
+    // 위젯 reload 트리거. 위젯은 SwiftData를 직접 읽으므로 데이터 전달은 불필요.
     func towidget() {
-        if let wdata = UserDefaults.init(suiteName: "group.costit") {
-            let stringData: [String] = [id.nickName + "님", (id.outLay - updateThisMonthTotalCost()).toDecimal() + "원", id.outLay > updateThisMonthTotalCost() ? "남았어요" : "망했어요", Double(id.outLay) != 0 ? String(Int(Double(id.outLay - updateThisMonthTotalCost()) / Double(id.outLay) * 100)) : "0"]
-            wdata.setValue(stringData, forKey: "string")
-        }
-        if #available(iOS 14.0, *) {
-            WidgetCenter.shared.reloadAllTimelines()
-        } else {
-        }
+        WidgetCenter.shared.reloadAllTimelines()
     }
 }
 

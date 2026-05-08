@@ -180,12 +180,12 @@ class calendarVC: UIViewController {
         }
     }
     
-    // 서치 뷰로
+    // 서치 뷰로 — SwiftUI SearchView를 UIHostingController로 push
     @objc func toSearchVC() {
-        guard let searchVC = storyboard?.instantiateViewController(withIdentifier: "searchVC") as? searchVC else { return }
-        searchVC.efinList = efinList
-        searchVC.rfinList = rfinList
-        navigationController?.pushViewController(searchVC, animated: true)
+        let host = UIHostingController(rootView: SearchView()
+            .modelContainer(PersistenceController.shared)
+        )
+        navigationController?.pushViewController(host, animated: true)
     }
     
     // 고정 지출 뷰로

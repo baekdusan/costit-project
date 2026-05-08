@@ -996,7 +996,7 @@
                                     <imageReference key="image" image="highlighter" catalog="system" symbolScale="large" renderingMode="template"/>
                                 </state>
                                 <connections>
-                                    <segue destination="swU-1T-EKX" kind="presentation" identifier="addFinData" modalPresentationStyle="overFullScreen" id="gmf-He-0fF"/>
+                                    <action selector="addFinTapped:" destination="BYZ-38-t0r" eventType="touchUpInside" id="gmf-He-0fF"/>
                                 </connections>
                             </button>
                             <button opaque="NO" contentMode="scaleToFill" contentHorizontalAlignment="center" contentVerticalAlignment="center" lineBreakMode="middleTruncation" translatesAutoresizingMaskIntoConstraints="NO" id="sEU-hB-JaM">
@@ -1012,7 +1012,7 @@
                                     <imageReference key="image" image="arrow.left.arrow.right" catalog="system" symbolScale="large" renderingMode="template"/>
                                 </state>
                                 <connections>
-                                    <segue destination="MzX-cK-6FX" kind="presentation" identifier="toRevenueVC" modalPresentationStyle="fullScreen" modalTransitionStyle="crossDissolve" id="Gq5-ZJ-KKc"/>
+                                    <action selector="revenueButtonTapped:" destination="BYZ-38-t0r" eventType="touchUpInside" id="Gq5-ZJ-KKc"/>
                                 </connections>
                             </button>
                         </subviews>
@@ -1042,7 +1042,7 @@
                             <imageReference key="image" image="person.fill" catalog="system" symbolScale="medium"/>
                             <color key="tintColor" name="customLabel"/>
                             <connections>
-                                <segue destination="FqB-8i-DRy" kind="show" identifier="editProfile" id="PHu-JG-VVa"/>
+                                <action selector="editProfileTapped:" destination="BYZ-38-t0r" id="PHu-JG-VVa"/>
                             </connections>
                         </barButtonItem>
                         <barButtonItem key="rightBarButtonItem" title="Item" id="3mL-dk-UNm">
@@ -1060,7 +1060,6 @@
                         <outlet property="collectionView" destination="6C8-fl-DhC" id="Ivj-Ec-dQh"/>
                         <outlet property="revenueBorder" destination="sEU-hB-JaM" id="tD7-30-a3t"/>
                         <outlet property="topView" destination="99s-XD-Kig" id="BAE-OY-RCC"/>
-                        <segue destination="FqB-8i-DRy" kind="show" identifier="firstOpen" id="mfo-1T-RCj"/>
                     </connections>
                 </viewController>
                 <placeholder placeholderIdentifier="IBFirstResponder" id="dkx-z0-nzr" sceneMemberID="firstResponder"/>
@@ -1167,7 +1166,6 @@
     </scenes>
     <inferredMetricsTieBreakers>
         <segue reference="gmf-He-0fF"/>
-        <segue reference="mfo-1T-RCj"/>
     </inferredMetricsTieBreakers>
     <resources>
         <image name="arrow.left.arrow.right" catalog="system" width="120" height="128"/>

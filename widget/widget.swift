@@ -1,97 +1,148 @@
 import WidgetKit
 import SwiftUI
+import SwiftData
+
+// 위젯 타임라인 항목. SwiftData에서 직접 계산한 표시용 값들을 담는다.
+struct CostEntry: TimelineEntry {
+    let date: Date
+    let nickname: String
+    let remaining: Int
+    let outLay: Int
+    let isOver: Bool
+    // 0~100 사이의 잔여 비율 (정수, %)
+    var percent: Int {
+        guard outLay > 0 else { return 0 }
+        let raw = Double(remaining) / Double(outLay) * 100
+        return max(0, min(100, Int(raw.rounded())))
+    }
+}
 
 struct Provider: TimelineProvider {
-    func placeholder(in context: Context) -> SimpleEntry {
-        SimpleEntry(date: Date())
+    func placeholder(in context: Context) -> CostEntry {
+        CostEntry(date: Date(), nickname: "User", remaining: 0, outLay: 0, isOver: false)
     }
-    
-    func getSnapshot(in context: Context, completion: @escaping (SimpleEntry) -> ()) {
-        let entry = SimpleEntry(date: Date())
-        completion(entry)
+
+    func getSnapshot(in context: Context, completion: @escaping (CostEntry) -> ()) {
+        completion(loadEntry())
     }
-    
-    func getTimeline(in context: Context, completion: @escaping (Timeline<Entry>) -> ()) {
-        var entries: [SimpleEntry] = []
-        
-        // Generate a timeline consisting of five entries an hour apart, starting from the current date.
-        let currentDate = Date()
-        for hourOffset in 0 ..< 5 {
-            let entryDate = Calendar.current.date(byAdding: .hour, value: hourOffset, to: currentDate)!
-            let entry = SimpleEntry(date: entryDate)
-            entries.append(entry)
+
+    func getTimeline(in context: Context, completion: @escaping (Timeline<CostEntry>) -> ()) {
+        // 매일 자정에 위젯이 갱신되도록 두 항목만 전달.
+        // 그 외 갱신은 앱이 WidgetCenter.shared.reloadAllTimelines()로 트리거.
+        let now = Date()
+        let nextMidnight = Calendar.current.nextDate(
+            after: now,
+            matching: DateComponents(hour: 0, minute: 0),
+            matchingPolicy: .nextTime
+        ) ?? now.addingTimeInterval(60 * 60 * 24)
+
+        let entry = loadEntry(date: now)
+        let nextEntry = loadEntry(date: nextMidnight)
+        completion(Timeline(entries: [entry, nextEntry], policy: .atEnd))
+    }
+
+    private func loadEntry(date: Date = Date()) -> CostEntry {
+        let context = ModelContext(PersistenceController.shared)
+
+        let profile = (try? context.fetch(FetchDescriptor<ProfileEntity>()))?.first
+        let salary = (try? context.fetch(FetchDescriptor<SalaryPeriodEntity>()))?.first
+
+        let nickname = profile?.nickName ?? "User"
+        let outLay = profile?.outLay ?? 0
+
+        let start = salary?.startDate ?? Date().startOfThisMonth
+        let end = salary?.endDate ?? Date().endOfThisMonth
+
+        let predicate = #Predicate<FinDataEntity> {
+            $0.isRevenue == false && $0.when >= start && $0.when <= end
         }
-        
-        let timeline = Timeline(entries: entries, policy: .atEnd)
-        completion(timeline)
+        let expenses = (try? context.fetch(FetchDescriptor<FinDataEntity>(predicate: predicate))) ?? []
+        let total = expenses.reduce(0) { $0 + $1.how }
+
+        let remaining = outLay - total
+        let isOver = total >= outLay
+
+        return CostEntry(
+            date: date,
+            nickname: nickname,
+            remaining: remaining,
+            outLay: outLay,
+            isOver: isOver
+        )
     }
 }
 
-struct SimpleEntry: TimelineEntry {
-    let date: Date
-}
+struct widgetEntryView: View {
+    var entry: CostEntry
 
-struct widgetEntryView : View {
-    var entry: Provider.Entry
-    
     @ViewBuilder
     var body: some View {
-        let wdata = UserDefaults.init(suiteName: "group.costit")?.stringArray(forKey: "string") ?? ["User", "0원", "지출 추가하기", "0"]
-        let condition = (Double(wdata[3]) ?? 0) / 100
-        let int = condition * 100
-        let color: CGColor = int > 20 ? ( int > 50 ? #colorLiteral(red: 0.3518846035, green: 0.6747873425, blue: 0.622913003, alpha: 1) : #colorLiteral(red: 0.9529411793, green: 0.6862745285, blue: 0.1333333403, alpha: 1)) : #colorLiteral(red: 0.9464814067, green: 0.240496546, blue: 0.2090002298, alpha: 1)
-        let emoji: String = int >= 20 ? (int >= 40 ? (int >= 60 ? (int >= 80 ? "🤑" : "😊") : "🙂") : "🤔") : "😱"
+        let percent = entry.percent
+        let color: Color = percent > 50
+            ? Color(#colorLiteral(red: 0.3518846035, green: 0.6747873425, blue: 0.622913003, alpha: 1))
+            : (percent > 20
+                ? Color(#colorLiteral(red: 0.9529411793, green: 0.6862745285, blue: 0.1333333403, alpha: 1))
+                : Color(#colorLiteral(red: 0.9464814067, green: 0.240496546, blue: 0.2090002298, alpha: 1)))
+        let emoji: String = percent >= 80 ? "🤑"
+            : percent >= 60 ? "😊"
+            : percent >= 40 ? "🙂"
+            : percent >= 20 ? "🤔" : "😱"
+
         GeometryReader { geometry in
-            
-            // 위젯 배경색
-//            Color("WidgetBackground")
-            
-            // 세로로 글자 배치 : 전체의 72% 차지
             VStack(alignment: .trailing, spacing: 0) {
-                Text(wdata[0])
+                Text("\(entry.nickname)님")
                     .font(.system(size: 12, weight: .bold))
                     .frame(height: geometry.size.height * 0.1)
                     .opacity(0.72)
-                Text(wdata[1])
+
+                Text("\(entry.remaining.formatted(.number))원")
                     .font(.system(size: 24, weight: .bold))
                     .frame(height: geometry.size.height * 0.2)
                     .opacity(0.84)
                     .minimumScaleFactor(0.72)
-                Text(wdata[2])
+
+                Text(entry.isOver ? "망했어요" : "남았어요")
                     .font(.system(size: 12, weight: .bold))
                     .frame(height: geometry.size.height * 0.1)
                     .opacity(0.72)
-                
-                // 가로로 퍼센트, 이모티콘 배치
+
                 HStack(alignment: .bottom, spacing: 0) {
-                    Text(wdata[3] + "%")
+                    Text("\(percent)%")
                         .font(.system(size: 28, weight: .semibold))
-                        .frame(width: geometry.size.width * 0.45, height: nil, alignment: .leading)
+                        .frame(width: geometry.size.width * 0.45, alignment: .leading)
                         .opacity(0.84)
                         .minimumScaleFactor(0.72)
                     Text(emoji)
                         .font(.system(size: 30))
-                        .frame(width: geometry.size.width * 0.45, height: nil, alignment: .trailing)
-                }.frame(width: geometry.size.width * 0.9, height: geometry.size.height * 0.32, alignment: .bottom)
-            }.frame(width: geometry.size.width, height: geometry.size.height * 0.92, alignment: .center)
-            
-            // 아래 배터리 상태바 : 전체 길이의 8% 차지
+                        .frame(width: geometry.size.width * 0.45, alignment: .trailing)
+                }
+                .frame(width: geometry.size.width * 0.9,
+                       height: geometry.size.height * 0.32,
+                       alignment: .bottom)
+            }
+            .frame(width: geometry.size.width,
+                   height: geometry.size.height * 0.92,
+                   alignment: .center)
+
             ZStack(alignment: .leading) {
                 Color("WidgetStatusBarBackground")
-                    .frame(width: geometry.size.width , height: geometry.size.height * 0.08)
-                Color(color)
-                //                        .cornerRadius(geometry.size.height * 0.08 / 2, corners: [.topRight, .bottomRight])
-                    .frame(width: geometry.size.width * CGFloat(condition) , height: geometry.size.height * 0.08)
-                
-            }.frame(width: geometry.size.width, height: geometry.size.height, alignment: .bottom)
-        }.widgetBackground(Color("WidgetBackground"))
+                    .frame(width: geometry.size.width, height: geometry.size.height * 0.08)
+                color
+                    .frame(width: geometry.size.width * CGFloat(percent) / 100,
+                           height: geometry.size.height * 0.08)
+            }
+            .frame(width: geometry.size.width,
+                   height: geometry.size.height,
+                   alignment: .bottom)
+        }
+        .widgetBackground(Color("WidgetBackground"))
     }
 }
 
 @main
 struct widget: Widget {
     let kind: String = "widget"
-    
+
     var body: some WidgetConfiguration {
         StaticConfiguration(kind: kind, provider: Provider()) { entry in
             widgetEntryView(entry: entry)
@@ -105,27 +156,18 @@ struct widget: Widget {
 
 struct widget_Previews: PreviewProvider {
     static var previews: some View {
-        widgetEntryView(entry: SimpleEntry(date: Date()))
-            .previewContext(WidgetPreviewContext(family: .systemSmall))
-    }
-}
-
-struct RoundedCorner: Shape {
-    
-    var radius: CGFloat = .infinity
-    var corners: UIRectCorner = .allCorners
-    
-    func path(in rect: CGRect) -> Path {
-        let path = UIBezierPath(roundedRect: rect, byRoundingCorners: corners, cornerRadii: CGSize(width: radius, height: radius))
-        return Path(path.cgPath)
+        widgetEntryView(entry: CostEntry(
+            date: Date(),
+            nickname: "User",
+            remaining: 130_000,
+            outLay: 260_000,
+            isOver: false
+        ))
+        .previewContext(WidgetPreviewContext(family: .systemSmall))
     }
 }
 
 extension View {
-    func cornerRadius(_ radius: CGFloat, corners: UIRectCorner) -> some View {
-        clipShape(RoundedCorner(radius: radius, corners: corners))
-    }
-    
     func widgetBackground(_ backgroundColor: Color) -> some View {
         if #available(iOSApplicationExtension 17.0, *) {
             return self.containerBackground(backgroundColor, for: .widget)
