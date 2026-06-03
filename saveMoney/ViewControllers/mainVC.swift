@@ -302,19 +302,13 @@ class mainVC: UIViewController {
         }
     }
     
-    // calendarVC를 네비게이션 컨트롤러가 품은 뷰로 만들어서 모달로 Push
+    // SwiftUI CalendarView를 UIHostingController로 모달 present
     @IBAction func calendarVCTapped(_ sender: UIBarButtonItem) {
-        guard let vc = storyboard?.instantiateViewController(identifier: "calendarVC") as? calendarVC else { return }
-        vc.efinList = efinList
-        vc.rfinList = rfinList
-        vc.pfinList = fixedFinList
-        vc.id = id
-        vc.period = salaryData
-        
-        let navigationController = UINavigationController(rootViewController: vc)
-        navigationController.modalPresentationStyle = .fullScreen
-        
-        present(navigationController, animated: true)
+        let host = UIHostingController(rootView: CalendarView(start: salaryData.startDate, end: salaryData.endDate)
+            .modelContainer(PersistenceController.shared)
+        )
+        host.modalPresentationStyle = .fullScreen
+        present(host, animated: true)
     }
     
     // notification으로 변경된 보관함 배열 수신
