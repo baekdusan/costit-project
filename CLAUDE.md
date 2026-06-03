@@ -87,6 +87,12 @@ xcodebuild -workspace saveMoney.xcworkspace -scheme saveMoney \
 - DONE: FirstOpenView, SearchView, RevenueView, AddFinView, FixedExpenditureView, CalendarView (자체 MonthCalendarGrid로 FSCalendar 의존 제거), MainView (루트 교체)
 - **모든 화면 전환 완료.** UserDefaults에는 더 이상 데이터를 기록하지 않음 ("firstOpen" 플래그만 사용). 위젯 리로드는 AddFinView/RevenueView/MainView의 저장·삭제 시점에 수행
 
+### 현재 작업 상태 (2026-06-03)
+- 작업 브랜치: `feature/swiftui-migration-phase3` (Phase 3 완료 상태로 push됨)
+- **다음 할 일: 사용자 직접 테스트 → 통과하면 Phase 4 진행**
+- 테스트 체크리스트: 지출 추가/수정(길게 누르기)/삭제, 수입 화면, 캘린더(점 색·월 스와이프·시작/끝/오늘 라벨), 고정 지출+푸시 알림, 검색, 온보딩→메인 복귀, 프로필 수정→기간 갱신, 년/월 필터+Reset, **기존 버전 위 업데이트 설치 시 데이터 유지**, 위젯 갱신, CloudKit 동기화, 다크 모드
+- 디자인 검증 도구 (SceneDelegate DEBUG 블록): `SIMCTL_CHILD_SEED_DEMO_DATA=1`(데모 데이터 주입), `SIMCTL_CHILD_SHOW_SCREEN=calendar|fixed`(특정 화면 루트로). Xcode Preview는 `PreviewSampleData.container`(in-memory 시드)로 모든 화면 데이터 채워진 상태로 보임
+
 ### Phase 4: 정리 작업 — TODO
 - legacy ViewController 파일 삭제 (`addFinVC.swift`, `revenueVC.swift`, `searchVC.swift`, `firstOpenVC.swift`, `fixedExpenditureVC.swift`, `fixedExpenditureCell.swift`, `calendarVC.swift`) — SwiftUI 안정화 후
 - Pod deintegrate + `.xcworkspace` → `.xcodeproj` 전환 (`calendarVC.swift` 삭제 후 가능 — 유일한 FSCalendar 사용처)

@@ -108,3 +108,6 @@ iOSInjectionProject/
 **/xcshareddata/WorkspaceSettings.xcsettings
 
 # End of https://www.toptal.com/developers/gitignore/api/swift,xcode,cocoapods
+
+# 디자인 검증용 시뮬레이터 스크린샷 (재생성 가능)
+/screenshots/
