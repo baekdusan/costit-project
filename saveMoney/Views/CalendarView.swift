@@ -460,5 +460,5 @@ struct MonthCalendarGrid: View {
 
 #Preview {
     CalendarView(start: Date().startOfThisMonth, end: Date().endOfThisMonth)
-        .modelContainer(PersistenceController.shared)
+        .modelContainer(PreviewSampleData.container)
 }

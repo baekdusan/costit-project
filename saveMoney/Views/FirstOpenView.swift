@@ -74,8 +74,9 @@ struct FirstOpenView: View {
                     .disabled(!isAllFilled)
             }
         }
-        .toolbarBackground(Color("backgroundColor"), for: .navigationBar)
-        .toolbarBackground(.visible, for: .navigationBar)
+        // 배경을 visible로 만들면 네비게이션 바 아래 분리선(hairline)이 생기므로 hidden 사용.
+        // 화면 배경(backgroundColor)이 그대로 비쳐서 시각적으로 동일하다.
+        .toolbarBackground(.hidden, for: .navigationBar)
         .sheet(isPresented: $showSalaryPicker) {
             salaryPickerSheet
         }

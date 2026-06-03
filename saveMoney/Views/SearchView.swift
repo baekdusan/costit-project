@@ -114,6 +114,6 @@ struct SearchView: View {
 #Preview {
     NavigationStack {
         SearchView()
-            .modelContainer(PersistenceController.shared)
+            .modelContainer(PreviewSampleData.container)
     }
 }

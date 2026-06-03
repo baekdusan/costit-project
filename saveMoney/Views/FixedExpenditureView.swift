@@ -358,5 +358,5 @@ struct DaySelectorSheet: View {
 
 #Preview {
     FixedExpenditureView()
-        .modelContainer(PersistenceController.shared)
+        .modelContainer(PreviewSampleData.container)
 }

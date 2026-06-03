@@ -257,6 +257,6 @@ private extension UIViewController {
     ZStack {
         Color.gray.opacity(0.3).ignoresSafeArea()
         AddFinView(source: .revenue, mode: .new)
-            .modelContainer(PersistenceController.shared)
+            .modelContainer(PreviewSampleData.container)
     }
 }

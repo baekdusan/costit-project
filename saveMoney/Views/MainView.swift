@@ -276,8 +276,11 @@ struct MainView: View {
                 rolloverSalaryPeriodIfNeeded()
 
                 // 첫 실행 감지 → 온보딩
+                // (NavigationStack 설치가 끝나기 전에 isPresented를 켜면 push가 무시될 수 있어 한 틱 지연)
                 if UserDefaults.standard.bool(forKey: "firstOpen") == false {
-                    showOnboarding = true
+                    DispatchQueue.main.async {
+                        showOnboarding = true
+                    }
                 }
             }
         }
@@ -456,5 +459,5 @@ struct MainView: View {
 
 #Preview {
     MainView()
-        .modelContainer(PersistenceController.shared)
+        .modelContainer(PreviewSampleData.container)
 }

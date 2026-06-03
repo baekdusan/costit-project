@@ -323,5 +323,5 @@ struct MonthSelectorSheet: View {
 
 #Preview {
     RevenueView(start: Date().startOfThisMonth, end: Date().endOfThisMonth)
-        .modelContainer(PersistenceController.shared)
+        .modelContainer(PreviewSampleData.container)
 }
