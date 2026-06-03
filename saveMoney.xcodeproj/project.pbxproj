@@ -44,6 +44,7 @@
 		31DEEB492FAE2EB5006C2F1F /* AddFinView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 31DEEB462FAE2EB5006C2F1F /* AddFinView.swift */; };
 		31DEEB4B2FAE2EB5006C2F1F /* FixedExpenditureView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 31DEEB4A2FAE2EB5006C2F1F /* FixedExpenditureView.swift */; };
 		31DEEB4D2FAE2EB5006C2F1F /* CalendarView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 31DEEB4C2FAE2EB5006C2F1F /* CalendarView.swift */; };
+		31DEEB4F2FAE2EB5006C2F1F /* MainView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 31DEEB4E2FAE2EB5006C2F1F /* MainView.swift */; };
 		74377AADACE51DE01A246AD6 /* Pods_saveMoney.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 537DB953E70E7259D1B4283E /* Pods_saveMoney.framework */; };
 /* End PBXBuildFile section */
 
@@ -109,6 +110,7 @@
 		31DEEB472FAE2EB5006C2F1F /* RevenueView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RevenueView.swift; sourceTree = "<group>"; };
 		31DEEB4A2FAE2EB5006C2F1F /* FixedExpenditureView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FixedExpenditureView.swift; sourceTree = "<group>"; };
 		31DEEB4C2FAE2EB5006C2F1F /* CalendarView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CalendarView.swift; sourceTree = "<group>"; };
+		31DEEB4E2FAE2EB5006C2F1F /* MainView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MainView.swift; sourceTree = "<group>"; };
 		537DB953E70E7259D1B4283E /* Pods_saveMoney.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = Pods_saveMoney.framework; sourceTree = BUILT_PRODUCTS_DIR; };
 		C04DC55019063EA0350414F3 /* Pods-saveMoney.release.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-saveMoney.release.xcconfig"; path = "Target Support Files/Pods-saveMoney/Pods-saveMoney.release.xcconfig"; sourceTree = "<group>"; };
 /* End PBXFileReference section */
@@ -227,6 +229,7 @@
 				31DEEB462FAE2EB5006C2F1F /* AddFinView.swift */,
 				31DEEB4C2FAE2EB5006C2F1F /* CalendarView.swift */,
 				31DEEB4A2FAE2EB5006C2F1F /* FixedExpenditureView.swift */,
+				31DEEB4E2FAE2EB5006C2F1F /* MainView.swift */,
 				31DEEB472FAE2EB5006C2F1F /* RevenueView.swift */,
 				31DEEB442FAE2A23006C2F1F /* SearchBarRepresentable.swift */,
 				31DEEB422FAE2941006C2F1F /* SearchView.swift */,
@@ -411,6 +414,7 @@
 				31DEEB492FAE2EB5006C2F1F /* AddFinView.swift in Sources */,
 				31DEEB4B2FAE2EB5006C2F1F /* FixedExpenditureView.swift in Sources */,
 				31DEEB4D2FAE2EB5006C2F1F /* CalendarView.swift in Sources */,
+				31DEEB4F2FAE2EB5006C2F1F /* MainView.swift in Sources */,
 				31DEEB392FAE1BE9006C2F1F /* Models.swift in Sources */,
 				3193F9A826D113B9006FB348 /* firstOpenVC.swift in Sources */,
 				3193F9AA26D33331006FB348 /* struct.swift in Sources */,

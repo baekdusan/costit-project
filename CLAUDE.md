@@ -37,13 +37,14 @@ xcodebuild -workspace saveMoney.xcworkspace -scheme saveMoney \
 | `saveMoney/Views/RevenueView.swift` | 수입 관리 (mainVC `revenueButtonTapped:`에서 fullScreen present) |
 | `saveMoney/Views/AddFinView.swift` | 지출/수입 추가/수정 통합 화면 (overFullScreen으로 띄움, 카드 UI) |
 | `saveMoney/Views/FixedExpenditureView.swift` | 고정 지출 관리 + 푸시 알림 (CalendarView에서 fullScreenCover). 변경시 `toMainVC` 알림으로 UIKit 동기화 |
-| `saveMoney/Views/CalendarView.swift` | 캘린더 (mainVC `calendarVCTapped:`에서 fullScreen present). FSCalendar 대신 자체 `MonthCalendarGrid` 사용. SearchView push / FixedExpenditureView cover 연결 |
+| `saveMoney/Views/CalendarView.swift` | 캘린더 (MainView에서 fullScreenCover). FSCalendar 대신 자체 `MonthCalendarGrid` 사용. SearchView push / FixedExpenditureView cover 연결 |
+| `saveMoney/Views/MainView.swift` | 메인 대시보드 — 앱 루트 (SceneDelegate에서 UIHostingController로 설정). 잔액 헤더, 메모지 그리드, 년/월 필터, 온보딩(FirstOpenView push) |
 
 ### UIKit (아직 남아있음)
 | 파일 | 역할 |
 |------|------|
 | `saveMoney/struct.swift` | 데이터 모델 (`finData`, `FixedExpenditure`, `profile`, `salaryDate`) + Date/String/Int 확장 |
-| `saveMoney/ViewControllers/mainVC.swift` | 메인 대시보드. SwiftData ↔ UserDefaults 양쪽 모두 저장 |
+| `saveMoney/ViewControllers/mainVC.swift` | (legacy, 더 이상 호출 안 됨, MainView로 대체 — SceneDelegate가 storyboard 대신 MainView를 루트로 설정) |
 | `saveMoney/ViewControllers/calendarVC.swift` | (legacy, 더 이상 호출 안 됨, CalendarView로 대체 — FSCalendar pod 제거는 이 파일 삭제와 함께) |
 | `saveMoney/ViewControllers/fixedExpenditureVC.swift` | (legacy, 더 이상 호출 안 됨, FixedExpenditureView로 대체) |
 | `saveMoney/ViewControllers/addFinVC.swift` | (legacy, 더 이상 호출 안 됨, AddFinView로 대체) |
@@ -83,8 +84,8 @@ xcodebuild -workspace saveMoney.xcworkspace -scheme saveMoney \
 - App Group `group.costit`로 앱/위젯 컨테이너 공유
 
 ### Phase 3: SwiftUI 점진 전환 — IN PROGRESS
-- DONE: FirstOpenView, SearchView, RevenueView, AddFinView, FixedExpenditureView, CalendarView (자체 MonthCalendarGrid로 FSCalendar 의존 제거)
-- TODO: MainView (마지막)
+- DONE: FirstOpenView, SearchView, RevenueView, AddFinView, FixedExpenditureView, CalendarView (자체 MonthCalendarGrid로 FSCalendar 의존 제거), MainView (루트 교체)
+- **모든 화면 전환 완료.** UserDefaults에는 더 이상 데이터를 기록하지 않음 ("firstOpen" 플래그만 사용). 위젯 리로드는 AddFinView/RevenueView/MainView의 저장·삭제 시점에 수행
 
 ### Phase 4: 정리 작업 — TODO
 - legacy ViewController 파일 삭제 (`addFinVC.swift`, `revenueVC.swift`, `searchVC.swift`, `firstOpenVC.swift`, `fixedExpenditureVC.swift`, `fixedExpenditureCell.swift`, `calendarVC.swift`) — SwiftUI 안정화 후

@@ -1,5 +1,6 @@
 import SwiftUI
 import SwiftData
+import WidgetKit
 
 struct AddFinView: View {
 
@@ -224,6 +225,7 @@ struct AddFinView: View {
             }
         }
         try? context.save()
+        WidgetCenter.shared.reloadAllTimelines()
         focused = nil
         performDismiss()
     }

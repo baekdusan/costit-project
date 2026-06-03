@@ -1,5 +1,6 @@
 import SwiftUI
 import SwiftData
+import WidgetKit
 
 struct RevenueView: View {
 
@@ -246,6 +247,7 @@ struct RevenueView: View {
     private func deleteItem(_ item: FinDataEntity) {
         modelContext.delete(item)
         try? modelContext.save()
+        WidgetCenter.shared.reloadAllTimelines()
     }
 }
 
