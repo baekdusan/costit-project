@@ -36,6 +36,7 @@ xcodebuild -workspace saveMoney.xcworkspace -scheme saveMoney \
 | `saveMoney/Views/SearchBarRepresentable.swift` | UISearchBar UIViewRepresentable 래퍼 |
 | `saveMoney/Views/RevenueView.swift` | 수입 관리 (mainVC `revenueButtonTapped:`에서 fullScreen present) |
 | `saveMoney/Views/AddFinView.swift` | 지출/수입 추가/수정 통합 화면 (overFullScreen으로 띄움, 카드 UI) |
+| `saveMoney/Views/FixedExpenditureView.swift` | 고정 지출 관리 + 푸시 알림 (calendarVC `toPinVC`에서 fullScreen present). 변경시 `toMainVC` 알림으로 UIKit 동기화 |
 
 ### UIKit (아직 남아있음)
 | 파일 | 역할 |
@@ -43,7 +44,7 @@ xcodebuild -workspace saveMoney.xcworkspace -scheme saveMoney \
 | `saveMoney/struct.swift` | 데이터 모델 (`finData`, `FixedExpenditure`, `profile`, `salaryDate`) + Date/String/Int 확장 |
 | `saveMoney/ViewControllers/mainVC.swift` | 메인 대시보드. SwiftData ↔ UserDefaults 양쪽 모두 저장 |
 | `saveMoney/ViewControllers/calendarVC.swift` | 캘린더 (FSCalendar) — SwiftUI 전환 + FSCalendar 제거 예정 |
-| `saveMoney/ViewControllers/fixedExpenditureVC.swift` | 고정 지출 + 푸시 알림 — SwiftUI 전환 예정 |
+| `saveMoney/ViewControllers/fixedExpenditureVC.swift` | (legacy, 더 이상 호출 안 됨, FixedExpenditureView로 대체) |
 | `saveMoney/ViewControllers/addFinVC.swift` | (legacy, 더 이상 호출 안 됨, AddFinView로 대체) |
 | `saveMoney/ViewControllers/revenueVC.swift` | (legacy, 더 이상 호출 안 됨, RevenueView로 대체) |
 | `saveMoney/ViewControllers/searchVC.swift` | (legacy, 더 이상 호출 안 됨, SearchView로 대체) |
@@ -69,7 +70,7 @@ xcodebuild -workspace saveMoney.xcworkspace -scheme saveMoney \
 - **위젯**: `PersistenceController.shared` 컨테이너에서 직접 fetch (App Group으로 앱과 공유)
 - **AddFinView 저장**: environment `\.modelContext` 주입 손실 회피 위해 `ModelContext(PersistenceController.shared)` 직접 생성해서 저장
 - **AddFinView dismiss**: SwiftUI dismiss + 50ms 후 UIKit topMostPresentedViewController dismiss 폴백
-- **fixedExpenditureVC → mainVC 전달**: NotificationCenter (`toMainVC`)
+- **FixedExpenditureView → UIKit 전달**: NotificationCenter (`toMainVC`) — mainVC(UserDefaults+SwiftData 기록), calendarVC(고정 지출 총액 갱신) 양쪽이 수신
 
 ## Refactoring Status
 
@@ -81,11 +82,11 @@ xcodebuild -workspace saveMoney.xcworkspace -scheme saveMoney \
 - App Group `group.costit`로 앱/위젯 컨테이너 공유
 
 ### Phase 3: SwiftUI 점진 전환 — IN PROGRESS
-- DONE: FirstOpenView, SearchView, RevenueView, AddFinView
-- TODO: FixedExpenditureView, CalendarView (FSCalendar 제거 동반), MainView (마지막)
+- DONE: FirstOpenView, SearchView, RevenueView, AddFinView, FixedExpenditureView
+- TODO: CalendarView (FSCalendar 제거 동반), MainView (마지막)
 
 ### Phase 4: 정리 작업 — TODO
-- legacy ViewController 파일 삭제 (`addFinVC.swift`, `revenueVC.swift`, `searchVC.swift`, `firstOpenVC.swift`) — SwiftUI 안정화 후
+- legacy ViewController 파일 삭제 (`addFinVC.swift`, `revenueVC.swift`, `searchVC.swift`, `firstOpenVC.swift`, `fixedExpenditureVC.swift`, `fixedExpenditureCell.swift`) — SwiftUI 안정화 후
 - Pod deintegrate + `.xcworkspace` → `.xcodeproj` 전환 (FSCalendar 제거 후)
 - UserDefaults 의존 제거 (mainVC가 SwiftData만 쓰도록 정리)
 - 네이밍 컨벤션 정리 (`finData` → `FinData` 등) — Codable CodingKeys로 backward 호환

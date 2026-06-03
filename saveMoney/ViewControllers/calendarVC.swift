@@ -73,9 +73,19 @@ class calendarVC: UIViewController {
         rTotal.text = filteredbyMonth(period.startDate, period.endDate, list: rfinList)
         eTotal.text = filteredbyMonth(period.startDate, period.endDate, list: efinList)
         pTotal.text = totalF(pfinList)
-        
+
         // 지출, 수입, 고정 지출 총액 스택 바 밑줄
         tableCellBorderLayout(totalBorder)
+
+        // SwiftUI FixedExpenditureView에서 고정 지출 변경시 총액 갱신 (점진 전환 기간)
+        NotificationCenter.default.addObserver(self, selector: #selector(fixedDataChanged(_:)), name: NSNotification.Name("toMainVC"), object: nil)
+    }
+
+    // 고정 지출 변경 알림 수신 → 총액 라벨 갱신
+    @objc func fixedDataChanged(_ notification: NSNotification) {
+        guard let data = notification.userInfo?["save"] as? [FixedExpenditure] else { return }
+        pfinList = data
+        pTotal.text = totalF(pfinList)
     }
     
     // 날짜별 데이터 필터링
@@ -188,14 +198,13 @@ class calendarVC: UIViewController {
         navigationController?.pushViewController(host, animated: true)
     }
     
-    // 고정 지출 뷰로
+    // 고정 지출 뷰로 — SwiftUI FixedExpenditureView를 UIHostingController로 present
     @objc func toPinVC() {
-        guard let pinVC = storyboard?.instantiateViewController(withIdentifier: "fixedExpenditureVC") as? fixedExpenditureVC else { return }
-        pinVC.fixedData = pfinList
-        pinVC.id = id
-        pinVC.fixedDelegate = self
-        pinVC.modalPresentationStyle = .fullScreen
-        self.present(pinVC, animated: true)
+        let host = UIHostingController(rootView: FixedExpenditureView()
+            .modelContainer(PersistenceController.shared)
+        )
+        host.modalPresentationStyle = .fullScreen
+        self.present(host, animated: true)
     }
     
     // 화면 닫기
