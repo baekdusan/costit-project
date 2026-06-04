@@ -1,11 +1,17 @@
 import Foundation
 import SwiftData
+import CryptoKit
 
 // UserDefaults(PropertyListEncoder 기반)에 저장되어 있던 기존 데이터를
-// SwiftData로 1회 이전한다. 멱등(idempotent)하게 동작:
-//   - 이미 마이그레이션 완료 플래그가 있으면 즉시 종료
+// SwiftData로 이전한다. 멱등(idempotent)하게 동작:
+//   - 레거시 데이터의 fingerprint(SHA256)가 마지막 이전 시점과 같으면 즉시 종료
+//   - 다르면 다시 실행 — 레코드 단위 dedup(externalID + 내용 비교)이라 중복 생성 없음
 //   - 실패해도 원본 UserDefaults 데이터는 보존 (rollback 안전망)
 //   - 성공 후 즉시 UserDefaults를 삭제하지 않음 (사용자 1~2 버전 후 정리)
+//
+// fingerprint 방식인 이유: 과거 1회성 bool 플래그(v1)는 "테스트 빌드 설치 → 구버전으로
+// 복귀 후 데이터 추가 → 다시 업데이트" 시나리오에서 플래그가 이미 켜져 있어
+// 구버전에서 추가된 데이터가 영영 이전되지 않는 버그가 있었다.
 enum LegacyMigration {
     private enum Keys {
         static let finList = "finlist"
@@ -15,12 +21,14 @@ enum LegacyMigration {
         static let salaryData = "salarydata"
         static let firstOpen = "firstOpen"
 
-        static let migrated = "migration.userdefaults_to_swiftdata.v1"
+        static let migrated = "migration.userdefaults_to_swiftdata.v1"   // (구) 1회성 플래그 — 더 이상 판정에 사용하지 않음
+        static let fingerprint = "migration.userdefaults_to_swiftdata.fingerprint"
     }
 
     static func runIfNeeded(container: ModelContainer) {
         let defaults = UserDefaults.standard
-        guard !defaults.bool(forKey: Keys.migrated) else { return }
+        let current = legacyFingerprint(defaults)
+        guard defaults.string(forKey: Keys.fingerprint) != current else { return }
 
         // 마이그레이션 작업은 background context에서 처리.
         let context = ModelContext(container)
@@ -33,11 +41,24 @@ enum LegacyMigration {
             migrateSalaryPeriod(into: context, defaults: defaults)
 
             try context.save()
+            defaults.set(current, forKey: Keys.fingerprint)
             defaults.set(true, forKey: Keys.migrated)
         } catch {
             // 실패 시 컨텍스트만 폐기. UserDefaults는 그대로 → 다음 실행에서 재시도.
             print("[LegacyMigration] 실패: \(error)")
         }
+    }
+
+    // 레거시 UserDefaults 데이터 전체의 SHA256. 어떤 키든 내용이 바뀌면 값이 달라진다.
+    private static func legacyFingerprint(_ defaults: UserDefaults) -> String {
+        var hasher = SHA256()
+        for key in [Keys.finList, Keys.rFinList, Keys.fixedFinList, Keys.profile, Keys.salaryData] {
+            let data = defaults.data(forKey: key) ?? Data()
+            // 키 이름 + 길이를 prefix로 넣어 blob 경계 모호성 제거
+            hasher.update(data: Data("\(key):\(data.count);".utf8))
+            hasher.update(data: data)
+        }
+        return hasher.finalize().map { String(format: "%02x", $0) }.joined()
     }
 
     // MARK: - 안전 디코딩
@@ -118,7 +139,15 @@ enum LegacyMigration {
         guard let data = defaults.data(forKey: key) else { return }
         for item in decodeList(LegacyFin.self, from: data) {
             let extID = legacyID(for: item, isRevenue: isRevenue)
-            let predicate = #Predicate<FinDataEntity> { $0.externalID == extID }
+            // externalID 외에 내용(when/towhat/how)도 비교 — 과거 dual-write 기간(FinRepository)에
+            // UUID externalID로 저장된 동일 레코드가 재이전 시 중복 생성되지 않도록.
+            let when = item.when
+            let towhat = item.towhat
+            let how = item.how
+            let predicate = #Predicate<FinDataEntity> {
+                $0.externalID == extID ||
+                ($0.isRevenue == isRevenue && $0.when == when && $0.towhat == towhat && $0.how == how)
+            }
             var descriptor = FetchDescriptor<FinDataEntity>(predicate: predicate)
             descriptor.fetchLimit = 1
             if (try? context.fetch(descriptor))?.first != nil { continue }

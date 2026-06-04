@@ -25,7 +25,7 @@ xcodebuild -workspace saveMoney.xcworkspace -scheme saveMoney \
 |------|------|
 | `saveMoney/Persistence/Models.swift` | `@Model` 4종 (`FinDataEntity`, `FixedExpenditureEntity`, `ProfileEntity`, `SalaryPeriodEntity`) |
 | `saveMoney/Persistence/PersistenceController.swift` | App Group + CloudKit private 컨테이너 (`.private("iCloud.kr.co.saveMoney")`) |
-| `saveMoney/Persistence/LegacyMigration.swift` | UserDefaults → SwiftData 1회 멱등 이전 (`migration.userdefaults_to_swiftdata.v1` 플래그) |
+| `saveMoney/Persistence/LegacyMigration.swift` | UserDefaults → SwiftData 멱등 이전. fingerprint(SHA256) 기반 — 레거시 데이터가 바뀌면 재실행, 레코드 단위 dedup(externalID+내용)으로 중복 방지 (과거 1회성 `v1` bool 플래그는 구버전 복귀 후 추가된 데이터를 영영 못 옮기는 버그가 있어 교체) |
 | `saveMoney/Persistence/Repositories.swift` | UIKit 코드용 어댑터 — 점진 전환 기간 동안만 사용 |
 
 ### SwiftUI Views (이미 전환된 화면)
