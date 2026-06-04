@@ -16,8 +16,14 @@ struct RevenueView: View {
 
     @State private var start: Date
     @State private var end: Date
-    @State private var navTitle: String = ""
+    @State private var customTitle: String?   // 월 선택 시 라벨 (nil이면 기본 기간 표시)
     @State private var showDateSelector: Bool = false
+
+    // @State + onAppear 초기화 패턴은 UIHostingController로 직접 present될 때
+    // onAppear가 발화하지 않아 빈 타이틀이 되는 문제가 있어 computed로 유지한다.
+    private var navTitle: String {
+        customTitle ?? (initialStart.toString(false) + " ~ " + initialEnd.toString(false))
+    }
 
     init(start: Date, end: Date) {
         self.initialStart = start
@@ -51,17 +57,30 @@ struct RevenueView: View {
                     Color.clear
                         .frame(height: proxy.safeAreaInsets.top + 44)
 
-                    // 수입 리스트
+                    // 수입 리스트 — 헤더와 내역 전체가 한 장의 종이(단일 배경 + 단일 그림자)로 보이게
                     ScrollView {
-                        LazyVStack(spacing: 0) {
-                            // 헤더 카드
-                            headerCard(cardWidth: cardWidth)
-                                .padding(.bottom, 0)
+                        ZStack(alignment: .top) {
+                            Image("tape1")
+                                .resizable()
+                                .scaledToFit()
+                                .frame(width: 100, height: 30)
+                                .zIndex(1)
 
-                            ForEach(filtered) { item in
-                                itemCell(item: item, cardWidth: cardWidth)
+                            VStack(spacing: 0) {
+                                headerRow(cardWidth: cardWidth)
+
+                                ForEach(filtered) { item in
+                                    separator
+                                    itemCell(item: item, cardWidth: cardWidth)
+                                }
                             }
+                            .frame(width: cardWidth)
+                            .background(Color("memoPaperColor"))
+                            .compositingGroup()
+                            .shadow(color: .black.opacity(0.08), radius: 6, y: 5)
+                            .padding(.top, 15)
                         }
+                        .frame(maxWidth: .infinity)
                         .padding(.bottom, 120)
                     }
 
@@ -120,20 +139,17 @@ struct RevenueView: View {
                 onSelect: { newStart, newEnd, label in
                     start = newStart
                     end = newEnd
-                    navTitle = label
+                    customTitle = label
                     showDateSelector = false
                 },
                 onReset: {
                     start = initialStart
                     end = initialEnd
-                    navTitle = defaultNavTitle()
+                    customTitle = nil
                     showDateSelector = false
                 }
             )
             .presentationDetents([.fraction(0.4)])
-        }
-        .onAppear {
-            navTitle = defaultNavTitle()
         }
     }
 
@@ -172,35 +188,25 @@ struct RevenueView: View {
         presenter.present(host, animated: false)
     }
 
-    private func headerCard(cardWidth: CGFloat) -> some View {
-        ZStack(alignment: .top) {
-            Image("tape1")
-                .resizable()
-                .scaledToFit()
-                .frame(width: 100, height: 30)
-                .zIndex(1)
-
-            HStack {
-                Text("이번 달 수입은")
-                    .font(.custom("PretendardVariable-SemiBold", size: 18))
-                    .foregroundStyle(Color("customLabel"))
-                Spacer()
-                Text("₩ \(totalAmount.toDecimal())")
-                    .font(.custom("PretendardVariable-ExtraBold", size: 18))
-                    .foregroundStyle(Color("customLabel"))
-            }
-            .padding(.horizontal, 12)
-            .frame(width: cardWidth, height: 72)
-            .background(Color("memoPaperColor"))
-            .shadow(color: .black.opacity(0.08), radius: 6, y: 5)
-            .padding(.top, 15)
+    private func headerRow(cardWidth: CGFloat) -> some View {
+        HStack {
+            Text("이번 달 수입은")
+                .font(.custom("PretendardVariable-SemiBold", size: 18))
+                .foregroundStyle(Color("customLabel"))
+            Spacer()
+            Text("₩ \(totalAmount.toDecimal())")
+                .font(.custom("PretendardVariable-ExtraBold", size: 18))
+                .foregroundStyle(Color("customLabel"))
         }
-        .frame(width: cardWidth)
-        .frame(maxWidth: .infinity)
+        .padding(.horizontal, 12)
+        .frame(width: cardWidth, height: 72)
     }
 
-    private func defaultNavTitle() -> String {
-        initialStart.toString(false) + " ~ " + initialEnd.toString(false)
+    // 내역 사이 옅은 구분선 (한 장의 종이 위 줄처럼 보이게)
+    private var separator: some View {
+        Rectangle()
+            .fill(Color(uiColor: .label).opacity(0.06))
+            .frame(height: 1)
     }
 
     private func itemCell(item: FinDataEntity, cardWidth: CGFloat) -> some View {
@@ -234,9 +240,7 @@ struct RevenueView: View {
                 .padding(.trailing, 20)
         }
         .frame(width: cardWidth, height: 72)
-        .background(Color("memoPaperColor"))
-        .shadow(color: .black.opacity(0.08), radius: 6, y: 5)
-        .frame(maxWidth: .infinity)
+        .contentShape(Rectangle())
         .onLongPressGesture {
             presentAddFin(mode: .edit(item))
         }
