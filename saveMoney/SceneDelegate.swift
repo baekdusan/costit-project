@@ -26,7 +26,7 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate {
     #if DEBUG
     // 디자인 검증용 (시뮬레이터 스크린샷 자동화):
     // SIMCTL_CHILD_SEED_DEMO_DATA=1 → 데모 데이터 주입
-    // SIMCTL_CHILD_SHOW_SCREEN=calendar|fixed → 해당 화면을 루트로
+    // SIMCTL_CHILD_SHOW_SCREEN=calendar|fixed|revenue → 해당 화면을 루트로
     private func applyLaunchOverridesForUITest(_ window: UIWindow) {
         let env = ProcessInfo.processInfo.environment
 
@@ -43,6 +43,11 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate {
         case "fixed":
             window.rootViewController = UIHostingController(rootView:
                 FixedExpenditureView()
+                    .modelContainer(PersistenceController.shared)
+            )
+        case "revenue":
+            window.rootViewController = UIHostingController(rootView:
+                RevenueView(start: Date().startOfThisMonth, end: Date().endOfThisMonth)
                     .modelContainer(PersistenceController.shared)
             )
         default:

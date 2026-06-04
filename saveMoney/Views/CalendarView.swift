@@ -191,6 +191,8 @@ struct CalendarView: View {
                 // 테이프 이미지가 매트 위로 겹치는 영역
                 Color.clear.frame(height: 10)
 
+                // 기존 스토리보드 구조: 달력 본체는 backgroundColor,
+                // calendarBgColor는 주변 매트(상단 20 / 좌우·하단 10) 테두리로만 보임
                 MonthCalendarGrid(
                     displayedMonth: $displayedMonth,
                     selectedDate: $selectedDate,
@@ -201,7 +203,8 @@ struct CalendarView: View {
                     dailyBudget: dailyBudget
                 )
                 .frame(width: width)
-                .padding(.top, 13)
+                .background(Color("backgroundColor"))
+                .padding(.top, 20)
                 .padding(.bottom, 10)
                 .padding(.horizontal, 10)
                 .background(Color("calendarBgColor"))
