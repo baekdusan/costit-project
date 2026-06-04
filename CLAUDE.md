@@ -15,7 +15,7 @@ iOS 개인 가계부 앱. 지출/수입 관리, 캘린더 조회, 고정 지출 
 ## Build
 ```bash
 xcodebuild -workspace saveMoney.xcworkspace -scheme saveMoney \
-  -destination 'platform=iOS Simulator,name=iPhone 16,OS=18.5' build
+  -destination 'platform=iOS Simulator,name=iPhone 17e,OS=26.5' build
 ```
 
 ## Key Files
@@ -106,5 +106,5 @@ xcodebuild -workspace saveMoney.xcworkspace -scheme saveMoney \
 
 ## Conventions
 - 커밋 메시지: 한국어 본문 허용, prefix는 영어 (refactor:, fix:, feat:)
-- 빌드 대상: iPhone 16 Simulator (OS 18.5) / 실기기 iOS 17+
+- 빌드 대상: iPhone 17e Simulator (OS 26.5) / 실기기 iOS 17+
 - 사용자 언어: 한국어
