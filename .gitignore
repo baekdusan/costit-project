@@ -111,3 +111,6 @@ iOSInjectionProject/
 
 # 디자인 검증용 시뮬레이터 스크린샷 (재생성 가능)
 /screenshots/
+
+# Claude Code 로컬 설정
+.claude/
