@@ -19,29 +19,27 @@ enum PersistenceController {
 
         let storeURL = Self.storeURL()
 
-        let configuration = ModelConfiguration(
-            "CostIt",
-            schema: schema,
-            url: storeURL,
-            cloudKitDatabase: .private(cloudContainerID)
-        )
+        // 순서대로 시도: CloudKit → 로컬 전용 → in-memory.
+        // 마지막 in-memory는 절대 실패하지 않는 안전망 — 스토어 파일은 건드리지 않으므로
+        // 일시적 오류라면 다음 실행에서 데이터가 그대로 복구된다. (fatalError로 부팅 불능이 최악)
+        let candidates: [ModelConfiguration] = [
+            ModelConfiguration("CostIt", schema: schema, url: storeURL,
+                               cloudKitDatabase: .private(cloudContainerID)),
+            ModelConfiguration("CostIt", schema: schema, url: storeURL,
+                               cloudKitDatabase: .none),
+            ModelConfiguration("CostIt", schema: schema, isStoredInMemoryOnly: true,
+                               groupContainer: .none, cloudKitDatabase: .none)
+        ]
 
-        do {
-            return try ModelContainer(for: schema, configurations: [configuration])
-        } catch {
-            // CloudKit 옵션이 실패하면 로컬 전용으로 폴백 (개발 환경/시뮬레이터 대비)
-            let fallback = ModelConfiguration(
-                "CostIt",
-                schema: schema,
-                url: storeURL,
-                cloudKitDatabase: .none
-            )
+        for configuration in candidates {
             do {
-                return try ModelContainer(for: schema, configurations: [fallback])
+                return try ModelContainer(for: schema, configurations: [configuration])
             } catch {
-                fatalError("ModelContainer 생성 실패: \(error)")
+                print("[PersistenceController] 컨테이너 생성 실패, 다음 후보로 폴백: \(error)")
             }
         }
+        // in-memory까지 실패하는 경우는 사실상 없음 (스키마 자체 결함뿐)
+        fatalError("ModelContainer 생성 불가")
     }()
 
     private static func storeURL() -> URL {

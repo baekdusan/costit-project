@@ -95,40 +95,33 @@ extension Date {
         return components.weekday == 2
     }
     
+    // 표시/숫자 추출용 공통 포매터.
+    // 참고: 기존의 TimeZone(identifier: "ko-KR")은 잘못된 식별자라 항상 nil(no-op)이었음 → 제거.
+    // 디바이스가 비양력 캘린더(불교력 등)여도 양력 숫자가 나오도록 캘린더를 고정한다.
+    private static func gregorianFormatter(_ format: String) -> DateFormatter {
+        let dateFormatter = DateFormatter()
+        dateFormatter.calendar = Calendar(identifier: .gregorian)
+        dateFormatter.locale = Locale(identifier: "ko_KR")
+        dateFormatter.dateFormat = format
+        return dateFormatter
+    }
+
     // 날짜를 문자열로 변경
     func toString(_ containYear: Bool) -> String {
-        let dateFormatter = DateFormatter()
-        if containYear == true {
-            dateFormatter.dateFormat = "yyyy-MM"
-        } else {
-            dateFormatter.dateFormat = "MM. dd."
-        }
-        
-        dateFormatter.timeZone = TimeZone(identifier: "ko-KR")
-        
-        return dateFormatter.string(from: self)
+        Date.gregorianFormatter(containYear ? "yyyy-MM" : "MM. dd.").string(from: self)
     }
-    
+
     // 날짜를 전체 문자열로 변경
     func toFullString() -> String {
-        let dateFormatter = DateFormatter()
-        dateFormatter.dateFormat = "yyyy. MM. dd"
-        
-        dateFormatter.timeZone = TimeZone(identifier: "ko-KR")
-        
-        return dateFormatter.string(from: self)
+        Date.gregorianFormatter("yyyy. MM. dd").string(from: self)
     }
-    
+
     func onlydate() -> String {
-        let dateFormatter = DateFormatter()
-        dateFormatter.dateFormat = "d"
-        return dateFormatter.string(from: self)
+        Date.gregorianFormatter("d").string(from: self)
     }
-    
+
     func onlyMonth() -> Int {
-        let dateFormatter = DateFormatter()
-        dateFormatter.dateFormat = "M"
-        return Int(dateFormatter.string(from: self)) ?? 1
+        Int(Date.gregorianFormatter("M").string(from: self)) ?? 1
     }
 }
 
@@ -245,8 +238,9 @@ extension UNUserNotificationCenter {
 extension String {
     func toDate() -> Date? {
         let dateFormatter = DateFormatter()
+        dateFormatter.calendar = Calendar(identifier: .gregorian)
+        dateFormatter.locale = Locale(identifier: "ko_KR")
         dateFormatter.dateFormat = "yyyyMM"
-        dateFormatter.timeZone = TimeZone(identifier: "ko-KR")
-        if let date = dateFormatter.date(from: self) { return date } else { return nil }
+        return dateFormatter.date(from: self)
     }
 }

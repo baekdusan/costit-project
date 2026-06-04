@@ -234,9 +234,7 @@ struct AddFinView: View {
         // SwiftUI dismiss action 우선, 실패 시 UIKit 직접 dismiss
         dismiss()
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) {
-            UIApplication.shared.connectedScenes
-                .compactMap { $0 as? UIWindowScene }
-                .first?.windows.first?.rootViewController?
+            UIApplication.shared.appRootViewController?
                 .topMostPresentedViewController
                 .dismiss(animated: false)
         }

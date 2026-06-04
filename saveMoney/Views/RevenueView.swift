@@ -18,7 +18,6 @@ struct RevenueView: View {
     @State private var end: Date
     @State private var navTitle: String = ""
     @State private var showDateSelector: Bool = false
-    @State private var addMode: AddFinView.Mode?
 
     init(start: Date, end: Date) {
         self.initialStart = start
@@ -82,15 +81,13 @@ struct RevenueView: View {
                     HStack {
                         // 왼쪽: dismiss (애니메이션 없이 → 화면 전환처럼 보임)
                         Button {
-                            UIApplication.shared.connectedScenes
-                                .compactMap { $0 as? UIWindowScene }
-                                .first?.windows.first?.rootViewController?
+                            UIApplication.shared.appRootViewController?
                                 .presentedViewController?.dismiss(animated: false)
                         } label: {
                             Image(systemName: "arrow.left.arrow.right")
                                 .font(.system(size: 20, weight: .semibold))
                                 .frame(width: 60, height: 60)
-                                .background(Color("customLabel"))
+                                .background(Color("pinColor"))
                                 .foregroundStyle(Color("backgroundColor"))
                                 .clipShape(Circle())
                         }
@@ -100,7 +97,7 @@ struct RevenueView: View {
 
                         // 오른쪽: 수입 추가
                         Button {
-                            addMode = .new
+                            presentAddFin(mode: .new)
                         } label: {
                             Image(systemName: "highlighter")
                                 .font(.system(size: 20, weight: .semibold))
@@ -118,20 +115,6 @@ struct RevenueView: View {
             .ignoresSafeArea()
         }
         .ignoresSafeArea(.keyboard)
-        .onChange(of: addMode != nil) { _, showing in
-            guard showing, let mode = addMode else { return }
-            let view = AddFinView(source: .revenue, mode: mode)
-                .modelContainer(PersistenceController.shared)
-            let host = UIHostingController(rootView: view)
-            host.modalPresentationStyle = .overFullScreen
-            host.view.backgroundColor = .clear
-            UIApplication.shared.connectedScenes
-                .compactMap { $0 as? UIWindowScene }
-                .first?.windows.first?.rootViewController?
-                .presentedViewController?.present(host, animated: false) {
-                    addMode = nil
-                }
-        }
         .sheet(isPresented: $showDateSelector) {
             MonthSelectorSheet(
                 onSelect: { newStart, newEnd, label in
@@ -169,9 +152,24 @@ struct RevenueView: View {
                     .foregroundStyle(Color("customLabel"))
             }
         }
-        .padding(.top, UIApplication.shared.connectedScenes
-            .compactMap { $0 as? UIWindowScene }
-            .first?.windows.first?.safeAreaInsets.top ?? 44)
+        .padding(.top, UIApplication.shared.appKeyWindow?.safeAreaInsets.top ?? 44)
+    }
+
+    // 수입 추가/수정 화면을 UIKit으로 직접 present.
+    // (이전의 onChange(of: addMode != nil) 패턴은 편집→편집 연속 진입 시 발화하지 않는 버그가 있었음)
+    private func presentAddFin(mode: AddFinView.Mode) {
+        guard let root = UIApplication.shared.appRootViewController else { return }
+        // 최상단 VC에서 present (이미 다른 모달이 진행 중이면 그 위에 얹지 않고 무시됨 방지 +
+        // RevenueView가 루트로 뜨는 DEBUG 모드에서도 동작)
+        var presenter = root
+        while let next = presenter.presentedViewController { presenter = next }
+        guard !presenter.isBeingDismissed else { return }   // dismiss 진행 중인 VC 위에는 present하지 않음
+        let view = AddFinView(source: .revenue, mode: mode)
+            .modelContainer(PersistenceController.shared)
+        let host = UIHostingController(rootView: view)
+        host.modalPresentationStyle = .overFullScreen
+        host.view.backgroundColor = .clear
+        presenter.present(host, animated: false)
     }
 
     private func headerCard(cardWidth: CGFloat) -> some View {
@@ -240,7 +238,7 @@ struct RevenueView: View {
         .shadow(color: .black.opacity(0.08), radius: 6, y: 5)
         .frame(maxWidth: .infinity)
         .onLongPressGesture {
-            addMode = .edit(item)
+            presentAddFin(mode: .edit(item))
         }
     }
 
@@ -283,8 +281,9 @@ struct MonthSelectorSheet: View {
     @State private var selectedMonth: Int = Calendar.current.component(.month, from: Date())
 
     private var years: [Int] {
+        // 디바이스 시계가 2021 이전으로 설정돼 있어도 빈 Range 크래시가 나지 않도록 가드
         let current = Calendar.current.component(.year, from: Date())
-        return Array(2021...current)
+        return Array(2021...max(2021, current))
     }
 
     var body: some View {

@@ -2,6 +2,22 @@ import SwiftUI
 import SwiftData
 import WidgetKit
 
+// MARK: - 키 윈도우 탐색 (UIKit present/dismiss 공통 헬퍼)
+// windows.first는 키보드/권한 다이얼로그 등 시스템 윈도우가 잡힐 수 있으므로
+// isKeyWindow 기준으로 앱 윈도우를 찾는다.
+extension UIApplication {
+    var appKeyWindow: UIWindow? {
+        let windows = connectedScenes
+            .compactMap { $0 as? UIWindowScene }
+            .flatMap(\.windows)
+        return windows.first(where: \.isKeyWindow) ?? windows.first
+    }
+
+    var appRootViewController: UIViewController? {
+        appKeyWindow?.rootViewController
+    }
+}
+
 // mainVC를 SwiftUI로 옮긴 버전 — 앱의 루트 화면 (SceneDelegate에서 직접 띄움).
 // SwiftData만 사용한다. UserDefaults에는 더 이상 데이터를 기록하지 않으며
 // "firstOpen" 플래그만 유지한다.
@@ -352,9 +368,7 @@ struct MainView: View {
     // MARK: - 화면 전환 (AddFinView / RevenueView는 투명 배경 위해 UIKit present)
 
     private var rootViewController: UIViewController? {
-        UIApplication.shared.connectedScenes
-            .compactMap { $0 as? UIWindowScene }
-            .first?.windows.first?.rootViewController
+        UIApplication.shared.appRootViewController
     }
 
     private func presentAddFin(mode: AddFinView.Mode) {
@@ -430,6 +444,8 @@ struct MainView: View {
     static func setSalaryDate(_ salary: String) -> salaryDate {
         let formatter = DateFormatter()
         formatter.locale = Locale(identifier: "ko")
+        // 디바이스가 비양력 캘린더(불교력 등)여도 양력 기준 일자를 얻도록 고정
+        formatter.calendar = Calendar(identifier: .gregorian)
         formatter.dateFormat = "dd"
         let today = Int(formatter.string(from: Date())) ?? 1
 

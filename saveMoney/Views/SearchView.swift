@@ -101,8 +101,9 @@ struct SearchView: View {
     // "26. 05. 08" 형식 (yy. MM. dd). 셀에서만 쓰는 짧은 표기.
     private static let shortDateFormatter: DateFormatter = {
         let f = DateFormatter()
+        f.calendar = Calendar(identifier: .gregorian)
+        f.locale = Locale(identifier: "ko_KR")
         f.dateFormat = "yy. MM. dd"
-        f.timeZone = TimeZone(identifier: "ko-KR")
         return f
     }()
 

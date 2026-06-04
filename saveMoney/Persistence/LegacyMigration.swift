@@ -26,11 +26,11 @@ enum LegacyMigration {
         let context = ModelContext(container)
 
         do {
-            try migrateExpenses(into: context, defaults: defaults)
-            try migrateRevenues(into: context, defaults: defaults)
-            try migrateFixedExpenditures(into: context, defaults: defaults)
-            try migrateProfile(into: context, defaults: defaults)
-            try migrateSalaryPeriod(into: context, defaults: defaults)
+            migrateFinList(key: Keys.finList, isRevenue: false, into: context, defaults: defaults)
+            migrateFinList(key: Keys.rFinList, isRevenue: true, into: context, defaults: defaults)
+            migrateFixedExpenditures(into: context, defaults: defaults)
+            migrateProfile(into: context, defaults: defaults)
+            migrateSalaryPeriod(into: context, defaults: defaults)
 
             try context.save()
             defaults.set(true, forKey: Keys.migrated)
@@ -38,6 +38,25 @@ enum LegacyMigration {
             // 실패 시 컨텍스트만 폐기. UserDefaults는 그대로 → 다음 실행에서 재시도.
             print("[LegacyMigration] 실패: \(error)")
         }
+    }
+
+    // MARK: - 안전 디코딩
+
+    // 손상된 항목 1건이 배열 전체 디코딩을 실패시키지 않도록 항목 단위로 감싸서 디코딩
+    private struct Failable<T: Decodable>: Decodable {
+        let value: T?
+        init(from decoder: Decoder) throws {
+            value = try? T(from: decoder)
+        }
+    }
+
+    private static func decodeList<T: Decodable>(_ type: T.Type, from data: Data) -> [T] {
+        let wrapped = (try? PropertyListDecoder().decode([Failable<T>].self, from: data)) ?? []
+        let values = wrapped.compactMap(\.value)
+        if values.count < wrapped.count {
+            print("[LegacyMigration] 손상된 항목 \(wrapped.count - values.count)건 건너뜀 (\(T.self))")
+        }
+        return values
     }
 
     // MARK: - Decoders for legacy types
@@ -89,17 +108,17 @@ enum LegacyMigration {
 
     // MARK: - Migration steps
 
-    private static func migrateExpenses(into context: ModelContext, defaults: UserDefaults) throws {
-        guard let data = defaults.data(forKey: Keys.finList) else { return }
-        let list = (try? PropertyListDecoder().decode([LegacyFin].self, from: data)) ?? []
-        for item in list {
-            // 동일 (when, towhat, how, isRevenue=false) 가 이미 있으면 skip
-            let predicate = #Predicate<FinDataEntity> {
-                $0.isRevenue == false &&
-                $0.when == item.when &&
-                $0.towhat == item.towhat &&
-                $0.how == item.how
-            }
+    // 같은 레거시 레코드는 어느 기기에서 이전해도 같은 externalID를 갖는다.
+    // → CloudKit으로 두 기기가 각자 마이그레이션해도 externalID 기준 dedup 가능.
+    private static func legacyID(for item: LegacyFin, isRevenue: Bool) -> String {
+        "legacy:\(isRevenue ? "r" : "e"):\(Int(item.when.timeIntervalSince1970)):\(item.how):\(item.towhat)"
+    }
+
+    private static func migrateFinList(key: String, isRevenue: Bool, into context: ModelContext, defaults: UserDefaults) {
+        guard let data = defaults.data(forKey: key) else { return }
+        for item in decodeList(LegacyFin.self, from: data) {
+            let extID = legacyID(for: item, isRevenue: isRevenue)
+            let predicate = #Predicate<FinDataEntity> { $0.externalID == extID }
             var descriptor = FetchDescriptor<FinDataEntity>(predicate: predicate)
             descriptor.fetchLimit = 1
             if (try? context.fetch(descriptor))?.first != nil { continue }
@@ -108,38 +127,15 @@ enum LegacyMigration {
                 when: item.when,
                 towhat: item.towhat,
                 how: item.how,
-                isRevenue: false
+                isRevenue: isRevenue,
+                externalID: extID
             ))
         }
     }
 
-    private static func migrateRevenues(into context: ModelContext, defaults: UserDefaults) throws {
-        guard let data = defaults.data(forKey: Keys.rFinList) else { return }
-        let list = (try? PropertyListDecoder().decode([LegacyFin].self, from: data)) ?? []
-        for item in list {
-            let predicate = #Predicate<FinDataEntity> {
-                $0.isRevenue == true &&
-                $0.when == item.when &&
-                $0.towhat == item.towhat &&
-                $0.how == item.how
-            }
-            var descriptor = FetchDescriptor<FinDataEntity>(predicate: predicate)
-            descriptor.fetchLimit = 1
-            if (try? context.fetch(descriptor))?.first != nil { continue }
-
-            context.insert(FinDataEntity(
-                when: item.when,
-                towhat: item.towhat,
-                how: item.how,
-                isRevenue: true
-            ))
-        }
-    }
-
-    private static func migrateFixedExpenditures(into context: ModelContext, defaults: UserDefaults) throws {
+    private static func migrateFixedExpenditures(into context: ModelContext, defaults: UserDefaults) {
         guard let data = defaults.data(forKey: Keys.fixedFinList) else { return }
-        let list = (try? PropertyListDecoder().decode([LegacyFixed].self, from: data)) ?? []
-        for item in list {
+        for item in decodeList(LegacyFixed.self, from: data) {
             let extID = item.id
             let predicate = #Predicate<FixedExpenditureEntity> { $0.externalID == extID }
             var descriptor = FetchDescriptor<FixedExpenditureEntity>(predicate: predicate)
@@ -155,7 +151,7 @@ enum LegacyMigration {
         }
     }
 
-    private static func migrateProfile(into context: ModelContext, defaults: UserDefaults) throws {
+    private static func migrateProfile(into context: ModelContext, defaults: UserDefaults) {
         // 기존 ProfileEntity가 이미 있으면 skip
         var descriptor = FetchDescriptor<ProfileEntity>()
         descriptor.fetchLimit = 1
@@ -176,7 +172,7 @@ enum LegacyMigration {
         ))
     }
 
-    private static func migrateSalaryPeriod(into context: ModelContext, defaults: UserDefaults) throws {
+    private static func migrateSalaryPeriod(into context: ModelContext, defaults: UserDefaults) {
         var descriptor = FetchDescriptor<SalaryPeriodEntity>()
         descriptor.fetchLimit = 1
         if (try? context.fetch(descriptor))?.first != nil { return }
