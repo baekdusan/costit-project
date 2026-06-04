@@ -205,7 +205,7 @@ struct FixedExpenditureView: View {
                     Text("\(group.day)일")
                         .font(.system(size: 12, weight: .bold))
                         .opacity(0.4)
-                        .frame(height: 30)
+                        .frame(height: 36)
                         .padding(.leading, 24)
 
                     ForEach(group.items) { item in
@@ -213,7 +213,7 @@ struct FixedExpenditureView: View {
                     }
                 }
             }
-            .padding(.top, 18)
+            .padding(.top, 4)
             .padding(.bottom, 40)
         }
         .scrollDismissesKeyboard(.interactively)
@@ -242,7 +242,7 @@ struct FixedExpenditureView: View {
                         .frame(width: 50, height: 50)
                 }
             }
-            .frame(height: 50)
+            .frame(height: 36)
 
             // 행 하단 줄 (systemGray6 1.5pt)
             Rectangle()

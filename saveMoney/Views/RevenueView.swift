@@ -70,7 +70,6 @@ struct RevenueView: View {
                                 headerRow(cardWidth: cardWidth)
 
                                 ForEach(filtered) { item in
-                                    separator
                                     itemCell(item: item, cardWidth: cardWidth)
                                 }
                             }
@@ -110,7 +109,7 @@ struct RevenueView: View {
                                 .foregroundStyle(Color("backgroundColor"))
                                 .clipShape(Circle())
                         }
-                        .padding(.leading, 24)
+                        .padding(.leading, 30)
 
                         Spacer()
 
@@ -125,7 +124,7 @@ struct RevenueView: View {
                                 .foregroundStyle(Color("backgroundColor"))
                                 .clipShape(Circle())
                         }
-                        .padding(.trailing, 24)
+                        .padding(.trailing, 30)
                     }
                     .padding(.bottom, proxy.safeAreaInsets.bottom + 30)
                     .ignoresSafeArea(.keyboard)
@@ -200,13 +199,6 @@ struct RevenueView: View {
         }
         .padding(.horizontal, 12)
         .frame(width: cardWidth, height: 72)
-    }
-
-    // 내역 사이 옅은 구분선 (한 장의 종이 위 줄처럼 보이게)
-    private var separator: some View {
-        Rectangle()
-            .fill(Color(uiColor: .label).opacity(0.06))
-            .frame(height: 1)
     }
 
     private func itemCell(item: FinDataEntity, cardWidth: CGFloat) -> some View {
