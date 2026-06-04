@@ -17,7 +17,6 @@ struct RevenueView: View {
     @State private var start: Date
     @State private var end: Date
     @State private var customTitle: String?   // 월 선택 시 라벨 (nil이면 기본 기간 표시)
-    @State private var showDateSelector: Bool = false
 
     // @State + onAppear 초기화 패턴은 UIHostingController로 직접 present될 때
     // onAppear가 발화하지 않아 빈 타이틀이 되는 문제가 있어 computed로 유지한다.
@@ -89,7 +88,7 @@ struct RevenueView: View {
 
                 // 상단 네비게이션 바 오버레이
                 VStack(spacing: 0) {
-                    navBar
+                    navBar(topInset: proxy.safeAreaInsets.top)
                     Spacer()
                 }
 
@@ -133,26 +132,49 @@ struct RevenueView: View {
             .ignoresSafeArea()
         }
         .ignoresSafeArea(.keyboard)
-        .sheet(isPresented: $showDateSelector) {
-            MonthSelectorSheet(
-                onSelect: { newStart, newEnd, label in
-                    start = newStart
-                    end = newEnd
-                    customTitle = label
-                    showDateSelector = false
-                },
-                onReset: {
-                    start = initialStart
-                    end = initialEnd
-                    customTitle = nil
-                    showDateSelector = false
-                }
-            )
-            .presentationDetents([.fraction(0.4)])
-        }
     }
 
-    private var navBar: some View {
+    // 날짜 선택 시트를 UIKit으로 직접 present.
+    // (RevenueView 자체가 UIKit으로 present된 호스트라, 그 위에 SwiftUI .sheet를 띄우면
+    //  시트 안 버튼 탭이 전달되지 않는 문제가 있음 — AddFinView와 같은 패턴으로 회피)
+    private func presentMonthSelector() {
+        guard let root = UIApplication.shared.appRootViewController else { return }
+        var presenter = root
+        while let next = presenter.presentedViewController { presenter = next }
+        guard !presenter.isBeingDismissed else { return }
+
+        func dismissSheet() {
+            var top: UIViewController = root
+            while let next = top.presentedViewController { top = next }
+            top.dismiss(animated: true)
+        }
+
+        let host = UIHostingController(rootView: MonthSelectorSheet(
+            onSelect: { newStart, newEnd, label in
+                start = newStart
+                end = newEnd
+                customTitle = label
+                dismissSheet()
+            },
+            onReset: {
+                start = initialStart
+                end = initialEnd
+                customTitle = nil
+                dismissSheet()
+            }
+        ))
+        if let sheet = host.sheetPresentationController {
+            sheet.detents = [.custom { $0.maximumDetentValue * 0.45 }]
+            sheet.prefersGrabberVisible = false
+        }
+        presenter.present(host, animated: true)
+    }
+
+    // ⚠️ body 안에서 UIApplication.shared.appKeyWindow의 safe area를 직접 읽으면
+    // "body → 윈도우 레이아웃 → 뷰 트리" 의존성 순환(AttributeGraph cycle)이 생겨
+    // 이 서브트리의 상태 업데이트가 통째로 무시됨 (월 선택해도 타이틀·리스트 미갱신 버그의 원인).
+    // GeometryReader proxy의 safe area를 파라미터로 받아 사용한다.
+    private func navBar(topInset: CGFloat) -> some View {
         ZStack {
             Color.clear
         }
@@ -160,14 +182,14 @@ struct RevenueView: View {
         .frame(height: 44)
         .overlay {
             Button {
-                showDateSelector = true
+                presentMonthSelector()
             } label: {
                 Text(navTitle)
                     .font(.system(size: 12, weight: .semibold))
                     .foregroundStyle(Color("customLabel"))
             }
         }
-        .padding(.top, UIApplication.shared.appKeyWindow?.safeAreaInsets.top ?? 44)
+        .padding(.top, topInset)
     }
 
     // 수입 추가/수정 화면을 UIKit으로 직접 present.
@@ -283,34 +305,40 @@ struct MonthSelectorSheet: View {
     }
 
     var body: some View {
-        NavigationStack {
+        // NavigationStack의 toolbar 버튼은 UIKit present된 UIHostingController 위에서 띄운
+        // sheet에서는 탭이 먹지 않는 경우가 있어(수입 화면) 일반 버튼 헤더로 구성한다.
+        VStack(spacing: 0) {
+            HStack {
+                Button("Reset", action: onReset)
+                Spacer()
+                Button("설정") {
+                    let comps = DateComponents(year: selectedYear, month: selectedMonth)
+                    guard let date = Calendar.current.date(from: comps) else { return }
+                    let label = "🗓 \(selectedYear)년 \(selectedMonth)월"
+                    onSelect(date.startOfThisMonth, date.endOfThisMonth, label)
+                }
+            }
+            .font(.system(size: 17, weight: .semibold))
+            .tint(Color("customLabel"))
+            .padding(.horizontal, 20)
+            .padding(.top, 16)
+            .padding(.bottom, 4)
+
             HStack(spacing: 0) {
                 Picker("년", selection: $selectedYear) {
                     ForEach(years, id: \.self) { year in
-                        Text("\(year)년").tag(year)
+                        // Text("\(year)년")은 LocalizedStringKey 보간이라 "2,026년"처럼 천 단위 콤마가 붙음 → verbatim 사용
+                        Text(verbatim: "\(year)년").tag(year)
                     }
                 }
                 .pickerStyle(.wheel)
 
                 Picker("월", selection: $selectedMonth) {
                     ForEach(1...12, id: \.self) { month in
-                        Text("\(month)월").tag(month)
+                        Text(verbatim: "\(month)월").tag(month)
                     }
                 }
                 .pickerStyle(.wheel)
-            }
-            .toolbar {
-                ToolbarItem(placement: .topBarLeading) {
-                    Button("Reset", action: onReset)
-                }
-                ToolbarItem(placement: .topBarTrailing) {
-                    Button("설정") {
-                        let comps = DateComponents(year: selectedYear, month: selectedMonth)
-                        guard let date = Calendar.current.date(from: comps) else { return }
-                        let label = "🗓 \(selectedYear)년 \(selectedMonth)월"
-                        onSelect(date.startOfThisMonth, date.endOfThisMonth, label)
-                    }
-                }
             }
         }
     }

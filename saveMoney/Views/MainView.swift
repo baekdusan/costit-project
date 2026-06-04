@@ -118,7 +118,8 @@ struct MainView: View {
     var body: some View {
         NavigationStack {
             GeometryReader { proxy in
-                let cardSize = (proxy.size.width - 48) * 0.5
+                // 초기 레이아웃 패스에서 width가 0이면 음수가 되어 "Invalid frame dimension" 경고 발생 → 0으로 클램프
+                let cardSize = max(0, (proxy.size.width - 48) * 0.5)
 
                 ZStack {
                     VStack(spacing: 0) {
