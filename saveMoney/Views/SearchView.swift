@@ -77,7 +77,7 @@ struct SearchView: View {
         VStack(spacing: 0) {
             HStack(spacing: 18) {
                 Text(Self.shortDate(item.when))
-                    .font(.custom("PretendardVariable-Regular", size: 14))
+                    .font(.custom("PretendardVariable-Regular", size: 12))
                     .foregroundStyle(Color("customLabel"))
                     .fixedSize()
 
@@ -87,7 +87,7 @@ struct SearchView: View {
                     .lineLimit(2)
 
                 Text("\(item.how.toDecimal()) 원")
-                    .font(.custom("PretendardVariable-SemiBold", size: 14))
+                    .font(.custom("PretendardVariable-SemiBold", size: 16))
                     .fixedSize()
             }
             .padding(.vertical, 18)

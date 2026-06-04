@@ -248,14 +248,15 @@ struct CalendarView: View {
                 LazyVStack(spacing: 0) {
                     ForEach(selectedItems) { item in
                         HStack {
+                            // 스토리보드(calendarVC 테이블 셀): system 16/18, weight 미지정(regular)
                             Text(item.towhat)
-                                .font(.system(size: 16, weight: .medium))
+                                .font(.system(size: 16))
                                 .opacity(0.78)
                                 .lineLimit(2)
                                 .frame(maxWidth: .infinity, alignment: .leading)
 
                             Text((item.isRevenue ? "+ " : "- ") + item.how.toDecimal())
-                                .font(.system(size: 18, weight: .semibold))
+                                .font(.system(size: 18))
                                 .opacity(0.84)
                         }
                         .frame(height: 60)

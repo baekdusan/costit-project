@@ -92,7 +92,7 @@ struct AddFinView: View {
 
                         // 어디서?
                         TextField("어디서?", text: $towhat)
-                            .font(.custom("PretendardVariable-Medium", size: 18))
+                            .font(.custom("PretendardVariable-Medium", size: 20))
                             .foregroundStyle(Color("customLabel"))
                             .focused($focused, equals: .towhat)
                             .submitLabel(.next)
@@ -106,7 +106,7 @@ struct AddFinView: View {
 
                         // 얼마?
                         TextField("얼마?", text: $howText)
-                            .font(.custom("PretendardVariable-SemiBold", size: 18))
+                            .font(.custom("PretendardVariable-SemiBold", size: 20))
                             .foregroundStyle(Color("customLabel"))
                             .multilineTextAlignment(.trailing)
                             .keyboardType(.numberPad)

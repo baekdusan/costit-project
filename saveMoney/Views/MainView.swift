@@ -144,6 +144,7 @@ struct MainView: View {
                             LazyVStack(spacing: 0) {
                                 ForEach(sections, id: \.date) { section in
                                     sectionHeader(section)
+                                        .scrollFadeAtTop()
                                     LazyVGrid(
                                         columns: [
                                             GridItem(.fixed(cardSize), spacing: 12),
@@ -153,6 +154,7 @@ struct MainView: View {
                                     ) {
                                         ForEach(section.items) { item in
                                             expenseCard(item, size: cardSize)
+                                                .scrollFadeAtTop()
                                         }
                                     }
                                 }
@@ -470,6 +472,16 @@ struct MainView: View {
             return salaryDate(startDate: Date().startOfSomeDay(salaryDay), endDate: Date().endOfSomeDay(salaryDay))
         } else {
             return salaryDate(startDate: Date().startOfLastSomeDay(salaryDay), endDate: Date().endOfLastSomeDay(salaryDay))
+        }
+    }
+}
+
+// 스크롤로 상단 경계를 벗어나는 동안 서서히 투명해지는 효과.
+// (정적 그라데이션 마스크와 달리 스크롤하지 않은 상태의 콘텐츠에는 영향 없음. 하단 경계는 그대로)
+private extension View {
+    func scrollFadeAtTop() -> some View {
+        scrollTransition(.interactive, axis: .vertical) { content, phase in
+            content.opacity(phase.value < 0 ? Double(1 + phase.value) : 1)
         }
     }
 }

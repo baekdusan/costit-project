@@ -17,6 +17,7 @@ struct RevenueView: View {
     @State private var start: Date
     @State private var end: Date
     @State private var customTitle: String?   // 월 선택 시 라벨 (nil이면 기본 기간 표시)
+    @State private var deleteTarget: FinDataEntity?   // 삭제 확인 알럿 대상 (MainView와 동일 패턴)
 
     // @State + onAppear 초기화 패턴은 UIHostingController로 직접 present될 때
     // onAppear가 발화하지 않아 빈 타이틀이 되는 문제가 있어 computed로 유지한다.
@@ -132,6 +133,20 @@ struct RevenueView: View {
             .ignoresSafeArea()
         }
         .ignoresSafeArea(.keyboard)
+        .alert("삭제", isPresented: Binding(
+            get: { deleteTarget != nil },
+            set: { if !$0 { deleteTarget = nil } }
+        )) {
+            Button("취소", role: .cancel) { deleteTarget = nil }
+            Button("확인") {
+                if let target = deleteTarget {
+                    deleteItem(target)
+                }
+                deleteTarget = nil
+            }
+        } message: {
+            Text("해당 수입 내역을 삭제해요.")
+        }
     }
 
     // 날짜 선택 시트를 UIKit으로 직접 present.
@@ -213,11 +228,11 @@ struct RevenueView: View {
         HStack {
             Text("이번 달 수입은")
                 .font(.custom("PretendardVariable-SemiBold", size: 18))
-                .foregroundStyle(Color("customLabel"))
+                .foregroundStyle(.primary)
             Spacer()
             Text("₩ \(totalAmount.toDecimal())")
                 .font(.custom("PretendardVariable-ExtraBold", size: 18))
-                .foregroundStyle(Color("customLabel"))
+                .foregroundStyle(.primary)
         }
         .padding(.horizontal, 12)
         .frame(width: cardWidth, height: 72)
@@ -226,7 +241,7 @@ struct RevenueView: View {
     private func itemCell(item: FinDataEntity, cardWidth: CGFloat) -> some View {
         HStack(spacing: 0) {
             Button {
-                deleteItem(item)
+                deleteTarget = item
             } label: {
                 Image(systemName: "xmark")
                     .font(.system(size: 12))
@@ -235,22 +250,26 @@ struct RevenueView: View {
             }
             .padding(.leading, 10)
 
-            VStack(alignment: .leading, spacing: 4) {
-                Text(item.when.toString(false))
-                    .font(.custom("PretendardVariable-Medium", size: 12))
-                    .foregroundStyle(Color("customLabel"))
-                Text(item.towhat)
-                    .font(.custom("PretendardVariable-Medium", size: 14))
-                    .foregroundStyle(Color("customLabel"))
-                    .lineLimit(1)
-            }
-            .padding(.leading, 10)
+            // 스토리보드 레이아웃: towhat과 금액이 셀 세로 중앙에서 수평 정렬, 날짜는 towhat 위 4pt.
+            // 색: 날짜만 customLabel(회색조), towhat·금액은 기본 label 색
+            Text(item.towhat)
+                .font(.custom("PretendardVariable-Medium", size: 14))
+                .foregroundStyle(.primary)
+                .lineLimit(1)
+                .overlay(alignment: .topLeading) {
+                    Text(item.when.toString(false))
+                        .font(.custom("PretendardVariable-Medium", size: 12))
+                        .foregroundStyle(Color("customLabel"))
+                        .fixedSize()
+                        .offset(y: -18)   // 날짜 높이(≈14pt) + 간격 4pt만큼 위로
+                }
+                .padding(.leading, 10)
 
             Spacer()
 
             Text("+ \(item.how.toDecimal())")
                 .font(.custom("PretendardVariable-SemiBold", size: 16))
-                .foregroundStyle(Color("customLabel"))
+                .foregroundStyle(.primary)
                 .padding(.trailing, 20)
         }
         .frame(width: cardWidth, height: 72)
