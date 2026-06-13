@@ -11,7 +11,6 @@
 		310CB42F26ED0E7E002F7665 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 3193F99826CDE29E006FB348 /* Assets.xcassets */; };
 		3193F99026CDE29C006FB348 /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3193F98F26CDE29C006FB348 /* AppDelegate.swift */; };
 		3193F99226CDE29C006FB348 /* SceneDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3193F99126CDE29C006FB348 /* SceneDelegate.swift */; };
-		3193F99726CDE29C006FB348 /* Main.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 3193F99526CDE29C006FB348 /* Main.storyboard */; };
 		3193F99926CDE29E006FB348 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 3193F99826CDE29E006FB348 /* Assets.xcassets */; };
 		3193F99C26CDE29E006FB348 /* LaunchScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 3193F99A26CDE29E006FB348 /* LaunchScreen.storyboard */; };
 		3193F9AA26D33331006FB348 /* struct.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3193F9A926D33331006FB348 /* struct.swift */; };
@@ -149,23 +148,14 @@
 				31DEEB3B2FAE204C006C2F1F /* Views */,
 				3109F60B27336DC500D83FDA /* PretendardVariable.ttf */,
 				31DBD92226E752C8007733FB /* saveMoney.entitlements */,
-				3193F99526CDE29C006FB348 /* Main.storyboard */,
 				3193F98F26CDE29C006FB348 /* AppDelegate.swift */,
 				3193F99126CDE29C006FB348 /* SceneDelegate.swift */,
 				3193F9A926D33331006FB348 /* struct.swift */,
-				31B1384227BF8B2800B6B30D /* ViewControllers */,
 				3193F99826CDE29E006FB348 /* Assets.xcassets */,
 				3193F99A26CDE29E006FB348 /* LaunchScreen.storyboard */,
 				3193F99D26CDE29E006FB348 /* Info.plist */,
 			);
 			path = saveMoney;
-			sourceTree = "<group>";
-		};
-		31B1384227BF8B2800B6B30D /* ViewControllers */ = {
-			isa = PBXGroup;
-			children = (
-			);
-			path = ViewControllers;
 			sourceTree = "<group>";
 		};
 		31DBD91526E74FCB007733FB /* widget */ = {
@@ -288,7 +278,6 @@
 				3193F99C26CDE29E006FB348 /* LaunchScreen.storyboard in Resources */,
 				3109F60C27336DC500D83FDA /* PretendardVariable.ttf in Resources */,
 				3193F99926CDE29E006FB348 /* Assets.xcassets in Resources */,
-				3193F99726CDE29C006FB348 /* Main.storyboard in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -349,13 +338,6 @@
 /* End PBXTargetDependency section */
 
 /* Begin PBXVariantGroup section */
-		3193F99526CDE29C006FB348 /* Main.storyboard */ = {
-			isa = PBXVariantGroup;
-			children = (
-			);
-			name = Main.storyboard;
-			sourceTree = "<group>";
-		};
 		3193F99A26CDE29E006FB348 /* LaunchScreen.storyboard */ = {
 			isa = PBXVariantGroup;
 			children = (
