@@ -277,28 +277,12 @@ struct FixedExpenditureView: View {
         howText = ""
         focused = nil
 
-        syncToUIKit()
     }
 
     private func deleteItem(_ item: FixedExpenditureEntity) {
         notificationCenter.removePendingNotificationRequests(withIdentifiers: [item.externalID])
         modelContext.delete(item)
         try? modelContext.save()
-        syncToUIKit()
-    }
-
-    // 점진 전환 기간 동안 mainVC(UserDefaults 경로) / calendarVC(고정 지출 총액) 동기화 유지
-    private func syncToUIKit() {
-        let descriptor = FetchDescriptor<FixedExpenditureEntity>(sortBy: [SortDescriptor(\.day)])
-        let entities = (try? modelContext.fetch(descriptor)) ?? []
-        let legacy = entities.map {
-            FixedExpenditure(id: $0.externalID, day: $0.day, towhat: $0.towhat, how: $0.how)
-        }
-        NotificationCenter.default.post(
-            name: NSNotification.Name("toMainVC"),
-            object: nil,
-            userInfo: ["save": legacy]
-        )
     }
 
     // MARK: - 알림
