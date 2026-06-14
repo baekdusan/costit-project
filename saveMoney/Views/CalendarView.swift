@@ -92,7 +92,9 @@ struct CalendarView: View {
     var body: some View {
         NavigationStack {
             GeometryReader { proxy in
-                let calendarWidth = proxy.size.width - 60
+                // 초기 레이아웃 패스에서 proxy.size.width가 0이면 음수가 되어
+                // .frame(width:)에 "Invalid frame dimension" 경고가 발생하므로 방어
+                let calendarWidth = max(0, proxy.size.width - 60)
 
                 ScrollView(showsIndicators: false) {
                     VStack(spacing: 0) {
