@@ -24,6 +24,7 @@ extension UIApplication {
 struct MainView: View {
 
     @Environment(\.modelContext) private var modelContext
+    @Environment(\.scenePhase) private var scenePhase
 
     @Query(filter: #Predicate<FinDataEntity> { $0.isRevenue == false },
            sort: \FinDataEntity.when, order: .reverse)
@@ -302,6 +303,13 @@ struct MainView: View {
                     }
                 }
             }
+            .onChange(of: scenePhase) { _, newPhase in
+                // 앱이 백그라운드에 있다가 정산 기간이 끝난 뒤 foreground로 복귀할 때도
+                // 자동 reset (onAppear는 cold start에만 불려 복귀 시 갱신이 안 됨)
+                if newPhase == .active {
+                    rolloverSalaryPeriodIfNeeded()
+                }
+            }
         }
     }
 
@@ -442,6 +450,7 @@ struct MainView: View {
             entity.startDate = newPeriod.startDate
             entity.endDate = newPeriod.endDate
             try? modelContext.save()
+            WidgetCenter.shared.reloadAllTimelines()   // 기간이 바뀌었으니 위젯도 갱신
         }
     }
 
