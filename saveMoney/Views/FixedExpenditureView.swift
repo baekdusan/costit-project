@@ -288,6 +288,10 @@ struct FixedExpenditureView: View {
     // MARK: - 알림
 
     private func requestNotificationAuthorization() {
+        #if DEBUG
+        // 스크린샷 자동화(SHOW_SCREEN) 시 시스템 알림 권한 팝업이 화면을 가리지 않도록 스킵
+        if ProcessInfo.processInfo.environment["SHOW_SCREEN"] != nil { return }
+        #endif
         notificationCenter.requestAuthorization(options: [.alert, .sound, .badge]) { _, error in
             if let error = error {
                 print(error)
