@@ -175,7 +175,7 @@ struct CalendarView: View {
     private func totalColumn(title: String, value: Int) -> some View {
         VStack(spacing: 8) {
             Text(title)
-                .font(.custom("PretendardVariable-SemiBold", size: 12))
+                .font(.custom("PretendardVariable-SemiBold", size: 14))
                 .foregroundStyle(Color("customLabel"))
             Text(value.toDecimal())
                 .font(.custom("PretendardVariable-Bold", size: 16))
