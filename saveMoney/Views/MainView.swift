@@ -48,18 +48,18 @@ struct MainView: View {
 
     // MARK: - 파생 데이터
 
-    private var userProfile: profile {
+    private var userProfile: Profile {
         if let entity = profiles.first {
-            return profile(nickName: entity.nickName, outLay: entity.outLay, period: entity.period)
+            return Profile(nickName: entity.nickName, outLay: entity.outLay, period: entity.period)
         }
-        return profile()
+        return Profile()
     }
 
-    private var salaryData: salaryDate {
+    private var salaryData: SalaryDate {
         if let entity = salaryPeriods.first {
-            return salaryDate(startDate: entity.startDate, endDate: entity.endDate)
+            return SalaryDate(startDate: entity.startDate, endDate: entity.endDate)
         }
-        return salaryDate()
+        return SalaryDate()
     }
 
     private var currentRange: (start: Date, end: Date) {
@@ -455,7 +455,7 @@ struct MainView: View {
     }
 
     // 급여일 문자열("1일", "29일", "마지막 날")로 한 달 정산 기간 계산 (기존 mainVC.setSalaryDate)
-    static func setSalaryDate(_ salary: String) -> salaryDate {
+    static func setSalaryDate(_ salary: String) -> SalaryDate {
         let formatter = DateFormatter()
         formatter.locale = Locale(identifier: "ko")
         // 디바이스가 비양력 캘린더(불교력 등)여도 양력 기준 일자를 얻도록 고정
@@ -466,13 +466,13 @@ struct MainView: View {
         if salary == "마지막 날" {
             let endOfMonthDay = Int(formatter.string(from: Date().endOfThisMonth)) ?? 28
             if today == endOfMonthDay {
-                return salaryDate(startDate: Date().endOfThisMonth, endDate: Date().yesterdayOfEndOfNextMonth)
+                return SalaryDate(startDate: Date().endOfThisMonth, endDate: Date().yesterdayOfEndOfNextMonth)
             }
-            return salaryDate(startDate: Date().endOfLastMonth, endDate: Date().yesterdayOfEndOfThisMonth)
+            return SalaryDate(startDate: Date().endOfLastMonth, endDate: Date().yesterdayOfEndOfThisMonth)
         }
 
         if salary == "1일" {
-            return salaryDate(startDate: Date().startOfThisMonth, endDate: Date().endOfThisMonth)
+            return SalaryDate(startDate: Date().startOfThisMonth, endDate: Date().endOfThisMonth)
         }
 
         // "29일" → 29 추출
@@ -480,9 +480,9 @@ struct MainView: View {
         let salaryDay = Int(digits) ?? 1
 
         if today >= salaryDay {
-            return salaryDate(startDate: Date().startOfSomeDay(salaryDay), endDate: Date().endOfSomeDay(salaryDay))
+            return SalaryDate(startDate: Date().startOfSomeDay(salaryDay), endDate: Date().endOfSomeDay(salaryDay))
         } else {
-            return salaryDate(startDate: Date().startOfLastSomeDay(salaryDay), endDate: Date().endOfLastSomeDay(salaryDay))
+            return SalaryDate(startDate: Date().startOfLastSomeDay(salaryDay), endDate: Date().endOfLastSomeDay(salaryDay))
         }
     }
 }

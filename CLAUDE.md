@@ -42,7 +42,7 @@ xcodebuild -project saveMoney.xcodeproj -scheme saveMoney \
 ### UIKit 잔여
 | 파일 | 역할 |
 |------|------|
-| `saveMoney/struct.swift` | 데이터 모델 (`finData`, `FixedExpenditure`, `profile`, `salaryDate`) + Date/String/Int 확장. SwiftUI 화면들도 이 모델/확장을 사용 |
+| `saveMoney/struct.swift` | 데이터 모델 (`FixedExpenditureItem`, `Profile`, `SalaryDate`) + Date/String/Int 확장. SwiftUI 화면들도 이 모델/확장을 사용 (구 `finData`는 미사용 dead code라 삭제됨) |
 | `saveMoney/AppDelegate.swift` / `SceneDelegate.swift` | 앱 부팅 + LegacyMigration 트리거 + SwiftUI MainView 루트 설정 |
 | `widget/widget.swift` | 홈 화면 위젯. SwiftData 직접 쿼리 (CloudKit 동기화 데이터 반영) |
 
@@ -82,11 +82,7 @@ xcodebuild -project saveMoney.xcodeproj -scheme saveMoney \
 ### Phase 4: 정리 작업 — IN PROGRESS
 - **DONE (Step 1, 2026-06-13)**: legacy ViewController 8종 + `Main.storyboard` + `Repositories.swift` 삭제. `FixedExpenditureView`의 죽은 `syncToUIKit()`/`toMainVC` post 제거. 빌드 통과
 - **DONE (Step 2, 2026-06-13)**: FSCalendar pod deintegrate + Podfile/`Podfile.lock`/`saveMoney.xcworkspace` 삭제 → `.xcodeproj` 직접 빌드 전환. 캘린더 화면 런타임 검증 완료
-- **TODO — Step 3: 네이밍 컨벤션 정리** (다음 세션 착수 가능. 빌드 검증: `xcodebuild -project saveMoney.xcodeproj -scheme saveMoney -destination 'platform=iOS Simulator,name=iPhone 17e,OS=26.5' build`)
-  - **`finData` struct는 dead code** — legacy VC 삭제 후 사용처 0 (struct.swift 정의만). 먼저 `grep -rn '\bfinData\b'`로 재확인 후 **삭제**(rename 불필요)
-  - `FixedExpenditure`(struct) → `FixedExpenditureItem` 등으로 rename. **주의: SwiftData의 `FixedExpenditureEntity`와 혼동 금지.** 영향: `struct.swift`(정의 + `UNUserNotificationCenter.addNotificationRequest` extension), `FixedExpenditureView.swift`(알림 페이로드)
-  - `profile` → `Profile`, `salaryDate` → `SalaryDate`. 영향: `struct.swift`, `MainView.swift`(`setSalaryDate` 반환형), `FirstOpenView.swift`, `widget/widget.swift`
-  - **CodingKeys backward 호환 불필요**: 앱은 더 이상 이 타입들을 UserDefaults에 인코딩하지 않음 (저장은 SwiftData Entity, 디코딩은 LegacyMigration의 자체 `LegacyFin`/`LegacyFixed`/`LegacyProfile`/`LegacySalary`가 전담). 따라서 단순 rename으로 충분
+- **DONE (Step 3, 2026-06-14, 브랜치 `refactor/phase4-naming`)**: 네이밍 컨벤션 정리. `finData` dead code 삭제(사용처 0), `FixedExpenditure`(struct)→`FixedExpenditureItem`(SwiftData `FixedExpenditureEntity`와 구분), `profile`→`Profile`, `salaryDate`→`SalaryDate`. CodingKeys 호환 불필요(저장은 SwiftData Entity, 레거시 디코딩은 LegacyMigration의 자체 `Legacy*` 타입)했고 빌드 통과
 - **TODO — Xcode Cloud 연동 마무리** (App Store Connect, 사용자 직접 작업): main 브랜치 → 아카이브 워크플로 생성됨 (2026-06-04). 이제 Pod이 제거됐으므로 워크플로 설정에서 "프로젝트 또는 워크스페이스"를 `saveMoney.xcworkspace` → `saveMoney.xcodeproj`로 변경하고, "배포 준비"를 없음 → TestFlight/App Store Connect로 설정해야 동작
 - **TODO — 실기기/UI 직접 테스트** (아래 "디자인/검증 도구"의 체크리스트)
 

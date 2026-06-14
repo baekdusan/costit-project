@@ -268,7 +268,7 @@ struct FixedExpenditureView: View {
         // 푸시 알림 등록 (externalID를 식별자로 사용)
         notificationCenter.addNotificationRequest(
             to: nickName,
-            by: FixedExpenditure(id: entity.externalID, day: entity.day, towhat: entity.towhat, how: entity.how)
+            by: FixedExpenditureItem(id: entity.externalID, day: entity.day, towhat: entity.towhat, how: entity.how)
         )
 
         // 입력 초기화
@@ -306,7 +306,7 @@ struct FixedExpenditureView: View {
         for item in fixedItems {
             notificationCenter.addNotificationRequest(
                 to: nickName,
-                by: FixedExpenditure(id: item.externalID, day: item.day, towhat: item.towhat, how: item.how)
+                by: FixedExpenditureItem(id: item.externalID, day: item.day, towhat: item.towhat, how: item.how)
             )
         }
     }

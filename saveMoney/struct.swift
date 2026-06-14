@@ -125,32 +125,12 @@ extension Date {
     }
 }
 
-struct finData: Codable, Equatable {
-    var when: Date
-    var towhat: String
-    var how: Int
-
-    // 기존 IUO(Optional) 데이터와의 호환을 위한 커스텀 디코더
-    init(from decoder: Decoder) throws {
-        let container = try decoder.container(keyedBy: CodingKeys.self)
-        when = try container.decode(Date.self, forKey: .when)
-        towhat = try container.decode(String.self, forKey: .towhat)
-        how = try container.decodeIfPresent(Int.self, forKey: .how) ?? 0
-    }
-
-    init(when: Date, towhat: String, how: Int) {
-        self.when = when
-        self.towhat = towhat
-        self.how = how
-    }
-}
-
-struct salaryDate: Codable {
+struct SalaryDate: Codable {
     var startDate: Date = Date().startOfThisMonth
     var endDate: Date = Date().endOfThisMonth
 }
 
-struct profile: Codable {
+struct Profile: Codable {
     var nickName: String = "User"
     var outLay: Int = 0
     var period: String = "1일"
@@ -182,7 +162,7 @@ extension UIButton {
     }
 }
 
-struct FixedExpenditure: Codable, Equatable {
+struct FixedExpenditureItem: Codable, Equatable {
     var id: String = UUID().uuidString
     var day: Int
     var towhat: String
@@ -206,7 +186,7 @@ struct FixedExpenditure: Codable, Equatable {
 }
 
 extension UNUserNotificationCenter {
-    func addNotificationRequest(to name: String, by alert: FixedExpenditure) {
+    func addNotificationRequest(to name: String, by alert: FixedExpenditureItem) {
         let content = UNMutableNotificationContent()
         
         let alertMessage = "\(name)님, 내일 \(alert.how.toDecimal())원이 나가요."

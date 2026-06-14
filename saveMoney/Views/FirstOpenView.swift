@@ -25,7 +25,7 @@ struct FirstOpenView: View {
     }
 
     /// 프로필 편집용 — 기존 값으로 입력 채워줌.
-    init(editing profile: profile,
+    init(editing profile: Profile,
          onConfirm: @escaping (String, Int, String) -> Void) {
         self.initialNickname = profile.nickName
         self.initialOutLay = profile.outLay
