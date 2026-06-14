@@ -32,25 +32,32 @@ enum PreviewSampleData {
         }
 
         let expenses: [(Int, String, Int)] = [
-            (2, "빠레뜨 한남 (부평, 민주)", 36000),
-            (2, "GS25 음료수", 3200),
-            (5, "넷플릭스", 14500),
-            (5, "점심 김치찌개", 9000),
-            (8, "스타벅스", 6300),
-            (12, "교보문고", 28800),
-            (12, "지하철 충전", 20000),
-            (15, "올리브영", 17900),
+            (1,  "스타벅스 아메리카노", 4500),
+            (2,  "빠레뜨 한남 브런치", 38000),
+            (3,  "GS25 야식거리", 8200),
+            (4,  "올리브영 스킨케어", 23400),
+            (6,  "점심 마라탕", 11000),
+            (7,  "지하철 교통비 충전", 30000),
+            (9,  "교보문고 책 3권", 41200),
+            (11, "무신사 후드 집업", 58000),
+            (13, "CGV 영화 + 팝콘", 27000),
+            (15, "이마트 장보기", 47300),
+            (18, "올리브영 + 다이소", 19800),
+            (20, "친구 생일선물", 35000),
+            (23, "병원 진료 + 약국", 12600),
         ]
         for (d, what, how) in expenses {
             context.insert(FinDataEntity(when: day(d), towhat: what, how: how, isRevenue: false))
         }
 
-        context.insert(FinDataEntity(when: day(1), towhat: "이번 달 급여", how: 2_800_000, isRevenue: true))
-        context.insert(FinDataEntity(when: day(10), towhat: "당근 판매", how: 45000, isRevenue: true))
+        context.insert(FinDataEntity(when: day(1),  towhat: "이번 달 급여", how: 2_800_000, isRevenue: true))
+        context.insert(FinDataEntity(when: day(10), towhat: "당근마켓 판매", how: 45000, isRevenue: true))
+        context.insert(FinDataEntity(when: day(18), towhat: "생일 용돈", how: 100_000, isRevenue: true))
 
-        context.insert(FixedExpenditureEntity(day: 1, towhat: "월세", how: 550_000))
-        context.insert(FixedExpenditureEntity(day: 15, towhat: "유튜브 프리미엄", how: 10450))
-        context.insert(FixedExpenditureEntity(day: 25, towhat: "통신비", how: 49500))
+        context.insert(FixedExpenditureEntity(day: 1,  towhat: "월세", how: 550_000))
+        context.insert(FixedExpenditureEntity(day: 13, towhat: "유튜브 프리미엄", how: 14900))
+        context.insert(FixedExpenditureEntity(day: 17, towhat: "헬스장 정기권", how: 89000))
+        context.insert(FixedExpenditureEntity(day: 25, towhat: "통신비", how: 55000))
 
         // 프로필 / 정산 기간 (upsert)
         let profileDescriptor = FetchDescriptor<ProfileEntity>()
@@ -58,7 +65,7 @@ enum PreviewSampleData {
             let e = ProfileEntity(); context.insert(e); return e
         }()
         profileEntity.nickName = "두산"
-        profileEntity.outLay = 600_000
+        profileEntity.outLay = 700_000
         profileEntity.period = "1일"
 
         let periodDescriptor = FetchDescriptor<SalaryPeriodEntity>()

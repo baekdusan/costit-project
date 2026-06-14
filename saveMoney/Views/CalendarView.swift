@@ -18,7 +18,16 @@ struct CalendarView: View {
     let start: Date
     let end: Date
 
-    @State private var selectedDate: Date = Date()
+    @State private var selectedDate: Date = {
+        #if DEBUG
+        // 디자인 검증/스크린샷 캡처 시 결제 있는 날(이번 달 13일)을 미리 선택해
+        // 하단에 해당 날짜 내역이 보이도록 한다.
+        if ProcessInfo.processInfo.environment["SHOW_SCREEN"] == "calendar" {
+            return Calendar.current.date(byAdding: .day, value: 12, to: Date().startOfThisMonth) ?? Date()
+        }
+        #endif
+        return Date()
+    }()
     @State private var displayedMonth: Date = Date().startOfThisMonth
     @State private var showFixedExpenditure: Bool = false
 
