@@ -15,6 +15,7 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate {
         let window = UIWindow(windowScene: windowScene)
         window.rootViewController = UIHostingController(rootView: MainView()
             .modelContainer(PersistenceController.shared)
+            .dynamicTypeSize(.large)   // 1.7.2(UIKit)처럼 폰트 크기 고정 (시스템 Dynamic Type 무시)
         )
         self.window = window
         window.makeKeyAndVisible()
@@ -40,16 +41,19 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate {
             window.rootViewController = UIHostingController(rootView:
                 CalendarView(start: Date().startOfThisMonth, end: Date().endOfThisMonth)
                     .modelContainer(PersistenceController.shared)
+                    .dynamicTypeSize(.large)
             )
         case "fixed":
             window.rootViewController = UIHostingController(rootView:
                 FixedExpenditureView()
                     .modelContainer(PersistenceController.shared)
+                    .dynamicTypeSize(.large)
             )
         case "revenue":
             window.rootViewController = UIHostingController(rootView:
                 RevenueView(start: Date().startOfThisMonth, end: Date().endOfThisMonth)
                     .modelContainer(PersistenceController.shared)
+                    .dynamicTypeSize(.large)
             )
         default:
             break

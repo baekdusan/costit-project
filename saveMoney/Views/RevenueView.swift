@@ -177,7 +177,7 @@ struct RevenueView: View {
                 customTitle = nil
                 dismissSheet()
             }
-        ))
+        ).dynamicTypeSize(.large))
         if let sheet = host.sheetPresentationController {
             sheet.detents = [.custom { $0.maximumDetentValue * 0.45 }]
             sheet.prefersGrabberVisible = false
@@ -218,6 +218,7 @@ struct RevenueView: View {
         guard !presenter.isBeingDismissed else { return }   // dismiss 진행 중인 VC 위에는 present하지 않음
         let view = AddFinView(source: .revenue, mode: mode)
             .modelContainer(PersistenceController.shared)
+            .dynamicTypeSize(.large)
         let host = UIHostingController(rootView: view)
         host.modalPresentationStyle = .overFullScreen
         host.view.backgroundColor = .clear

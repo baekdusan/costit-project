@@ -377,6 +377,7 @@ struct MainView: View {
     private func presentAddFin(mode: AddFinView.Mode) {
         let view = AddFinView(source: .expense, mode: mode)
             .modelContainer(PersistenceController.shared)
+            .dynamicTypeSize(.large)
         let host = UIHostingController(rootView: view)
         host.modalPresentationStyle = .overFullScreen
         host.view.backgroundColor = .clear
@@ -386,6 +387,7 @@ struct MainView: View {
     private func presentRevenue() {
         let view = RevenueView(start: salaryData.startDate, end: salaryData.endDate)
             .modelContainer(PersistenceController.shared)
+            .dynamicTypeSize(.large)
         let host = UIHostingController(rootView: view)
         host.modalPresentationStyle = .fullScreen
         rootViewController?.present(host, animated: false)
