@@ -22,6 +22,17 @@ enum PersistenceController {
         // 순서대로 시도: CloudKit → 로컬 전용 → in-memory.
         // 마지막 in-memory는 절대 실패하지 않는 안전망 — 스토어 파일은 건드리지 않으므로
         // 일시적 오류라면 다음 실행에서 데이터가 그대로 복구된다. (fatalError로 부팅 불능이 최악)
+        // 시뮬레이터는 iCloud 계정이 없어 CloudKit mirroring이 134400으로 실패한다.
+        // 앱은 폴백으로 버티지만 메모리 제약이 큰 위젯 익스텐션은 이로 인해 크래시하므로
+        // 시뮬에선 CloudKit을 끄고 로컬 전용으로 동작시킨다. (실기기/배포는 CloudKit 유지)
+        #if targetEnvironment(simulator)
+        let candidates: [ModelConfiguration] = [
+            ModelConfiguration("CostIt", schema: schema, url: storeURL,
+                               cloudKitDatabase: .none),
+            ModelConfiguration("CostIt", schema: schema, isStoredInMemoryOnly: true,
+                               groupContainer: .none, cloudKitDatabase: .none)
+        ]
+        #else
         let candidates: [ModelConfiguration] = [
             ModelConfiguration("CostIt", schema: schema, url: storeURL,
                                cloudKitDatabase: .private(cloudContainerID)),
@@ -30,6 +41,7 @@ enum PersistenceController {
             ModelConfiguration("CostIt", schema: schema, isStoredInMemoryOnly: true,
                                groupContainer: .none, cloudKitDatabase: .none)
         ]
+        #endif
 
         for configuration in candidates {
             do {
