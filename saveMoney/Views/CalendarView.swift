@@ -216,6 +216,8 @@ struct CalendarView: View {
                 .resizable()
                 .scaledToFit()
                 .frame(width: width)
+                // 스프링 구멍이 종이 윗변에 닿아 얕게 뚫린 느낌이라 살짝 내림
+                .offset(y: 2)
         }
     }
 
@@ -302,6 +304,9 @@ struct MonthCalendarGrid: View {
     @Binding var displayedMonth: Date   // 표시 중인 달 (그 달의 시작일)
     @Binding var selectedDate: Date
 
+    // 월 전환 시 새 달이 들어오는 방향 (스와이프 방향에 맞춰 갱신)
+    @State private var slideEdge: Edge = .trailing
+
     let periodStart: Date
     let periodEnd: Date
     let expenseTotalsByDay: [String: Int]
@@ -347,6 +352,30 @@ struct MonthCalendarGrid: View {
     }
 
     var body: some View {
+        // 월 전체를 좌우로 슬라이드시켜 페이지 넘기는 느낌을 준다.
+        gridContent
+            .id(displayedMonth)
+            .transition(.asymmetric(
+                insertion: .move(edge: slideEdge).combined(with: .opacity),
+                removal: .move(edge: slideEdge == .trailing ? .leading : .trailing).combined(with: .opacity)
+            ))
+            .clipped()
+            .contentShape(Rectangle())
+            // 좌우 스와이프로 월 이동 (FSCalendar의 가로 스크롤 대체)
+            .gesture(
+                DragGesture(minimumDistance: 30)
+                    .onEnded { value in
+                        guard abs(value.translation.width) > abs(value.translation.height) else { return }
+                        let delta = value.translation.width < 0 ? 1 : -1
+                        slideEdge = delta > 0 ? .trailing : .leading
+                        withAnimation(.easeInOut(duration: 0.28)) {
+                            displayedMonth = calendar.date(byAdding: .month, value: delta, to: displayedMonth) ?? displayedMonth
+                        }
+                    }
+            )
+    }
+
+    private var gridContent: some View {
         VStack(spacing: 4) {
             // 헤더: yyyy년 M월
             Text(Self.headerFormatter.string(from: displayedMonth))
@@ -380,18 +409,6 @@ struct MonthCalendarGrid: View {
                 }
             }
         }
-        .contentShape(Rectangle())
-        // 좌우 스와이프로 월 이동 (FSCalendar의 가로 스크롤 대체)
-        .gesture(
-            DragGesture(minimumDistance: 30)
-                .onEnded { value in
-                    guard abs(value.translation.width) > abs(value.translation.height) else { return }
-                    let delta = value.translation.width < 0 ? 1 : -1
-                    withAnimation(.easeInOut(duration: 0.2)) {
-                        displayedMonth = calendar.date(byAdding: .month, value: delta, to: displayedMonth) ?? displayedMonth
-                    }
-                }
-        )
     }
 
     private func dayCell(_ date: Date) -> some View {
