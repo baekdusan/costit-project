@@ -116,20 +116,26 @@ struct CalendarView: View {
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) {
-                    HStack(spacing: 8) {
-                        NavigationLink {
-                            SearchView()
-                        } label: {
-                            Image(systemName: "magnifyingglass")
-                                .foregroundStyle(Color("customLabel"))
-                        }
+                    NavigationLink {
+                        SearchView()
+                    } label: {
+                        Image(systemName: "magnifyingglass")
+                            .foregroundStyle(Color("customLabel"))
+                    }
+                }
 
-                        Button {
-                            showFixedExpenditure = true
-                        } label: {
-                            Image(systemName: "pin.fill")
-                                .foregroundStyle(Color("customLabel"))
-                        }
+                // iOS 26 toolbar는 같은 placement 버튼을 한 캡슐로 묶으므로
+                // ToolbarSpacer로 분리해 각각 독립 원형 버튼으로 표시
+                if #available(iOS 26.0, *) {
+                    ToolbarSpacer(.fixed, placement: .topBarLeading)
+                }
+
+                ToolbarItem(placement: .topBarLeading) {
+                    Button {
+                        showFixedExpenditure = true
+                    } label: {
+                        Image(systemName: "pin.fill")
+                            .foregroundStyle(Color("customLabel"))
                     }
                 }
 
