@@ -18,11 +18,13 @@ struct SearchBarRepresentable: UIViewRepresentable {
         searchBar.backgroundImage = UIImage()
         searchBar.autocapitalizationType = .none
         searchBar.autocorrectionType = .no
-        // makeUIView 시점에 바로 first responder 요청 → 화면 push 애니메이션과 함께
-        // 키보드가 자연스럽게 올라옴 (updateUIView 시점은 layout 재계산 타이밍과 충돌해 튐)
+        // 키보드 등장을 push 전환 애니메이션(~0.35s) 이후로 지연.
+        // 즉시 becomeFirstResponder()하면 push 슬라이드와 키보드 등장이 겹쳐 버벅임.
         if becomeFirstResponderOnAppear, !context.coordinator.didFocus {
-            searchBar.becomeFirstResponder()
             context.coordinator.didFocus = true
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.4) { [weak searchBar] in
+                searchBar?.becomeFirstResponder()
+            }
         }
         return searchBar
     }
