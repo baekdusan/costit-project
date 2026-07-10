@@ -72,7 +72,7 @@ struct Provider: TimelineProvider {
     }
 }
 
-struct widgetEntryView: View {
+struct CostItWidgetEntryView: View {
     var entry: CostEntry
 
     @ViewBuilder
@@ -140,12 +140,13 @@ struct widgetEntryView: View {
 }
 
 @main
-struct widget: Widget {
+struct CostItWidget: Widget {
+    // 홈 화면에 이미 배치된 위젯의 영속 식별자 — 값을 바꾸면 기존 위젯이 사라지므로 변경 금지
     let kind: String = "widget"
 
     var body: some WidgetConfiguration {
         StaticConfiguration(kind: kind, provider: Provider()) { entry in
-            widgetEntryView(entry: entry)
+            CostItWidgetEntryView(entry: entry)
         }
         .configurationDisplayName("코스트잇")
         .description("나의 코스트 배터리는 몇% 남았을까요?")
@@ -154,15 +155,14 @@ struct widget: Widget {
     }
 }
 
-struct widget_Previews: PreviewProvider {
-    static var previews: some View {
-        widgetEntryView(entry: CostEntry(
-            date: Date(),
-            nickname: "User",
-            remaining: 130_000,
-            outLay: 260_000,
-            isOver: false
-        ))
-        .previewContext(WidgetPreviewContext(family: .systemSmall))
-    }
+#Preview(as: .systemSmall) {
+    CostItWidget()
+} timeline: {
+    CostEntry(
+        date: Date(),
+        nickname: "User",
+        remaining: 130_000,
+        outLay: 260_000,
+        isOver: false
+    )
 }

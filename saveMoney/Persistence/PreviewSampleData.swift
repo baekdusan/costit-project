@@ -8,6 +8,7 @@ import SwiftData
 enum PreviewSampleData {
 
     // Preview 전용 in-memory 컨테이너 (데모 데이터 시드 완료 상태)
+    // try!는 Preview 전용이라 허용 — 실기기/배포 경로에서는 실행되지 않음
     static let container: ModelContainer = {
         let config = ModelConfiguration(isStoredInMemoryOnly: true)
         let container = try! ModelContainer(

@@ -63,8 +63,7 @@ enum PersistenceController {
             return groupURL.appendingPathComponent(storeFileName)
         }
         // App Group을 못 잡는 경우(개발 초기 등) 기본 위치 사용
-        let docs = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
-        return docs.appendingPathComponent(storeFileName)
+        return URL.applicationSupportDirectory.appendingPathComponent(storeFileName)
     }
 }
 
