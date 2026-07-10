@@ -80,9 +80,10 @@ struct CalendarView: View {
         selectedItems.filter { $0.isRevenue }.reduce(0) { $0 + $1.how }
     }
 
-    // 남은 기간 타이틀 (기존 calendarVC.setNavigationBar와 동일)
+    // 남은 기간 타이틀
     private var ddayTitle: String {
-        let dday = Calendar.current.dateComponents([.month, .day], from: Date(), to: end).day ?? 0
+        // [.month, .day]로 요청하면 day에 월을 뺀 나머지만 담겨 30일 이상 스팬에서 오표시 → [.day]만 사용
+        let dday = max(0, Calendar.current.dateComponents([.day], from: Date(), to: end).day ?? 0)
         switch dday {
         case 0: return "오늘이 마지막이에요!"
         case 1: return "하루 남았어요"
