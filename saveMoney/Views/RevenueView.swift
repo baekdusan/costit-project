@@ -1,11 +1,9 @@
 import SwiftUI
 import SwiftData
-import WidgetKit
 
 struct RevenueView: View {
 
     @Environment(\.modelContext) private var modelContext
-    @Environment(\.dismiss) private var swiftUIDismiss
 
     @Query(filter: #Predicate<FinDataEntity> { $0.isRevenue == true },
            sort: \FinDataEntity.when, order: .reverse)
@@ -22,7 +20,7 @@ struct RevenueView: View {
     // @State + onAppear 초기화 패턴은 UIHostingController로 직접 present될 때
     // onAppear가 발화하지 않아 빈 타이틀이 되는 문제가 있어 computed로 유지한다.
     private var navTitle: String {
-        customTitle ?? (initialStart.toString(false) + " ~ " + initialEnd.toString(false))
+        customTitle ?? (initialStart.toString() + " ~ " + initialEnd.toString())
     }
 
     init(start: Date, end: Date) {
@@ -46,7 +44,7 @@ struct RevenueView: View {
 
             ZStack {
                 // 배경 (backgroundColor asset — 라이트/다크 모드 대응)
-                Color("backgroundColor")
+                Color(.background)
                     .ignoresSafeArea()
                 Image("bg")
                     .resizable()
@@ -74,9 +72,9 @@ struct RevenueView: View {
                                 }
                             }
                             .frame(width: cardWidth)
-                            .background(Color("memoPaperColor"))
+                            .background(Color(.memoPaper))
                             .compositingGroup()
-                            .shadow(color: .black.opacity(0.08), radius: 6, y: 5)
+                            .paperShadow(y: 5)
                             .padding(.top, 15)
                         }
                         .frame(maxWidth: .infinity)
@@ -98,31 +96,17 @@ struct RevenueView: View {
                     Spacer()
                     HStack {
                         // 왼쪽: dismiss (애니메이션 없이 → 화면 전환처럼 보임)
-                        Button {
+                        CircleActionButton(systemName: "arrow.left.arrow.right", background: Color(.pin)) {
                             UIApplication.shared.appRootViewController?
                                 .presentedViewController?.dismiss(animated: false)
-                        } label: {
-                            Image(systemName: "arrow.left.arrow.right")
-                                .font(.system(size: 20, weight: .semibold))
-                                .frame(width: 60, height: 60)
-                                .background(Color("pinColor"))
-                                .foregroundStyle(Color("backgroundColor"))
-                                .clipShape(Circle())
                         }
                         .padding(.leading, 30)
 
                         Spacer()
 
                         // 오른쪽: 수입 추가
-                        Button {
-                            presentAddFin(mode: .new)
-                        } label: {
-                            Image(systemName: "highlighter")
-                                .font(.system(size: 20, weight: .semibold))
-                                .frame(width: 60, height: 60)
-                                .background(Color("pinColor"))
-                                .foregroundStyle(Color("backgroundColor"))
-                                .clipShape(Circle())
+                        CircleActionButton(systemName: "highlighter", background: Color(.pin)) {
+                            presentAddFin(source: .revenue, mode: .new)
                         }
                         .padding(.trailing, 30)
                     }
@@ -133,35 +117,23 @@ struct RevenueView: View {
             .ignoresSafeArea()
         }
         .ignoresSafeArea(.keyboard)
-        .alert("삭제", isPresented: Binding(
-            get: { deleteTarget != nil },
-            set: { if !$0 { deleteTarget = nil } }
-        )) {
-            Button("취소", role: .cancel) { deleteTarget = nil }
-            Button("확인") {
-                if let target = deleteTarget {
-                    deleteItem(target)
-                }
-                deleteTarget = nil
-            }
-        } message: {
-            Text("해당 수입 내역을 삭제해요.")
+        .deleteConfirmationAlert(item: $deleteTarget, message: "해당 수입 내역을 삭제해요.") {
+            deleteItem($0)
         }
     }
+
+    // MARK: - 화면 전환 (UIKit present)
 
     // 날짜 선택 시트를 UIKit으로 직접 present.
     // (RevenueView 자체가 UIKit으로 present된 호스트라, 그 위에 SwiftUI .sheet를 띄우면
     //  시트 안 버튼 탭이 전달되지 않는 문제가 있음 — AddFinView와 같은 패턴으로 회피)
     private func presentMonthSelector() {
         guard let root = UIApplication.shared.appRootViewController else { return }
-        var presenter = root
-        while let next = presenter.presentedViewController { presenter = next }
+        let presenter = root.topMostPresentedViewController
         guard !presenter.isBeingDismissed else { return }
 
         func dismissSheet() {
-            var top: UIViewController = root
-            while let next = top.presentedViewController { top = next }
-            top.dismiss(animated: true)
+            root.topMostPresentedViewController.dismiss(animated: true)
         }
 
         let host = UIHostingController(rootView: MonthSelectorSheet(
@@ -201,38 +173,22 @@ struct RevenueView: View {
             } label: {
                 Text(navTitle)
                     .font(.system(size: 12, weight: .semibold))
-                    .foregroundStyle(Color("customLabel"))
+                    .foregroundStyle(Color(.customLabel))
             }
         }
         .padding(.top, topInset)
     }
 
-    // 수입 추가/수정 화면을 UIKit으로 직접 present.
-    // (이전의 onChange(of: addMode != nil) 패턴은 편집→편집 연속 진입 시 발화하지 않는 버그가 있었음)
-    private func presentAddFin(mode: AddFinView.Mode) {
-        guard let root = UIApplication.shared.appRootViewController else { return }
-        // 최상단 VC에서 present (이미 다른 모달이 진행 중이면 그 위에 얹지 않고 무시됨 방지 +
-        // RevenueView가 루트로 뜨는 DEBUG 모드에서도 동작)
-        var presenter = root
-        while let next = presenter.presentedViewController { presenter = next }
-        guard !presenter.isBeingDismissed else { return }   // dismiss 진행 중인 VC 위에는 present하지 않음
-        let view = AddFinView(source: .revenue, mode: mode)
-            .modelContainer(PersistenceController.shared)
-            .dynamicTypeSize(.large)
-        let host = UIHostingController(rootView: view)
-        host.modalPresentationStyle = .overFullScreen
-        host.view.backgroundColor = .clear
-        presenter.present(host, animated: false)
-    }
+    // MARK: - 리스트 셀
 
     private func headerRow(cardWidth: CGFloat) -> some View {
         HStack {
             Text("이번 달 수입은")
-                .font(.custom("PretendardVariable-SemiBold", size: 18))
+                .font(.pretendard(.semiBold, size: 18))
                 .foregroundStyle(.primary)
             Spacer()
             Text("₩ \(totalAmount.toDecimal())")
-                .font(.custom("PretendardVariable-ExtraBold", size: 18))
+                .font(.pretendard(.extraBold, size: 18))
                 .foregroundStyle(.primary)
         }
         .padding(.horizontal, 12)
@@ -254,13 +210,13 @@ struct RevenueView: View {
             // 스토리보드 레이아웃: towhat과 금액이 셀 세로 중앙에서 수평 정렬, 날짜는 towhat 위 4pt.
             // 색: 날짜만 customLabel(회색조), towhat·금액은 기본 label 색
             Text(item.towhat)
-                .font(.custom("PretendardVariable-Medium", size: 14))
+                .font(.pretendard(.medium, size: 14))
                 .foregroundStyle(.primary)
                 .lineLimit(1)
                 .overlay(alignment: .topLeading) {
-                    Text(item.when.toString(false))
-                        .font(.custom("PretendardVariable-Medium", size: 12))
-                        .foregroundStyle(Color("customLabel"))
+                    Text(item.when.toString())
+                        .font(.pretendard(.medium, size: 12))
+                        .foregroundStyle(Color(.customLabel))
                         .fixedSize()
                         .offset(y: -18)   // 날짜 높이(≈14pt) + 간격 4pt만큼 위로
                 }
@@ -269,47 +225,25 @@ struct RevenueView: View {
             Spacer()
 
             Text("+ \(item.how.toDecimal())")
-                .font(.custom("PretendardVariable-SemiBold", size: 16))
+                .font(.pretendard(.semiBold, size: 16))
                 .foregroundStyle(.primary)
                 .padding(.trailing, 20)
         }
         .frame(width: cardWidth, height: 72)
         .contentShape(Rectangle())
         .onLongPressGesture {
-            presentAddFin(mode: .edit(item))
+            presentAddFin(source: .revenue, mode: .edit(item))
         }
     }
 
+    // MARK: - 데이터 조작
+
     private func deleteItem(_ item: FinDataEntity) {
-        modelContext.delete(item)
-        try? modelContext.save()
-        WidgetCenter.shared.reloadAllTimelines()
+        PersistenceController.delete(item, in: modelContext)
     }
 }
 
 // MARK: - Supporting Types
-
-// fullScreenCover의 배경을 투명하게 만들기 위한 UIKit 브리지
-struct ClearBackground: UIViewRepresentable {
-    func makeUIView(context: Context) -> UIView {
-        let view = UIView()
-        DispatchQueue.main.async {
-            view.superview?.superview?.backgroundColor = .clear
-        }
-        return view
-    }
-    func updateUIView(_ uiView: UIView, context: Context) {}
-}
-
-struct AddFinSheet: Identifiable {
-    let mode: AddFinView.Mode
-    var id: String {
-        switch mode {
-        case .new: return "new"
-        case .edit(let item): return "edit-\(item.externalID)"
-        }
-    }
-}
 
 struct MonthSelectorSheet: View {
     let onSelect: (Date, Date, String) -> Void
@@ -339,7 +273,7 @@ struct MonthSelectorSheet: View {
                 }
             }
             .font(.system(size: 17, weight: .semibold))
-            .tint(Color("customLabel"))
+            .tint(Color(.customLabel))
             .padding(.horizontal, 20)
             .padding(.top, 16)
             .padding(.bottom, 4)

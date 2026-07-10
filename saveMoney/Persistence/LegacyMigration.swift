@@ -19,9 +19,7 @@ enum LegacyMigration {
         static let fixedFinList = "fixedFinList"
         static let profile = "profile"
         static let salaryData = "salarydata"
-        static let firstOpen = "firstOpen"
 
-        static let migrated = "migration.userdefaults_to_swiftdata.v1"   // (구) 1회성 플래그 — 더 이상 판정에 사용하지 않음
         static let fingerprint = "migration.userdefaults_to_swiftdata.fingerprint"
     }
 
@@ -42,7 +40,6 @@ enum LegacyMigration {
 
             try context.save()
             defaults.set(current, forKey: Keys.fingerprint)
-            defaults.set(true, forKey: Keys.migrated)
         } catch {
             // 실패 시 컨텍스트만 폐기. UserDefaults는 그대로 → 다음 실행에서 재시도.
             print("[LegacyMigration] 실패: \(error)")

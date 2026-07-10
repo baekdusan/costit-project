@@ -2,9 +2,8 @@ import SwiftUI
 import SwiftData
 import UserNotifications
 
-// 고정 지출 관리 화면 — fixedExpenditureVC의 SwiftUI 대체.
-// SwiftData를 직접 사용하고, 점진 전환 기간 동안 NotificationCenter("toMainVC")로
-// mainVC/calendarVC의 UserDefaults 경로와 동기화를 유지한다.
+// 고정 지출 관리 화면 (CalendarView에서 fullScreenCover로 표시).
+// SwiftData를 직접 사용하고, 항목별 푸시 알림을 externalID 기준으로 등록/해제한다.
 struct FixedExpenditureView: View {
 
     @Environment(\.modelContext) private var modelContext
@@ -16,8 +15,7 @@ struct FixedExpenditureView: View {
     @Query private var profiles: [ProfileEntity]
 
     // 입력 상태
-    @State private var dayText: String = ""        // "n일" — 비어있으면 미선택
-    @State private var selectedDay: Int = 1
+    @State private var selectedDay: Int?           // nil이면 미선택 ("언제?" 표시)
     @State private var towhat: String = ""
     @State private var howText: String = ""
     @State private var showDayPicker: Bool = false
@@ -29,7 +27,7 @@ struct FixedExpenditureView: View {
     private let notificationCenter = UNUserNotificationCenter.current()
 
     private var nickName: String {
-        profiles.first?.nickName ?? "User"
+        (profiles.first?.asProfile ?? Profile()).nickName
     }
 
     private var totalCost: Int {
@@ -44,12 +42,12 @@ struct FixedExpenditureView: View {
     }
 
     private var canAdd: Bool {
-        !dayText.isEmpty && !towhat.isEmpty && !howText.isEmpty
+        selectedDay != nil && !towhat.isEmpty && !howText.isEmpty
     }
 
     var body: some View {
         ZStack {
-            Color("backgroundColor")
+            Color(.background)
                 .ignoresSafeArea()
                 .onTapGesture { focused = nil }
 
@@ -63,24 +61,14 @@ struct FixedExpenditureView: View {
                 itemList
             }
         }
-        .alert("삭제", isPresented: Binding(
-            get: { deleteTarget != nil },
-            set: { if !$0 { deleteTarget = nil } }
-        )) {
-            Button("취소", role: .cancel) { deleteTarget = nil }
-            Button("확인") {
-                if let target = deleteTarget {
-                    deleteItem(target)
-                }
-                deleteTarget = nil
-            }
-        } message: {
-            Text("해당 고정 지출 내역을 삭제해요.")
+        .deleteConfirmationAlert(item: $deleteTarget, message: "해당 고정 지출 내역을 삭제해요.") {
+            deleteItem($0)
         }
         .sheet(isPresented: $showDayPicker) {
-            DaySelectorSheet(selectedDay: $selectedDay) { day in
+            // 초기값만 넘기고 확정("설정") 시에만 부모 상태 갱신 — 시트를 스와이프로 닫으면
+            // 휠 값이 버려진다 (과거 @Binding 공유로 표시값과 저장값이 어긋나던 버그 수정)
+            DaySelectorSheet(initialDay: selectedDay ?? 1) { day in
                 selectedDay = day
-                dayText = "\(day)일"
                 showDayPicker = false
             }
             .presentationDetents([.fraction(0.4)])
@@ -100,7 +88,7 @@ struct FixedExpenditureView: View {
             } label: {
                 Image(systemName: "xmark")
                     .font(.system(size: 16, weight: .medium))
-                    .foregroundStyle(Color("customLabel"))
+                    .foregroundStyle(Color(.customLabel))
                     .frame(width: 44, height: 44)
             }
 
@@ -111,7 +99,7 @@ struct FixedExpenditureView: View {
             } label: {
                 Image(systemName: "plus")
                     .font(.system(size: 20, weight: .medium))
-                    .foregroundStyle(Color("fixedColor"))
+                    .foregroundStyle(Color(.fixed))
                     .frame(width: 44, height: 44)
             }
             .disabled(!canAdd)
@@ -121,7 +109,7 @@ struct FixedExpenditureView: View {
         .overlay {
             Text("📌 \(totalCost.toDecimal())원")
                 .font(.system(size: 12, weight: .semibold))
-                .foregroundStyle(Color("customLabel"))
+                .foregroundStyle(Color(.customLabel))
         }
         .padding(.horizontal, 8)
     }
@@ -134,24 +122,20 @@ struct FixedExpenditureView: View {
                 // 언제? — 탭하면 일(day) wheel picker sheet
                 Button {
                     focused = nil
-                    if dayText.isEmpty {
-                        selectedDay = 1
-                        dayText = "1일"
-                    }
                     showDayPicker = true
                 } label: {
-                    Text(dayText.isEmpty ? "언제?" : dayText)
-                        .font(.custom("PretendardVariable-Bold", size: 14))
-                        .foregroundStyle(dayText.isEmpty
+                    Text(selectedDay.map { "\($0)일" } ?? "언제?")
+                        .font(.pretendard(.bold, size: 14))
+                        .foregroundStyle(selectedDay == nil
                                          ? Color(uiColor: .placeholderText)
-                                         : Color("customLabel"))
+                                         : Color(.customLabel))
                         .frame(maxWidth: .infinity)
                 }
                 .frame(width: 70)
 
                 TextField("어디서?", text: $towhat)
-                    .font(.custom("PretendardVariable-SemiBold", size: 14))
-                    .foregroundStyle(Color("customLabel"))
+                    .font(.pretendard(.semiBold, size: 14))
+                    .foregroundStyle(Color(.customLabel))
                     .multilineTextAlignment(.center)
                     .focused($focused, equals: .towhat)
                     .submitLabel(.next)
@@ -161,19 +145,15 @@ struct FixedExpenditureView: View {
                     }
 
                 TextField("얼마?", text: $howText)
-                    .font(.custom("PretendardVariable-SemiBold", size: 14))
-                    .foregroundStyle(Color("customLabel"))
+                    .font(.pretendard(.semiBold, size: 14))
+                    .foregroundStyle(Color(.customLabel))
                     .multilineTextAlignment(.center)
                     .keyboardType(.numberPad)
                     .focused($focused, equals: .how)
                     .onChange(of: howText) { _, new in
                         // 실시간 반점 + 11자(반점 포함) 제한
-                        let raw = new.replacingOccurrences(of: ",", with: "")
-                        if raw.isEmpty {
-                            howText = ""
-                        } else if let int = Int(raw) {
-                            let formatted = int.toDecimal()
-                            howText = formatted.count > 11 ? String(formatted.prefix(11)) : formatted
+                        if let formatted = new.currencyInputFormatted(limit: .formattedChars(11), onParseFailure: .keepAsIs) {
+                            howText = formatted
                         }
                     }
             }
@@ -181,7 +161,7 @@ struct FixedExpenditureView: View {
 
             // 하단 줄 (fixedColor 1.5pt)
             Rectangle()
-                .fill(Color("fixedColor"))
+                .fill(Color(.fixed))
                 .frame(height: 1.5)
         }
         .toolbar {
@@ -201,8 +181,8 @@ struct FixedExpenditureView: View {
         ScrollView {
             LazyVStack(alignment: .leading, spacing: 0) {
                 ForEach(groupedByDay, id: \.day) { group in
-                    // 섹션 헤더 "n일"
-                    Text("\(group.day)일")
+                    // 섹션 헤더 "n일" (정수 보간 Text는 LocalizedStringKey 콤마 함정 예방 위해 verbatim)
+                    Text(verbatim: "\(group.day)일")
                         .font(.system(size: 12, weight: .bold))
                         .opacity(0.4)
                         .frame(height: 36)
@@ -223,31 +203,28 @@ struct FixedExpenditureView: View {
         VStack(spacing: 0) {
             HStack(spacing: 0) {
                 Text(item.towhat)
-                    .font(.custom("PretendardVariable-SemiBold", size: 14))
-                    .foregroundStyle(Color("customLabel"))
+                    .font(.pretendard(.semiBold, size: 14))
+                    .foregroundStyle(Color(.customLabel))
                     .lineLimit(1)
 
                 Spacer()
 
                 Text("\(item.how.toDecimal()) 원")
-                    .font(.custom("PretendardVariable-SemiBold", size: 16))
-                    .foregroundStyle(Color("customLabel"))
+                    .font(.pretendard(.semiBold, size: 16))
+                    .foregroundStyle(Color(.customLabel))
 
                 Button {
                     deleteTarget = item
                 } label: {
                     Image(systemName: "trash.square")
                         .font(.system(size: 22))
-                        .foregroundStyle(Color("fixedColor"))
+                        .foregroundStyle(Color(.fixed))
                         .frame(width: 50, height: 50)
                 }
             }
             .frame(height: 36)
 
-            // 행 하단 줄 (systemGray6 1.5pt)
-            Rectangle()
-                .fill(Color(uiColor: .systemGray6))
-                .frame(height: 1.5)
+            HairlineDivider()
         }
         .padding(.horizontal, 24)
     }
@@ -255,14 +232,15 @@ struct FixedExpenditureView: View {
     // MARK: - 데이터 조작
 
     private func addItem() {
-        guard canAdd else { return }
+        guard let day = selectedDay, canAdd else { return }
 
         let entity = FixedExpenditureEntity(
-            day: selectedDay,
+            day: day,
             towhat: towhat,
             how: howText.toInt()
         )
         modelContext.insert(entity)
+        // 위젯이 FixedExpenditureEntity를 표시하지 않으므로 타임라인 리로드는 생략 (일반 save)
         try? modelContext.save()
 
         // 푸시 알림 등록 (externalID를 식별자로 사용)
@@ -272,7 +250,7 @@ struct FixedExpenditureView: View {
         )
 
         // 입력 초기화
-        dayText = ""
+        selectedDay = nil
         towhat = ""
         howText = ""
         focused = nil
@@ -282,6 +260,7 @@ struct FixedExpenditureView: View {
     private func deleteItem(_ item: FixedExpenditureEntity) {
         notificationCenter.removePendingNotificationRequests(withIdentifiers: [item.externalID])
         modelContext.delete(item)
+        // 위젯이 FixedExpenditureEntity를 표시하지 않으므로 타임라인 리로드는 생략 (일반 save)
         try? modelContext.save()
     }
 
@@ -290,7 +269,7 @@ struct FixedExpenditureView: View {
     private func requestNotificationAuthorization() {
         #if DEBUG
         // 스크린샷 자동화(SHOW_SCREEN) 시 시스템 알림 권한 팝업이 화면을 가리지 않도록 스킵
-        if ProcessInfo.processInfo.environment["SHOW_SCREEN"] != nil { return }
+        if ProcessInfo.processInfo.environment[LaunchEnvKeys.showScreen] != nil { return }
         #endif
         notificationCenter.requestAuthorization(options: [.alert, .sound, .badge]) { _, error in
             if let error = error {
@@ -314,7 +293,7 @@ struct FixedExpenditureView: View {
     // MARK: - Dismiss
 
     private func performDismiss() {
-        // calendarVC가 직접 present한 UIHostingController이므로 SwiftUI dismiss로 충분
+        // CalendarView가 fullScreenCover로 띄우므로 SwiftUI dismiss로 충분
         swiftUIDismiss()
     }
 }
@@ -322,21 +301,26 @@ struct FixedExpenditureView: View {
 // MARK: - 일(day) 선택 시트
 
 struct DaySelectorSheet: View {
-    @Binding var selectedDay: Int
+    @State private var day: Int
     let onConfirm: (Int) -> Void
+
+    init(initialDay: Int, onConfirm: @escaping (Int) -> Void) {
+        _day = State(initialValue: initialDay)
+        self.onConfirm = onConfirm
+    }
 
     var body: some View {
         NavigationStack {
-            Picker("일", selection: $selectedDay) {
+            Picker("일", selection: $day) {
                 ForEach(1...31, id: \.self) { day in
-                    Text("\(day)일").tag(day)
+                    Text(verbatim: "\(day)일").tag(day)
                 }
             }
             .pickerStyle(.wheel)
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {
                     Button("설정") {
-                        onConfirm(selectedDay)
+                        onConfirm(day)
                     }
                 }
             }

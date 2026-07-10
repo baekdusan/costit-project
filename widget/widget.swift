@@ -44,14 +44,17 @@ struct Provider: TimelineProvider {
     private func loadEntry(date: Date = Date()) -> CostEntry {
         let context = ModelContext(PersistenceController.shared)
 
-        let profile = (try? context.fetch(FetchDescriptor<ProfileEntity>()))?.first
-        let salary = (try? context.fetch(FetchDescriptor<SalaryPeriodEntity>()))?.first
+        var profileDescriptor = FetchDescriptor<ProfileEntity>()
+        profileDescriptor.fetchLimit = 1
+        var salaryDescriptor = FetchDescriptor<SalaryPeriodEntity>()
+        salaryDescriptor.fetchLimit = 1
 
-        let nickname = profile?.nickName ?? "User"
-        let outLay = profile?.outLay ?? 0
+        // 엔티티 없을 때 기본값은 앱과 동일하게 Profile()/SalaryDate()를 단일 소스로 사용
+        let profile = (try? context.fetch(profileDescriptor))?.first?.asProfile ?? Profile()
+        let salary = (try? context.fetch(salaryDescriptor))?.first?.asSalaryDate ?? SalaryDate()
 
-        let start = salary?.startDate ?? Date().startOfThisMonth
-        let end = salary?.endDate ?? Date().endOfThisMonth
+        let start = salary.startDate
+        let end = salary.endDate
 
         let predicate = #Predicate<FinDataEntity> {
             $0.isRevenue == false && $0.when >= start && $0.when <= end
@@ -59,20 +62,17 @@ struct Provider: TimelineProvider {
         let expenses = (try? context.fetch(FetchDescriptor<FinDataEntity>(predicate: predicate))) ?? []
         let total = expenses.reduce(0) { $0 + $1.how }
 
-        let remaining = outLay - total
-        let isOver = total >= outLay
-
         return CostEntry(
             date: date,
-            nickname: nickname,
-            remaining: remaining,
-            outLay: outLay,
-            isOver: isOver
+            nickname: profile.nickName,
+            remaining: profile.outLay - total,
+            outLay: profile.outLay,
+            isOver: total >= profile.outLay
         )
     }
 }
 
-struct widgetEntryView: View {
+struct CostItWidgetEntryView: View {
     var entry: CostEntry
 
     @ViewBuilder
@@ -107,7 +107,7 @@ struct widgetEntryView: View {
                     .opacity(0.72)
 
                 HStack(alignment: .bottom, spacing: 0) {
-                    Text("\(percent)%")
+                    Text(verbatim: "\(percent)%")
                         .font(.system(size: 28, weight: .semibold))
                         .frame(width: geometry.size.width * 0.45, alignment: .leading)
                         .opacity(0.84)
@@ -125,7 +125,7 @@ struct widgetEntryView: View {
                    alignment: .center)
 
             ZStack(alignment: .leading) {
-                Color("WidgetStatusBarBackground")
+                Color(.widgetStatusBarBackground)
                     .frame(width: geometry.size.width, height: geometry.size.height * 0.08)
                 color
                     .frame(width: geometry.size.width * CGFloat(percent) / 100,
@@ -135,52 +135,34 @@ struct widgetEntryView: View {
                    height: geometry.size.height,
                    alignment: .bottom)
         }
-        .widgetBackground(Color("WidgetBackground"))
+        .containerBackground(Color(.widgetBackground), for: .widget)
     }
 }
 
 @main
-struct widget: Widget {
+struct CostItWidget: Widget {
+    // 홈 화면에 이미 배치된 위젯의 영속 식별자 — 값을 바꾸면 기존 위젯이 사라지므로 변경 금지
     let kind: String = "widget"
 
     var body: some WidgetConfiguration {
         StaticConfiguration(kind: kind, provider: Provider()) { entry in
-            widgetEntryView(entry: entry)
+            CostItWidgetEntryView(entry: entry)
         }
         .configurationDisplayName("코스트잇")
         .description("나의 코스트 배터리는 몇% 남았을까요?")
         .supportedFamilies([.systemSmall])
-        .contentMarginsDisabledIfAvailable()
+        .contentMarginsDisabled()
     }
 }
 
-struct widget_Previews: PreviewProvider {
-    static var previews: some View {
-        widgetEntryView(entry: CostEntry(
-            date: Date(),
-            nickname: "User",
-            remaining: 130_000,
-            outLay: 260_000,
-            isOver: false
-        ))
-        .previewContext(WidgetPreviewContext(family: .systemSmall))
-    }
-}
-
-extension View {
-    func widgetBackground(_ backgroundColor: Color) -> some View {
-        if #available(iOSApplicationExtension 17.0, *) {
-            return self.containerBackground(backgroundColor, for: .widget)
-        } else {
-            return self.background(backgroundColor)
-        }
-    }
-}
-
-extension WidgetConfiguration {
-    func contentMarginsDisabledIfAvailable() -> some WidgetConfiguration {
-        if #available(iOSApplicationExtension 17.0, *) {
-            return self.contentMarginsDisabled()
-        } else { return self }
-    }
+#Preview(as: .systemSmall) {
+    CostItWidget()
+} timeline: {
+    CostEntry(
+        date: Date(),
+        nickname: "User",
+        remaining: 130_000,
+        outLay: 260_000,
+        isOver: false
+    )
 }

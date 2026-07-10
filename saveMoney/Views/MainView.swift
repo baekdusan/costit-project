@@ -1,22 +1,5 @@
 import SwiftUI
 import SwiftData
-import WidgetKit
-
-// MARK: - 키 윈도우 탐색 (UIKit present/dismiss 공통 헬퍼)
-// windows.first는 키보드/권한 다이얼로그 등 시스템 윈도우가 잡힐 수 있으므로
-// isKeyWindow 기준으로 앱 윈도우를 찾는다.
-extension UIApplication {
-    var appKeyWindow: UIWindow? {
-        let windows = connectedScenes
-            .compactMap { $0 as? UIWindowScene }
-            .flatMap(\.windows)
-        return windows.first(where: \.isKeyWindow) ?? windows.first
-    }
-
-    var appRootViewController: UIViewController? {
-        appKeyWindow?.rootViewController
-    }
-}
 
 // mainVC를 SwiftUI로 옮긴 버전 — 앱의 루트 화면 (SceneDelegate에서 직접 띄움).
 // SwiftData만 사용한다. UserDefaults에는 더 이상 데이터를 기록하지 않으며
@@ -49,17 +32,11 @@ struct MainView: View {
     // MARK: - 파생 데이터
 
     private var userProfile: Profile {
-        if let entity = profiles.first {
-            return Profile(nickName: entity.nickName, outLay: entity.outLay, period: entity.period)
-        }
-        return Profile()
+        profiles.first?.asProfile ?? Profile()
     }
 
     private var salaryData: SalaryDate {
-        if let entity = salaryPeriods.first {
-            return SalaryDate(startDate: entity.startDate, endDate: entity.endDate)
-        }
-        return SalaryDate()
+        salaryPeriods.first?.asSalaryDate ?? SalaryDate()
     }
 
     private var currentRange: (start: Date, end: Date) {
@@ -108,7 +85,7 @@ struct MainView: View {
     private var navTitle: String {
         switch displayRange {
         case .salaryPeriod:
-            return salaryData.startDate.toString(false) + " ~ " + salaryData.endDate.toString(false)
+            return salaryData.startDate.toString() + " ~ " + salaryData.endDate.toString()
         case .custom(_, _, let label):
             return label
         }
@@ -124,21 +101,7 @@ struct MainView: View {
 
                 ZStack {
                     VStack(spacing: 0) {
-                        // 잔액 헤더
-                        VStack(alignment: .trailing, spacing: 6) {
-                            Text(balanceText)
-                                .font(.custom("PretendardVariable-SemiBold", size: 32))
-                                .opacity(0.78)
-                                .lineLimit(1)
-                                .minimumScaleFactor(0.5)
-                            Text(balanceConditionText)
-                                .font(.custom("PretendardVariable-Medium", size: 16))
-                                .opacity(0.48)
-                        }
-                        .frame(maxWidth: .infinity, alignment: .trailing)
-                        .padding(.top, 2)
-                        .padding(.trailing, 18)
-                        .padding(.leading, 18)
+                        BalanceHeader(balance: balanceText, condition: balanceConditionText)
 
                         // 지출 메모지 그리드
                         ScrollView(showsIndicators: false) {
@@ -169,29 +132,15 @@ struct MainView: View {
                     VStack {
                         Spacer()
                         HStack {
-                            Button {
+                            CircleActionButton(systemName: "arrow.left.arrow.right", background: Color(.header)) {
                                 presentRevenue()
-                            } label: {
-                                Image(systemName: "arrow.left.arrow.right")
-                                    .font(.system(size: 20, weight: .semibold))
-                                    .frame(width: 60, height: 60)
-                                    .background(Color("HeaderColor"))
-                                    .foregroundStyle(Color("backgroundColor"))
-                                    .clipShape(Circle())
                             }
                             .padding(.leading, 30)
 
                             Spacer()
 
-                            Button {
-                                presentAddFin(mode: .new)
-                            } label: {
-                                Image(systemName: "highlighter")
-                                    .font(.system(size: 20, weight: .semibold))
-                                    .frame(width: 60, height: 60)
-                                    .background(Color("HeaderColor"))
-                                    .foregroundStyle(Color("backgroundColor"))
-                                    .clipShape(Circle())
+                            CircleActionButton(systemName: "highlighter", background: Color(.header)) {
+                                presentAddFin(source: .expense, mode: .new)
                             }
                             .padding(.trailing, 30)
                         }
@@ -200,22 +149,7 @@ struct MainView: View {
                 }
             }
             .background {
-                // 배경: backgroundColor + 상단 그라데이션 (기존 topView)
-                ZStack(alignment: .top) {
-                    Color("backgroundColor")
-                    VStack(spacing: 0) {
-                        LinearGradient(
-                            colors: [
-                                Color("topViewColor"),
-                                Color("backgroundColor").opacity(0)
-                            ],
-                            startPoint: .top, endPoint: .bottom
-                        )
-                        .frame(height: 175)
-                        Spacer(minLength: 0)
-                    }
-                }
-                .ignoresSafeArea()
+                MainBackground()
             }
             .navigationBarTitleDisplayMode(.inline)
             .toolbarBackground(.hidden, for: .navigationBar)
@@ -225,7 +159,7 @@ struct MainView: View {
                         showProfileEditor = true
                     } label: {
                         Image(systemName: "person.fill")
-                            .foregroundStyle(Color("customLabel"))
+                            .foregroundStyle(Color(.customLabel))
                     }
                 }
 
@@ -236,7 +170,7 @@ struct MainView: View {
                     } label: {
                         Text(navTitle)
                             .font(.system(size: 12, weight: .semibold))
-                            .foregroundStyle(Color("customLabel"))
+                            .foregroundStyle(Color(.customLabel))
                     }
                 }
 
@@ -245,7 +179,7 @@ struct MainView: View {
                         showCalendar = true
                     } label: {
                         Image(systemName: "calendar.badge.clock")
-                            .foregroundStyle(Color("customLabel"))
+                            .foregroundStyle(Color(.customLabel))
                     }
                 }
             }
@@ -278,26 +212,15 @@ struct MainView: View {
                 )
                 .presentationDetents([.fraction(0.4)])
             }
-            .alert("삭제", isPresented: Binding(
-                get: { deleteTarget != nil },
-                set: { if !$0 { deleteTarget = nil } }
-            )) {
-                Button("취소", role: .cancel) { deleteTarget = nil }
-                Button("확인") {
-                    if let target = deleteTarget {
-                        deleteExpense(target)
-                    }
-                    deleteTarget = nil
-                }
-            } message: {
-                Text("해당 지출 내역을 삭제해요.")
+            .deleteConfirmationAlert(item: $deleteTarget, message: "해당 지출 내역을 삭제해요.") {
+                deleteExpense($0)
             }
             .onAppear {
                 rolloverSalaryPeriodIfNeeded()
 
                 // 첫 실행 감지 → 온보딩
                 // (NavigationStack 설치가 끝나기 전에 isPresented를 켜면 push가 무시될 수 있어 한 틱 지연)
-                if UserDefaults.standard.bool(forKey: "firstOpen") == false {
+                if UserDefaults.standard.bool(forKey: AppKeys.firstOpen) == false {
                     DispatchQueue.main.async {
                         showOnboarding = true
                     }
@@ -320,9 +243,9 @@ struct MainView: View {
 
         return VStack(alignment: .leading, spacing: 2) {
             Text(section.date.onlydate() + "일")
-                .font(.custom("PretendardVariable-SemiBold", size: 20))
+                .font(.pretendard(.semiBold, size: 20))
             Text(total.toDecimal() + "원")
-                .font(.custom("PretendardVariable-Medium", size: 14))
+                .font(.pretendard(.medium, size: 14))
                 .opacity(0.2)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
@@ -332,12 +255,12 @@ struct MainView: View {
 
     private func expenseCard(_ item: FinDataEntity, size: CGFloat) -> some View {
         ZStack {
-            Color("memoPaperColor")
+            Color(.memoPaper)
 
             VStack(alignment: .leading, spacing: 0) {
                 HStack(alignment: .top) {
-                    Text(item.when.toString(false))
-                        .font(.custom("PretendardVariable-Regular", size: 12))
+                    Text(item.when.toString())
+                        .font(.pretendard(.regular, size: 12))
                         .padding(.top, 8)
 
                     Spacer()
@@ -353,7 +276,7 @@ struct MainView: View {
                 }
 
                 Text(item.towhat)
-                    .font(.custom("PretendardVariable-Medium", size: 16))
+                    .font(.pretendard(.medium, size: 16))
                     .lineLimit(2)
                     .multilineTextAlignment(.leading)
                     .padding(.top, 12)
@@ -361,7 +284,7 @@ struct MainView: View {
                 Spacer()
 
                 Text(item.how == 0 ? "무료" : "- " + item.how.toDecimal())
-                    .font(.custom("PretendardVariable-Bold", size: 18))
+                    .font(.pretendard(.bold, size: 18))
                     .opacity(0.84)
                     .frame(maxWidth: .infinity, alignment: .trailing)
             }
@@ -370,27 +293,14 @@ struct MainView: View {
             .padding(.bottom, 18)
         }
         .frame(width: size, height: size)
-        .shadow(color: .black.opacity(0.08), radius: 6, y: 6)
+        .paperShadow(y: 6)
         .onLongPressGesture {
-            presentAddFin(mode: .edit(item))
+            presentAddFin(source: .expense, mode: .edit(item))
         }
     }
 
-    // MARK: - 화면 전환 (AddFinView / RevenueView는 투명 배경 위해 UIKit present)
-
-    private var rootViewController: UIViewController? {
-        UIApplication.shared.appRootViewController
-    }
-
-    private func presentAddFin(mode: AddFinView.Mode) {
-        let view = AddFinView(source: .expense, mode: mode)
-            .modelContainer(PersistenceController.shared)
-            .dynamicTypeSize(.large)
-        let host = UIHostingController(rootView: view)
-        host.modalPresentationStyle = .overFullScreen
-        host.view.backgroundColor = .clear
-        rootViewController?.present(host, animated: false)
-    }
+    // MARK: - 화면 전환 (AddFinView / RevenueView는 투명 배경/즉시 전환 위해 UIKit present)
+    // AddFinView는 공용 presentAddFin(source:mode:) 경로 사용 (UIKitPresentation.swift)
 
     private func presentRevenue() {
         let view = RevenueView(start: salaryData.startDate, end: salaryData.endDate)
@@ -398,92 +308,111 @@ struct MainView: View {
             .dynamicTypeSize(.large)
         let host = UIHostingController(rootView: view)
         host.modalPresentationStyle = .fullScreen
-        rootViewController?.present(host, animated: false)
+        UIApplication.shared.appRootViewController?.present(host, animated: false)
     }
 
     // MARK: - 데이터 조작
 
     private func deleteExpense(_ item: FinDataEntity) {
-        modelContext.delete(item)
-        try? modelContext.save()
-        WidgetCenter.shared.reloadAllTimelines()
+        PersistenceController.delete(item, in: modelContext)
     }
 
     // 프로필 입력 처리 (온보딩 / 프로필 수정 공통 — 기존 handleProfileInput과 동일)
     private func handleProfileInput(nickname: String, outLay: Int, period: String) {
-        UserDefaults.standard.setValue(true, forKey: "firstOpen")
+        UserDefaults.standard.setValue(true, forKey: AppKeys.firstOpen)
 
         // 프로필 upsert
-        let profileEntity: ProfileEntity
-        if let existing = profiles.first {
-            profileEntity = existing
-        } else {
-            profileEntity = ProfileEntity()
-            modelContext.insert(profileEntity)
-        }
+        let profileEntity = profiles.first ?? {
+            let entity = ProfileEntity()
+            modelContext.insert(entity)
+            return entity
+        }()
         profileEntity.nickName = nickname
         profileEntity.outLay = outLay
         profileEntity.period = period
 
         // 급여일 기준으로 정산 기간 재설정
-        let newPeriod = Self.setSalaryDate(period)
-        let periodEntity: SalaryPeriodEntity
-        if let existing = salaryPeriods.first {
-            periodEntity = existing
-        } else {
-            periodEntity = SalaryPeriodEntity()
-            modelContext.insert(periodEntity)
-        }
+        let newPeriod = SalaryDate.period(forSalaryDay: period)
+        let periodEntity = salaryPeriods.first ?? {
+            let entity = SalaryPeriodEntity()
+            modelContext.insert(entity)
+            return entity
+        }()
         periodEntity.startDate = newPeriod.startDate
         periodEntity.endDate = newPeriod.endDate
 
-        try? modelContext.save()
         displayRange = .salaryPeriod
-        WidgetCenter.shared.reloadAllTimelines()
+        PersistenceController.saveAndRefreshWidgets(modelContext)
     }
 
     // 오늘이 정산 기간을 넘어가면 프로필 급여일에 맞춰 기간 갱신 (기존 viewDidLoad 로직)
     private func rolloverSalaryPeriodIfNeeded() {
         guard let entity = salaryPeriods.first else { return }
+        var changed = false
+
+        // 구버전 '마지막 날' 로직이 저장한 start(말일 23:59:59)를 즉시 교정 — 정상 기간의
+        // start는 항상 그 날 00:00이므로 정당한 값은 건드리지 않음 (endDate 불변이라 rollover 무영향)
+        if entity.startDate != entity.startDate.startOfDay {
+            entity.startDate = entity.startDate.startOfDay
+            changed = true
+        }
+
         if Date() > entity.endDate {
-            let newPeriod = Self.setSalaryDate(userProfile.period)
+            let newPeriod = SalaryDate.period(forSalaryDay: userProfile.period)
             entity.startDate = newPeriod.startDate
             entity.endDate = newPeriod.endDate
-            try? modelContext.save()
-            WidgetCenter.shared.reloadAllTimelines()   // 기간이 바뀌었으니 위젯도 갱신
+            changed = true
+        }
+
+        if changed {
+            PersistenceController.saveAndRefreshWidgets(modelContext)   // 기간이 바뀌었으니 위젯도 갱신
         }
     }
+}
 
-    // 급여일 문자열("1일", "29일", "마지막 날")로 한 달 정산 기간 계산 (기존 mainVC.setSalaryDate)
-    static func setSalaryDate(_ salary: String) -> SalaryDate {
-        let formatter = DateFormatter()
-        formatter.locale = Locale(identifier: "ko")
-        // 디바이스가 비양력 캘린더(불교력 등)여도 양력 기준 일자를 얻도록 고정
-        formatter.calendar = Calendar(identifier: .gregorian)
-        formatter.dateFormat = "dd"
-        let today = Int(formatter.string(from: Date())) ?? 1
+// MARK: - 서브뷰
 
-        if salary == "마지막 날" {
-            let endOfMonthDay = Int(formatter.string(from: Date().endOfThisMonth)) ?? 28
-            if today == endOfMonthDay {
-                return SalaryDate(startDate: Date().endOfThisMonth, endDate: Date().yesterdayOfEndOfNextMonth)
+// 잔액 헤더 (우측 정렬 잔액 + 조건 문구)
+private struct BalanceHeader: View {
+    let balance: String
+    let condition: String
+
+    var body: some View {
+        VStack(alignment: .trailing, spacing: 6) {
+            Text(balance)
+                .font(.pretendard(.semiBold, size: 32))
+                .opacity(0.78)
+                .lineLimit(1)
+                .minimumScaleFactor(0.5)
+            Text(condition)
+                .font(.pretendard(.medium, size: 16))
+                .opacity(0.48)
+        }
+        .frame(maxWidth: .infinity, alignment: .trailing)
+        .padding(.top, 2)
+        .padding(.trailing, 18)
+        .padding(.leading, 18)
+    }
+}
+
+// 배경: backgroundColor + 상단 그라데이션 (기존 topView)
+private struct MainBackground: View {
+    var body: some View {
+        ZStack(alignment: .top) {
+            Color(.background)
+            VStack(spacing: 0) {
+                LinearGradient(
+                    colors: [
+                        Color(.topView),
+                        Color(.background).opacity(0)
+                    ],
+                    startPoint: .top, endPoint: .bottom
+                )
+                .frame(height: 175)
+                Spacer(minLength: 0)
             }
-            return SalaryDate(startDate: Date().endOfLastMonth, endDate: Date().yesterdayOfEndOfThisMonth)
         }
-
-        if salary == "1일" {
-            return SalaryDate(startDate: Date().startOfThisMonth, endDate: Date().endOfThisMonth)
-        }
-
-        // "29일" → 29 추출
-        let digits = salary.filter { $0.isNumber }
-        let salaryDay = Int(digits) ?? 1
-
-        if today >= salaryDay {
-            return SalaryDate(startDate: Date().startOfSomeDay(salaryDay), endDate: Date().endOfSomeDay(salaryDay))
-        } else {
-            return SalaryDate(startDate: Date().startOfLastSomeDay(salaryDay), endDate: Date().endOfLastSomeDay(salaryDay))
-        }
+        .ignoresSafeArea()
     }
 }
 

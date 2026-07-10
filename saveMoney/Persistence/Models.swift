@@ -48,7 +48,8 @@ final class FixedExpenditureEntity {
 
 @Model
 final class ProfileEntity {
-    // 단일 인스턴스 보장용 슬롯 (항상 "default")
+    // 현재 미사용 — 추후 CloudKit 중복 dedup용으로 예약 (항상 "default").
+    // CloudKit 스키마가 이미 배포됐으므로 제거 금지.
     var slot: String = "default"
     var nickName: String = "User"
     var outLay: Int = 0
@@ -67,6 +68,7 @@ final class ProfileEntity {
 
 @Model
 final class SalaryPeriodEntity {
+    // ProfileEntity.slot과 동일한 예약 프로퍼티 — 제거 금지
     var slot: String = "default"
     var startDate: Date = Date()
     var endDate: Date = Date()
@@ -77,5 +79,21 @@ final class SalaryPeriodEntity {
         self.slot = slot
         self.startDate = startDate
         self.endDate = endDate
+    }
+}
+
+// MARK: - 값 모델 변환
+// 뷰/위젯의 "엔티티 없으면 기본값" fallback이 전부 Profile()/SalaryDate() 기본값을
+// 단일 소스로 쓰도록 하는 변환 헬퍼 (예: profiles.first?.asProfile ?? Profile())
+
+extension ProfileEntity {
+    var asProfile: Profile {
+        Profile(nickName: nickName, outLay: outLay, period: period)
+    }
+}
+
+extension SalaryPeriodEntity {
+    var asSalaryDate: SalaryDate {
+        SalaryDate(startDate: startDate, endDate: endDate)
     }
 }

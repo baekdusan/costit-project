@@ -8,6 +8,7 @@ import SwiftData
 enum PreviewSampleData {
 
     // Preview 전용 in-memory 컨테이너 (데모 데이터 시드 완료 상태)
+    // try!는 Preview 전용이라 허용 — 실기기/배포 경로에서는 실행되지 않음
     static let container: ModelContainer = {
         let config = ModelConfiguration(isStoredInMemoryOnly: true)
         let container = try! ModelContainer(
@@ -78,6 +79,6 @@ enum PreviewSampleData {
         try? context.save()
 
         // 첫 실행 온보딩을 건너뛰고 메인 그리드가 바로 보이게
-        UserDefaults.standard.setValue(true, forKey: "firstOpen")
+        UserDefaults.standard.setValue(true, forKey: AppKeys.firstOpen)
     }
 }

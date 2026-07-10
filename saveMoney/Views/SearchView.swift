@@ -76,40 +76,27 @@ struct SearchView: View {
     private func rowCell(_ item: FinDataEntity) -> some View {
         VStack(spacing: 0) {
             HStack(spacing: 18) {
-                Text(Self.shortDate(item.when))
-                    .font(.custom("PretendardVariable-Regular", size: 12))
-                    .foregroundStyle(Color("customLabel"))
+                // "26. 05. 08" 형식 (yy. MM. dd). 셀에서만 쓰는 짧은 표기.
+                Text(AppDateFormatters.shortDate.string(from: item.when))
+                    .font(.pretendard(.regular, size: 12))
+                    .foregroundStyle(Color(.customLabel))
                     .fixedSize()
 
                 Text(item.towhat)
-                    .font(.custom("PretendardVariable-Medium", size: 14))
+                    .font(.pretendard(.medium, size: 14))
                     .frame(maxWidth: .infinity, alignment: .leading)
                     .lineLimit(2)
 
                 Text("\(item.how.toDecimal()) 원")
-                    .font(.custom("PretendardVariable-SemiBold", size: 16))
+                    .font(.pretendard(.semiBold, size: 16))
                     .fixedSize()
             }
             .padding(.vertical, 18)
 
-            Rectangle()
-                .fill(Color(.systemGray6))
-                .frame(height: 1.5)
+            HairlineDivider()
         }
     }
 
-    // "26. 05. 08" 형식 (yy. MM. dd). 셀에서만 쓰는 짧은 표기.
-    private static let shortDateFormatter: DateFormatter = {
-        let f = DateFormatter()
-        f.calendar = Calendar(identifier: .gregorian)
-        f.locale = Locale(identifier: "ko_KR")
-        f.dateFormat = "yy. MM. dd"
-        return f
-    }()
-
-    private static func shortDate(_ date: Date) -> String {
-        shortDateFormatter.string(from: date)
-    }
 }
 
 #Preview {

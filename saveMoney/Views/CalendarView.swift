@@ -22,7 +22,7 @@ struct CalendarView: View {
         #if DEBUG
         // 디자인 검증/스크린샷 캡처 시 결제 있는 날(이번 달 13일)을 미리 선택해
         // 하단에 해당 날짜 내역이 보이도록 한다.
-        if ProcessInfo.processInfo.environment["SHOW_SCREEN"] == "calendar" {
+        if ProcessInfo.processInfo.environment[LaunchEnvKeys.showScreen] == "calendar" {
             return Calendar.current.date(byAdding: .day, value: 12, to: Date().startOfThisMonth) ?? Date()
         }
         #endif
@@ -31,32 +31,28 @@ struct CalendarView: View {
     @State private var displayedMonth: Date = Date().startOfThisMonth
     @State private var showFixedExpenditure: Bool = false
 
-    private static let dayKeyFormatter: DateFormatter = {
-        let f = DateFormatter()
-        f.dateFormat = "yyyyMMdd"
-        return f
-    }()
-
-    private func dayKey(_ date: Date) -> String {
-        Self.dayKeyFormatter.string(from: date)
-    }
-
     // MARK: - 파생 데이터
 
     private var expenses: [FinDataEntity] { allFin.filter { !$0.isRevenue } }
     private var revenues: [FinDataEntity] { allFin.filter { $0.isRevenue } }
 
-    // 날짜(yyyyMMdd)별 지출 총액 — 달력 점 색상 계산용
-    private var expenseTotalsByDay: [String: Int] {
-        var totals: [String: Int] = [:]
-        for item in expenses {
-            totals[dayKey(item.when), default: 0] += item.how
-        }
-        return totals
+    // 날짜(그 날 00:00)별 그룹핑 — 모든 일 단위 파생의 단일 소스 (MainView.sections와 동일 규칙).
+    // 파생 프로퍼티들이 각자 재계산하지 않도록 body에서 1회만 계산해 파라미터로 내려보낸다.
+    private var itemsByDay: [Date: [FinDataEntity]] {
+        Dictionary(grouping: allFin) { $0.when.startOfDay }
     }
 
-    private var revenueDays: Set<String> {
-        Set(revenues.map { dayKey($0.when) })
+    // 날짜별 지출 총액 — 달력 점 색상 계산용.
+    // 지출 항목이 없는 날은 엔트리 자체가 없어야 함 (수입만 있는 날에 지출 점이 찍히면 안 됨)
+    private func expenseTotalsByDay(from itemsByDay: [Date: [FinDataEntity]]) -> [Date: Int] {
+        itemsByDay.compactMapValues { items in
+            let dayExpenses = items.filter { !$0.isRevenue }
+            return dayExpenses.isEmpty ? nil : dayExpenses.reduce(0) { $0 + $1.how }
+        }
+    }
+
+    private func revenueDays(from itemsByDay: [Date: [FinDataEntity]]) -> Set<Date> {
+        Set(itemsByDay.filter { $0.value.contains { $0.isRevenue } }.keys)
     }
 
     // 기간 내 수입/지출 총액
@@ -72,23 +68,10 @@ struct CalendarView: View {
         fixedItems.reduce(0) { $0 + $1.how }
     }
 
-    // 선택 날짜의 내역 (시간 내림차순)
-    private var selectedItems: [FinDataEntity] {
-        let key = dayKey(selectedDate)
-        return allFin.filter { dayKey($0.when) == key }
-    }
-
-    private var selectedExpenseTotal: Int {
-        selectedItems.filter { !$0.isRevenue }.reduce(0) { $0 + $1.how }
-    }
-
-    private var selectedRevenueTotal: Int {
-        selectedItems.filter { $0.isRevenue }.reduce(0) { $0 + $1.how }
-    }
-
-    // 남은 기간 타이틀 (기존 calendarVC.setNavigationBar와 동일)
+    // 남은 기간 타이틀
     private var ddayTitle: String {
-        let dday = Calendar.current.dateComponents([.month, .day], from: Date(), to: end).day ?? 0
+        // [.month, .day]로 요청하면 day에 월을 뺀 나머지만 담겨 30일 이상 스팬에서 오표시 → [.day]만 사용
+        let dday = max(0, Calendar.current.dateComponents([.day], from: Date(), to: end).day ?? 0)
         switch dday {
         case 0: return "오늘이 마지막이에요!"
         case 1: return "하루 남았어요"
@@ -104,6 +87,9 @@ struct CalendarView: View {
                 // 초기 레이아웃 패스에서 proxy.size.width가 0이면 음수가 되어
                 // .frame(width:)에 "Invalid frame dimension" 경고가 발생하므로 방어
                 let calendarWidth = max(0, proxy.size.width - 60)
+                // 일 단위 그룹핑은 body 평가당 1회만 (선택 날짜 내역도 여기서 유도)
+                let byDay = itemsByDay
+                let selectedItems = byDay[selectedDate.startOfDay] ?? []
 
                 ScrollView(showsIndicators: false) {
                     VStack(spacing: 0) {
@@ -111,10 +97,10 @@ struct CalendarView: View {
                             .padding(.top, 30)
                             .padding(.horizontal, 10)
 
-                        calendarBlock(width: calendarWidth)
+                        calendarBlock(width: calendarWidth, itemsByDay: byDay)
                             .padding(.top, 50)
 
-                        dailyCard
+                        dailyCard(items: selectedItems)
                             .padding(.top, 30)
                             .padding(.horizontal, 20)
                             .padding(.bottom, 20)
@@ -129,7 +115,7 @@ struct CalendarView: View {
                         SearchView()
                     } label: {
                         Image(systemName: "magnifyingglass")
-                            .foregroundStyle(Color("customLabel"))
+                            .foregroundStyle(Color(.customLabel))
                     }
                 }
 
@@ -144,14 +130,14 @@ struct CalendarView: View {
                         showFixedExpenditure = true
                     } label: {
                         Image(systemName: "pin.fill")
-                            .foregroundStyle(Color("customLabel"))
+                            .foregroundStyle(Color(.customLabel))
                     }
                 }
 
                 ToolbarItem(placement: .principal) {
                     Text(ddayTitle)
                         .font(.system(size: 13, weight: .bold))
-                        .foregroundStyle(Color("customLabel"))
+                        .foregroundStyle(Color(.customLabel))
                 }
 
                 ToolbarItem(placement: .topBarTrailing) {
@@ -159,7 +145,7 @@ struct CalendarView: View {
                         dismissView()
                     } label: {
                         Image(systemName: "xmark")
-                            .foregroundStyle(Color("customLabel"))
+                            .foregroundStyle(Color(.customLabel))
                     }
                 }
             }
@@ -179,9 +165,7 @@ struct CalendarView: View {
                 totalColumn(title: "고정 지출 📌", value: fixedTotal)
             }
 
-            Rectangle()
-                .fill(Color(uiColor: .systemGray6))
-                .frame(height: 1.5)
+            HairlineDivider()
                 .padding(.horizontal, 10)
                 .padding(.top, 18)
         }
@@ -190,10 +174,10 @@ struct CalendarView: View {
     private func totalColumn(title: String, value: Int) -> some View {
         VStack(spacing: 8) {
             Text(title)
-                .font(.custom("PretendardVariable-SemiBold", size: 14))
-                .foregroundStyle(Color("customLabel"))
+                .font(.pretendard(.semiBold, size: 14))
+                .foregroundStyle(Color(.customLabel))
             Text(value.toDecimal())
-                .font(.custom("PretendardVariable-Bold", size: 16))
+                .font(.pretendard(.bold, size: 16))
                 .lineLimit(1)
                 .minimumScaleFactor(0.5)
         }
@@ -202,7 +186,7 @@ struct CalendarView: View {
 
     // MARK: - 달력 블록 (테이프 이미지 + 배경 매트 + 월 그리드)
 
-    private func calendarBlock(width: CGFloat) -> some View {
+    private func calendarBlock(width: CGFloat, itemsByDay: [Date: [FinDataEntity]]) -> some View {
         ZStack(alignment: .top) {
             VStack(spacing: 0) {
                 // 테이프 이미지가 매트 위로 겹치는 영역
@@ -215,16 +199,16 @@ struct CalendarView: View {
                     selectedDate: $selectedDate,
                     periodStart: start,
                     periodEnd: end,
-                    expenseTotalsByDay: expenseTotalsByDay,
-                    revenueDays: revenueDays,
+                    expenseTotalsByDay: expenseTotalsByDay(from: itemsByDay),
+                    revenueDays: revenueDays(from: itemsByDay),
                     dailyBudget: dailyBudget
                 )
                 .frame(width: width)
-                .background(Color("backgroundColor"))
+                .background(Color(.background))
                 .padding(.top, 20)
                 .padding(.bottom, 10)
                 .padding(.horizontal, 10)
-                .background(Color("calendarBgColor"))
+                .background(Color(.calendarBg))
             }
 
             Image("calendarTop")
@@ -239,14 +223,21 @@ struct CalendarView: View {
     // 일일 예산 (프로필 한 달 지출 목표 / 이번 달 일수) — 기존 percent()와 동일
     private var dailyBudget: Int {
         let daysInMonth = Int(Date().endOfThisMonth.onlydate()) ?? 30
-        let outLay = profiles.first?.outLay ?? 0
+        let outLay = (profiles.first?.asProfile ?? Profile()).outLay
         return daysInMonth > 0 ? outLay / daysInMonth : 0
     }
 
     // MARK: - 선택 날짜 상세 카드
 
-    private var dailyCard: some View {
-        VStack(alignment: .leading, spacing: 0) {
+    private func dailyCard(items: [FinDataEntity]) -> some View {
+        let expenseTotal = items.filter { !$0.isRevenue }.reduce(0) { $0 + $1.how }
+        let revenueTotal = items.filter { $0.isRevenue }.reduce(0) { $0 + $1.how }
+        // 기존 selectDate()의 알파 규칙: 양쪽 다 0이면 둘 다 표시, 한쪽만 있으면 그쪽만 표시
+        let bothZero = expenseTotal == 0 && revenueTotal == 0
+        let expenseVisible = expenseTotal > 0 || bothZero
+        let revenueVisible = revenueTotal > 0 || bothZero
+
+        return VStack(alignment: .leading, spacing: 0) {
             // 상단: 날짜 (좌) + 수입 총액 (우, 파란색)
             HStack(alignment: .center) {
                 Text(selectedDate.onlydate())
@@ -254,7 +245,7 @@ struct CalendarView: View {
 
                 Spacer()
 
-                Text("+ \(selectedRevenueTotal.toDecimal()) 원")
+                Text("+ \(revenueTotal.toDecimal()) 원")
                     .font(.custom("AppleSDGothicNeo-SemiBold", size: 20))
                     .foregroundStyle(Color(uiColor: .systemBlue))
                     .opacity(revenueVisible ? 1 : 0)
@@ -265,7 +256,7 @@ struct CalendarView: View {
             // 선택 날짜 내역 목록 (높이 고정, 내부 스크롤 — 기존 테이블 뷰와 동일)
             ScrollView(showsIndicators: false) {
                 LazyVStack(spacing: 0) {
-                    ForEach(selectedItems) { item in
+                    ForEach(items) { item in
                         HStack {
                             // 스토리보드(calendarVC 테이블 셀): system 16/18, weight 미지정(regular)
                             Text(item.towhat)
@@ -289,7 +280,7 @@ struct CalendarView: View {
             // 하단: 지출 총액 (우)
             HStack {
                 Spacer()
-                Text("- \(selectedExpenseTotal.toDecimal()) 원")
+                Text("- \(expenseTotal.toDecimal()) 원")
                     .font(.custom("AppleSDGothicNeo-Bold", size: 22))
                     .opacity(expenseVisible ? 1 : 0)
             }
@@ -297,202 +288,9 @@ struct CalendarView: View {
             .padding(.horizontal, 20)
             .padding(.bottom, 20)
         }
-        .background(Color("backgroundColor"))
+        .background(Color(.background))
         .clipShape(RoundedRectangle(cornerRadius: 20))
-        .shadow(color: .black.opacity(0.08), radius: 6, y: -4)
-    }
-
-    // 기존 selectDate()의 알파 규칙: 양쪽 다 0이면 둘 다 표시, 한쪽만 있으면 그쪽만 표시
-    private var expenseVisible: Bool {
-        selectedExpenseTotal > 0 || (selectedExpenseTotal == 0 && selectedRevenueTotal == 0)
-    }
-
-    private var revenueVisible: Bool {
-        selectedRevenueTotal > 0 || (selectedExpenseTotal == 0 && selectedRevenueTotal == 0)
-    }
-}
-
-// MARK: - 월 달력 그리드 (FSCalendar 대체)
-
-struct MonthCalendarGrid: View {
-
-    @Binding var displayedMonth: Date   // 표시 중인 달 (그 달의 시작일)
-    @Binding var selectedDate: Date
-
-    // 월 전환 시 새 달이 들어오는 방향 (스와이프 방향에 맞춰 갱신)
-    @State private var slideEdge: Edge = .trailing
-
-    let periodStart: Date
-    let periodEnd: Date
-    let expenseTotalsByDay: [String: Int]
-    let revenueDays: Set<String>
-    let dailyBudget: Int
-
-    private static let dayKeyFormatter: DateFormatter = {
-        let f = DateFormatter()
-        f.dateFormat = "yyyyMMdd"
-        return f
-    }()
-
-    private static let headerFormatter: DateFormatter = {
-        let f = DateFormatter()
-        f.dateFormat = "yyyy년 M월"
-        f.locale = Locale(identifier: "ko_KR")
-        return f
-    }()
-
-    private let weekdaySymbols = ["일", "월", "화", "수", "목", "금", "토"]
-
-    // 수입 점 파란색 / 기간 밖 지출 점 회색 (기존 colorLiteral과 동일 값)
-    private let revenueDotColor = Color(red: 0.1765, green: 0.4980, blue: 0.7569)
-    private let outOfPeriodDotColor = Color(red: 0.2549, green: 0.2745, blue: 0.3020)
-
-    private var calendar: Calendar {
-        Calendar(identifier: .gregorian)
-    }
-
-    // 일요일 시작으로 주 단위 분할 (빈 칸은 nil)
-    private var weeks: [[Date?]] {
-        let firstDay = displayedMonth.startOfThisMonth
-        guard let range = calendar.range(of: .day, in: .month, for: firstDay) else { return [] }
-        let firstWeekday = calendar.component(.weekday, from: firstDay)
-
-        var days: [Date?] = Array(repeating: nil, count: firstWeekday - 1)
-        for day in range {
-            days.append(calendar.date(byAdding: .day, value: day - 1, to: firstDay))
-        }
-        while days.count % 7 != 0 { days.append(nil) }
-
-        return stride(from: 0, to: days.count, by: 7).map { Array(days[$0 ..< $0 + 7]) }
-    }
-
-    var body: some View {
-        // 월 전체를 좌우로 슬라이드시켜 페이지 넘기는 느낌을 준다.
-        gridContent
-            .id(displayedMonth)
-            .transition(.asymmetric(
-                insertion: .move(edge: slideEdge).combined(with: .opacity),
-                removal: .move(edge: slideEdge == .trailing ? .leading : .trailing).combined(with: .opacity)
-            ))
-            .clipped()
-            .contentShape(Rectangle())
-            // 좌우 스와이프로 월 이동 (FSCalendar의 가로 스크롤 대체)
-            .gesture(
-                DragGesture(minimumDistance: 30)
-                    .onEnded { value in
-                        guard abs(value.translation.width) > abs(value.translation.height) else { return }
-                        let delta = value.translation.width < 0 ? 1 : -1
-                        slideEdge = delta > 0 ? .trailing : .leading
-                        withAnimation(.easeInOut(duration: 0.28)) {
-                            displayedMonth = calendar.date(byAdding: .month, value: delta, to: displayedMonth) ?? displayedMonth
-                        }
-                    }
-            )
-    }
-
-    private var gridContent: some View {
-        VStack(spacing: 4) {
-            // 헤더: yyyy년 M월
-            Text(Self.headerFormatter.string(from: displayedMonth))
-                .font(.system(size: 16, weight: .medium))
-                .foregroundStyle(Color("customLabel"))
-                .frame(height: 36)
-
-            // 요일 줄
-            HStack(spacing: 0) {
-                ForEach(weekdaySymbols, id: \.self) { symbol in
-                    Text(symbol)
-                        .font(.system(size: 18, weight: .semibold))
-                        .foregroundStyle(Color("customLabel"))
-                        .frame(maxWidth: .infinity)
-                }
-            }
-            .frame(height: 30)
-
-            // 날짜 그리드
-            ForEach(Array(weeks.enumerated()), id: \.offset) { _, week in
-                HStack(spacing: 0) {
-                    ForEach(Array(week.enumerated()), id: \.offset) { _, date in
-                        if let date {
-                            dayCell(date)
-                        } else {
-                            Color.clear
-                                .frame(maxWidth: .infinity)
-                                .frame(height: 40)
-                        }
-                    }
-                }
-            }
-        }
-    }
-
-    private func dayCell(_ date: Date) -> some View {
-        let isSelected = calendar.isDate(date, inSameDayAs: selectedDate)
-
-        return Button {
-            selectedDate = date
-        } label: {
-            VStack(spacing: 3) {
-                Text(title(for: date))
-                    .font(.system(size: 14, weight: .semibold))
-                    .foregroundStyle(Color("customLabel"))
-                    .frame(width: 36, height: 28)
-                    .background {
-                        if isSelected {
-                            Circle().fill(Color("calendarBgColor"))
-                                .frame(width: 32, height: 32)
-                        }
-                    }
-
-                // 이벤트 점: 수입(파랑) + 지출(예산 대비 강도별 핑크)
-                HStack(spacing: 3) {
-                    if revenueDays.contains(dayKey(date)) {
-                        Circle().fill(revenueDotColor).frame(width: 6, height: 6)
-                    }
-                    if expenseTotalsByDay[dayKey(date)] != nil {
-                        Circle().fill(expenseDotColor(for: date)).frame(width: 6, height: 6)
-                    }
-                }
-                .frame(height: 6)
-            }
-            .frame(maxWidth: .infinity)
-            .frame(height: 40)
-        }
-        .buttonStyle(.plain)
-    }
-
-    private func dayKey(_ date: Date) -> String {
-        Self.dayKeyFormatter.string(from: date)
-    }
-
-    // 기간 시작/끝/오늘은 숫자 대신 라벨 표시 (기존 calendar(_:titleFor:)와 동일)
-    private func title(for date: Date) -> String {
-        switch date.toFullString() {
-        case periodStart.toFullString():
-            return "시작"
-        case periodEnd.toFullString():
-            return "끝"
-        case Date().toFullString():
-            return "오늘"
-        default:
-            return date.onlydate()
-        }
-    }
-
-    // 지출 점 색상 — 일일 예산 대비 강도 (기존 event()와 동일)
-    private func expenseDotColor(for date: Date) -> Color {
-        guard date >= periodStart && date <= periodEnd else {
-            return outOfPeriodDotColor
-        }
-
-        let total = expenseTotalsByDay[dayKey(date)] ?? 0
-        if total > Int(Double(dailyBudget) * 1.5) {
-            return Color(uiColor: .systemPink)
-        } else if total > dailyBudget {
-            return Color(uiColor: .systemPink).opacity(0.6)
-        } else {
-            return Color(uiColor: .systemPink).opacity(0.2)
-        }
+        .paperShadow(y: -4)
     }
 }
 

@@ -1,5 +1,7 @@
 import Foundation
 import SwiftData
+import WidgetKit
+import os
 
 // 앱 전역에서 공유하는 SwiftData 컨테이너.
 // 위젯과 동일한 App Group 컨테이너에 저장 → 위젯에서도 동일 데이터 접근 가능.
@@ -61,7 +63,37 @@ enum PersistenceController {
             return groupURL.appendingPathComponent(storeFileName)
         }
         // App Group을 못 잡는 경우(개발 초기 등) 기본 위치 사용
-        let docs = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
-        return docs.appendingPathComponent(storeFileName)
+        return URL.applicationSupportDirectory.appendingPathComponent(storeFileName)
+    }
+}
+
+// MARK: - 저장 + 위젯 갱신 공통 경로
+// 위젯은 FinDataEntity(지출)·ProfileEntity·SalaryPeriodEntity를 표시하므로
+// 이들을 바꾼 뒤에는 반드시 타임라인 리로드가 따라와야 한다.
+// (FixedExpenditureEntity는 위젯 미표시 — FixedExpenditureView는 일반 save 사용)
+extension PersistenceController {
+    static let logger = Logger(subsystem: cloudContainerID, category: "persistence")
+
+    // 저장 실패 시에도 기존 try? 흐름과 동일하게 진행하되(위젯 리로드 포함), 로그는 남긴다.
+    // 실패한 pending 변경은 rollback하지 않는다 — mainContext는 autosave가 켜져 있어
+    // 일시 오류라면 재시도로 데이터가 살아남는 쪽을 택함 (그 사이 위젯과 화면이 잠시 어긋날 수 있음).
+    @discardableResult
+    static func saveAndRefreshWidgets(_ context: ModelContext) -> Bool {
+        var saved = true
+        do {
+            try context.save()
+        } catch {
+            logger.error("SwiftData save 실패: \(String(describing: error), privacy: .public)")
+            saved = false
+        }
+        WidgetCenter.shared.reloadAllTimelines()
+        return saved
+    }
+
+    // 지출/수입 삭제 공통 경로 (MainView/RevenueView 동일 구현 통합).
+    // FinDataEntity 전용 — 고정 지출 삭제는 알림 해제가 필요하고 위젯 리로드가 불필요하므로 별도 경로.
+    static func delete(_ item: FinDataEntity, in context: ModelContext) {
+        context.delete(item)
+        saveAndRefreshWidgets(context)
     }
 }
