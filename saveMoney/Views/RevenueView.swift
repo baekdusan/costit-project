@@ -44,7 +44,7 @@ struct RevenueView: View {
 
             ZStack {
                 // 배경 (backgroundColor asset — 라이트/다크 모드 대응)
-                Color("backgroundColor")
+                Color(.background)
                     .ignoresSafeArea()
                 Image("bg")
                     .resizable()
@@ -72,7 +72,7 @@ struct RevenueView: View {
                                 }
                             }
                             .frame(width: cardWidth)
-                            .background(Color("memoPaperColor"))
+                            .background(Color(.memoPaper))
                             .compositingGroup()
                             .shadow(color: .black.opacity(0.08), radius: 6, y: 5)
                             .padding(.top, 15)
@@ -103,8 +103,8 @@ struct RevenueView: View {
                             Image(systemName: "arrow.left.arrow.right")
                                 .font(.system(size: 20, weight: .semibold))
                                 .frame(width: 60, height: 60)
-                                .background(Color("pinColor"))
-                                .foregroundStyle(Color("backgroundColor"))
+                                .background(Color(.pin))
+                                .foregroundStyle(Color(.background))
                                 .clipShape(Circle())
                         }
                         .padding(.leading, 30)
@@ -118,8 +118,8 @@ struct RevenueView: View {
                             Image(systemName: "highlighter")
                                 .font(.system(size: 20, weight: .semibold))
                                 .frame(width: 60, height: 60)
-                                .background(Color("pinColor"))
-                                .foregroundStyle(Color("backgroundColor"))
+                                .background(Color(.pin))
+                                .foregroundStyle(Color(.background))
                                 .clipShape(Circle())
                         }
                         .padding(.trailing, 30)
@@ -199,7 +199,7 @@ struct RevenueView: View {
             } label: {
                 Text(navTitle)
                     .font(.system(size: 12, weight: .semibold))
-                    .foregroundStyle(Color("customLabel"))
+                    .foregroundStyle(Color(.customLabel))
             }
         }
         .padding(.top, topInset)
@@ -226,11 +226,11 @@ struct RevenueView: View {
     private func headerRow(cardWidth: CGFloat) -> some View {
         HStack {
             Text("이번 달 수입은")
-                .font(.custom("PretendardVariable-SemiBold", size: 18))
+                .font(.pretendard(.semiBold, size: 18))
                 .foregroundStyle(.primary)
             Spacer()
             Text("₩ \(totalAmount.toDecimal())")
-                .font(.custom("PretendardVariable-ExtraBold", size: 18))
+                .font(.pretendard(.extraBold, size: 18))
                 .foregroundStyle(.primary)
         }
         .padding(.horizontal, 12)
@@ -252,13 +252,13 @@ struct RevenueView: View {
             // 스토리보드 레이아웃: towhat과 금액이 셀 세로 중앙에서 수평 정렬, 날짜는 towhat 위 4pt.
             // 색: 날짜만 customLabel(회색조), towhat·금액은 기본 label 색
             Text(item.towhat)
-                .font(.custom("PretendardVariable-Medium", size: 14))
+                .font(.pretendard(.medium, size: 14))
                 .foregroundStyle(.primary)
                 .lineLimit(1)
                 .overlay(alignment: .topLeading) {
                     Text(item.when.toString())
-                        .font(.custom("PretendardVariable-Medium", size: 12))
-                        .foregroundStyle(Color("customLabel"))
+                        .font(.pretendard(.medium, size: 12))
+                        .foregroundStyle(Color(.customLabel))
                         .fixedSize()
                         .offset(y: -18)   // 날짜 높이(≈14pt) + 간격 4pt만큼 위로
                 }
@@ -267,7 +267,7 @@ struct RevenueView: View {
             Spacer()
 
             Text("+ \(item.how.toDecimal())")
-                .font(.custom("PretendardVariable-SemiBold", size: 16))
+                .font(.pretendard(.semiBold, size: 16))
                 .foregroundStyle(.primary)
                 .padding(.trailing, 20)
         }
@@ -313,7 +313,7 @@ struct MonthSelectorSheet: View {
                 }
             }
             .font(.system(size: 17, weight: .semibold))
-            .tint(Color("customLabel"))
+            .tint(Color(.customLabel))
             .padding(.horizontal, 20)
             .padding(.top, 16)
             .padding(.bottom, 4)

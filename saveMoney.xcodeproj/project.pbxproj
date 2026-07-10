@@ -34,6 +34,7 @@
 		31DEEB4B2FAE2EB5006C2F1F /* FixedExpenditureView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 31DEEB4A2FAE2EB5006C2F1F /* FixedExpenditureView.swift */; };
 		31DEEB4D2FAE2EB5006C2F1F /* CalendarView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 31DEEB4C2FAE2EB5006C2F1F /* CalendarView.swift */; };
 		31DEEB532FAE0001006C2F1F /* MonthCalendarGrid.swift in Sources */ = {isa = PBXBuildFile; fileRef = 31DEEB522FAE0001006C2F1F /* MonthCalendarGrid.swift */; };
+		31DEEB552FAE0001006C2F1F /* Theme.swift in Sources */ = {isa = PBXBuildFile; fileRef = 31DEEB542FAE0001006C2F1F /* Theme.swift */; };
 		31DEEB4F2FAE2EB5006C2F1F /* MainView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 31DEEB4E2FAE2EB5006C2F1F /* MainView.swift */; };
 		31DEEB512FAE2EB5006C2F1F /* PreviewSampleData.swift in Sources */ = {isa = PBXBuildFile; fileRef = 31DEEB502FAE2EB5006C2F1F /* PreviewSampleData.swift */; };
 /* End PBXBuildFile section */
@@ -90,6 +91,7 @@
 		31DEEB4A2FAE2EB5006C2F1F /* FixedExpenditureView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FixedExpenditureView.swift; sourceTree = "<group>"; };
 		31DEEB4C2FAE2EB5006C2F1F /* CalendarView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CalendarView.swift; sourceTree = "<group>"; };
 		31DEEB522FAE0001006C2F1F /* MonthCalendarGrid.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MonthCalendarGrid.swift; sourceTree = "<group>"; };
+		31DEEB542FAE0001006C2F1F /* Theme.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Theme.swift; sourceTree = "<group>"; };
 		31DEEB4E2FAE2EB5006C2F1F /* MainView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MainView.swift; sourceTree = "<group>"; };
 		31DEEB502FAE2EB5006C2F1F /* PreviewSampleData.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PreviewSampleData.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
@@ -153,6 +155,7 @@
 				3193F98F26CDE29C006FB348 /* AppDelegate.swift */,
 				3193F99126CDE29C006FB348 /* SceneDelegate.swift */,
 				3193F9A926D33331006FB348 /* struct.swift */,
+				31DEEB542FAE0001006C2F1F /* Theme.swift */,
 				3193F99826CDE29E006FB348 /* Assets.xcassets */,
 				3193F99A26CDE29E006FB348 /* LaunchScreen.storyboard */,
 				3193F99D26CDE29E006FB348 /* Info.plist */,
@@ -314,6 +317,7 @@
 				31DEEB512FAE2EB5006C2F1F /* PreviewSampleData.swift in Sources */,
 				31DEEB392FAE1BE9006C2F1F /* Models.swift in Sources */,
 				3193F9AA26D33331006FB348 /* struct.swift in Sources */,
+				31DEEB552FAE0001006C2F1F /* Theme.swift in Sources */,
 				3193F99026CDE29C006FB348 /* AppDelegate.swift in Sources */,
 				3193F99226CDE29C006FB348 /* SceneDelegate.swift in Sources */,
 			);

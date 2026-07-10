@@ -120,12 +120,12 @@ struct MainView: View {
                         // 잔액 헤더
                         VStack(alignment: .trailing, spacing: 6) {
                             Text(balanceText)
-                                .font(.custom("PretendardVariable-SemiBold", size: 32))
+                                .font(.pretendard(.semiBold, size: 32))
                                 .opacity(0.78)
                                 .lineLimit(1)
                                 .minimumScaleFactor(0.5)
                             Text(balanceConditionText)
-                                .font(.custom("PretendardVariable-Medium", size: 16))
+                                .font(.pretendard(.medium, size: 16))
                                 .opacity(0.48)
                         }
                         .frame(maxWidth: .infinity, alignment: .trailing)
@@ -168,8 +168,8 @@ struct MainView: View {
                                 Image(systemName: "arrow.left.arrow.right")
                                     .font(.system(size: 20, weight: .semibold))
                                     .frame(width: 60, height: 60)
-                                    .background(Color("HeaderColor"))
-                                    .foregroundStyle(Color("backgroundColor"))
+                                    .background(Color(.header))
+                                    .foregroundStyle(Color(.background))
                                     .clipShape(Circle())
                             }
                             .padding(.leading, 30)
@@ -182,8 +182,8 @@ struct MainView: View {
                                 Image(systemName: "highlighter")
                                     .font(.system(size: 20, weight: .semibold))
                                     .frame(width: 60, height: 60)
-                                    .background(Color("HeaderColor"))
-                                    .foregroundStyle(Color("backgroundColor"))
+                                    .background(Color(.header))
+                                    .foregroundStyle(Color(.background))
                                     .clipShape(Circle())
                             }
                             .padding(.trailing, 30)
@@ -195,12 +195,12 @@ struct MainView: View {
             .background {
                 // 배경: backgroundColor + 상단 그라데이션 (기존 topView)
                 ZStack(alignment: .top) {
-                    Color("backgroundColor")
+                    Color(.background)
                     VStack(spacing: 0) {
                         LinearGradient(
                             colors: [
-                                Color("topViewColor"),
-                                Color("backgroundColor").opacity(0)
+                                Color(.topView),
+                                Color(.background).opacity(0)
                             ],
                             startPoint: .top, endPoint: .bottom
                         )
@@ -218,7 +218,7 @@ struct MainView: View {
                         showProfileEditor = true
                     } label: {
                         Image(systemName: "person.fill")
-                            .foregroundStyle(Color("customLabel"))
+                            .foregroundStyle(Color(.customLabel))
                     }
                 }
 
@@ -229,7 +229,7 @@ struct MainView: View {
                     } label: {
                         Text(navTitle)
                             .font(.system(size: 12, weight: .semibold))
-                            .foregroundStyle(Color("customLabel"))
+                            .foregroundStyle(Color(.customLabel))
                     }
                 }
 
@@ -238,7 +238,7 @@ struct MainView: View {
                         showCalendar = true
                     } label: {
                         Image(systemName: "calendar.badge.clock")
-                            .foregroundStyle(Color("customLabel"))
+                            .foregroundStyle(Color(.customLabel))
                     }
                 }
             }
@@ -313,9 +313,9 @@ struct MainView: View {
 
         return VStack(alignment: .leading, spacing: 2) {
             Text(section.date.onlydate() + "일")
-                .font(.custom("PretendardVariable-SemiBold", size: 20))
+                .font(.pretendard(.semiBold, size: 20))
             Text(total.toDecimal() + "원")
-                .font(.custom("PretendardVariable-Medium", size: 14))
+                .font(.pretendard(.medium, size: 14))
                 .opacity(0.2)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
@@ -325,12 +325,12 @@ struct MainView: View {
 
     private func expenseCard(_ item: FinDataEntity, size: CGFloat) -> some View {
         ZStack {
-            Color("memoPaperColor")
+            Color(.memoPaper)
 
             VStack(alignment: .leading, spacing: 0) {
                 HStack(alignment: .top) {
                     Text(item.when.toString())
-                        .font(.custom("PretendardVariable-Regular", size: 12))
+                        .font(.pretendard(.regular, size: 12))
                         .padding(.top, 8)
 
                     Spacer()
@@ -346,7 +346,7 @@ struct MainView: View {
                 }
 
                 Text(item.towhat)
-                    .font(.custom("PretendardVariable-Medium", size: 16))
+                    .font(.pretendard(.medium, size: 16))
                     .lineLimit(2)
                     .multilineTextAlignment(.leading)
                     .padding(.top, 12)
@@ -354,7 +354,7 @@ struct MainView: View {
                 Spacer()
 
                 Text(item.how == 0 ? "무료" : "- " + item.how.toDecimal())
-                    .font(.custom("PretendardVariable-Bold", size: 18))
+                    .font(.pretendard(.bold, size: 18))
                     .opacity(0.84)
                     .frame(maxWidth: .infinity, alignment: .trailing)
             }

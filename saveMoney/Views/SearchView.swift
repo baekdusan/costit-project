@@ -78,23 +78,23 @@ struct SearchView: View {
             HStack(spacing: 18) {
                 // "26. 05. 08" 형식 (yy. MM. dd). 셀에서만 쓰는 짧은 표기.
                 Text(AppDateFormatters.shortDate.string(from: item.when))
-                    .font(.custom("PretendardVariable-Regular", size: 12))
-                    .foregroundStyle(Color("customLabel"))
+                    .font(.pretendard(.regular, size: 12))
+                    .foregroundStyle(Color(.customLabel))
                     .fixedSize()
 
                 Text(item.towhat)
-                    .font(.custom("PretendardVariable-Medium", size: 14))
+                    .font(.pretendard(.medium, size: 14))
                     .frame(maxWidth: .infinity, alignment: .leading)
                     .lineLimit(2)
 
                 Text("\(item.how.toDecimal()) 원")
-                    .font(.custom("PretendardVariable-SemiBold", size: 16))
+                    .font(.pretendard(.semiBold, size: 16))
                     .fixedSize()
             }
             .padding(.vertical, 18)
 
             Rectangle()
-                .fill(Color(.systemGray6))
+                .fill(Color(uiColor: .systemGray6))
                 .frame(height: 1.5)
         }
     }

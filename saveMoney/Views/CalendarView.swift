@@ -123,7 +123,7 @@ struct CalendarView: View {
                         SearchView()
                     } label: {
                         Image(systemName: "magnifyingglass")
-                            .foregroundStyle(Color("customLabel"))
+                            .foregroundStyle(Color(.customLabel))
                     }
                 }
 
@@ -138,14 +138,14 @@ struct CalendarView: View {
                         showFixedExpenditure = true
                     } label: {
                         Image(systemName: "pin.fill")
-                            .foregroundStyle(Color("customLabel"))
+                            .foregroundStyle(Color(.customLabel))
                     }
                 }
 
                 ToolbarItem(placement: .principal) {
                     Text(ddayTitle)
                         .font(.system(size: 13, weight: .bold))
-                        .foregroundStyle(Color("customLabel"))
+                        .foregroundStyle(Color(.customLabel))
                 }
 
                 ToolbarItem(placement: .topBarTrailing) {
@@ -153,7 +153,7 @@ struct CalendarView: View {
                         dismissView()
                     } label: {
                         Image(systemName: "xmark")
-                            .foregroundStyle(Color("customLabel"))
+                            .foregroundStyle(Color(.customLabel))
                     }
                 }
             }
@@ -184,10 +184,10 @@ struct CalendarView: View {
     private func totalColumn(title: String, value: Int) -> some View {
         VStack(spacing: 8) {
             Text(title)
-                .font(.custom("PretendardVariable-SemiBold", size: 14))
-                .foregroundStyle(Color("customLabel"))
+                .font(.pretendard(.semiBold, size: 14))
+                .foregroundStyle(Color(.customLabel))
             Text(value.toDecimal())
-                .font(.custom("PretendardVariable-Bold", size: 16))
+                .font(.pretendard(.bold, size: 16))
                 .lineLimit(1)
                 .minimumScaleFactor(0.5)
         }
@@ -214,11 +214,11 @@ struct CalendarView: View {
                     dailyBudget: dailyBudget
                 )
                 .frame(width: width)
-                .background(Color("backgroundColor"))
+                .background(Color(.background))
                 .padding(.top, 20)
                 .padding(.bottom, 10)
                 .padding(.horizontal, 10)
-                .background(Color("calendarBgColor"))
+                .background(Color(.calendarBg))
             }
 
             Image("calendarTop")
@@ -291,7 +291,7 @@ struct CalendarView: View {
             .padding(.horizontal, 20)
             .padding(.bottom, 20)
         }
-        .background(Color("backgroundColor"))
+        .background(Color(.background))
         .clipShape(RoundedRectangle(cornerRadius: 20))
         .shadow(color: .black.opacity(0.08), radius: 6, y: -4)
     }

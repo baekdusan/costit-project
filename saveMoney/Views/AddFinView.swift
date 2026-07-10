@@ -54,7 +54,7 @@ struct AddFinView: View {
 
                 // 메모지 카드
                 ZStack {
-                    Color("memoPaperColor")
+                    Color(.memoPaper)
                         .frame(width: cardSize, height: cardSize)
 
                     VStack(alignment: .leading, spacing: 0) {
@@ -66,8 +66,8 @@ struct AddFinView: View {
                                 showDatePicker = true
                             } label: {
                                 Text(formattedDate)
-                                    .font(.custom("PretendardVariable-Medium", size: 14))
-                                    .foregroundStyle(Color("customLabel"))
+                                    .font(.pretendard(.medium, size: 14))
+                                    .foregroundStyle(Color(.customLabel))
                                     .frame(height: 22)
                             }
 
@@ -79,7 +79,7 @@ struct AddFinView: View {
                             } label: {
                                 Image(systemName: "xmark")
                                     .font(.system(size: 14, weight: .medium))
-                                    .foregroundStyle(Color("customLabel").opacity(0.5))
+                                    .foregroundStyle(Color(.customLabel).opacity(0.5))
                                     .frame(width: 22, height: 22)
                             }
                         }
@@ -87,8 +87,8 @@ struct AddFinView: View {
 
                         // 어디서?
                         TextField("어디서?", text: $towhat)
-                            .font(.custom("PretendardVariable-Medium", size: 20))
-                            .foregroundStyle(Color("customLabel"))
+                            .font(.pretendard(.medium, size: 20))
+                            .foregroundStyle(Color(.customLabel))
                             .focused($focused, equals: .towhat)
                             .submitLabel(.next)
                             .onSubmit { focused = .how }
@@ -101,8 +101,8 @@ struct AddFinView: View {
 
                         // 얼마?
                         TextField("얼마?", text: $howText)
-                            .font(.custom("PretendardVariable-SemiBold", size: 20))
-                            .foregroundStyle(Color("customLabel"))
+                            .font(.pretendard(.semiBold, size: 20))
+                            .foregroundStyle(Color(.customLabel))
                             .multilineTextAlignment(.trailing)
                             .keyboardType(.numberPad)
                             .focused($focused, equals: .how)
@@ -129,8 +129,8 @@ struct AddFinView: View {
                             Image(systemName: "checkmark")
                                 .font(.system(size: 18, weight: .semibold))
                                 .frame(width: 44, height: 44)
-                                .background(Color("customLabel"))
-                                .foregroundStyle(Color("backgroundColor"))
+                                .background(Color(.customLabel))
+                                .foregroundStyle(Color(.background))
                                 .clipShape(Circle())
                         }
                         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottomTrailing)

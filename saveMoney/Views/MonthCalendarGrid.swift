@@ -78,7 +78,7 @@ struct MonthCalendarGrid: View {
             // 헤더: yyyy년 M월
             Text(Self.headerFormatter.string(from: displayedMonth))
                 .font(.system(size: 16, weight: .medium))
-                .foregroundStyle(Color("customLabel"))
+                .foregroundStyle(Color(.customLabel))
                 .frame(height: 36)
 
             // 요일 줄
@@ -86,7 +86,7 @@ struct MonthCalendarGrid: View {
                 ForEach(weekdaySymbols, id: \.self) { symbol in
                     Text(symbol)
                         .font(.system(size: 18, weight: .semibold))
-                        .foregroundStyle(Color("customLabel"))
+                        .foregroundStyle(Color(.customLabel))
                         .frame(maxWidth: .infinity)
                 }
             }
@@ -119,11 +119,11 @@ struct MonthCalendarGrid: View {
             VStack(spacing: 3) {
                 Text(title(for: date))
                     .font(.system(size: 14, weight: .semibold))
-                    .foregroundStyle(Color("customLabel"))
+                    .foregroundStyle(Color(.customLabel))
                     .frame(width: 36, height: 28)
                     .background {
                         if isSelected {
-                            Circle().fill(Color("calendarBgColor"))
+                            Circle().fill(Color(.calendarBg))
                                 .frame(width: 32, height: 32)
                         }
                     }

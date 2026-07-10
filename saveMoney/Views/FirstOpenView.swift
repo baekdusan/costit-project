@@ -65,12 +65,12 @@ struct FirstOpenView: View {
                 Spacer()
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
-            .background(Color("backgroundColor"))
+            .background(Color(.background))
         }
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
                 Button("완료", action: confirm)
-                    .tint(Color("customLabel"))
+                    .tint(Color(.customLabel))
                     .disabled(!isAllFilled)
             }
         }
@@ -125,20 +125,20 @@ struct FirstOpenView: View {
                 } label: {
                     Text(period.isEmpty ? "매달 언제마다?" : "매월 \(period)")
                         .font(.system(size: 20, weight: .medium))
-                        .foregroundStyle(period.isEmpty ? Color(.placeholderText) : Color("customLabel"))
+                        .foregroundStyle(period.isEmpty ? Color(uiColor: .placeholderText) : Color(.customLabel))
                         .frame(maxWidth: .infinity, alignment: .trailing)
                         .frame(height: 25.5)
                         .contentShape(Rectangle())
                 }
                 .buttonStyle(.plain)
 
-                Color("HeaderColor")
+                Color(.header)
                     .frame(height: 2)
                     .opacity(0.5)
 
                 Text("급여가 일정하지 않다면, 1일이 편해요.")
                     .font(.system(size: 12))
-                    .foregroundStyle(Color(.systemGray3))
+                    .foregroundStyle(Color(uiColor: .systemGray3))
                     .frame(maxWidth: .infinity, alignment: .leading)
             }
         }
@@ -155,7 +155,7 @@ struct FirstOpenView: View {
             TextField(placeholder, text: text)
                 .multilineTextAlignment(.trailing)
                 .font(.system(size: 20, weight: .medium))
-                .foregroundStyle(Color("customLabel"))
+                .foregroundStyle(Color(.customLabel))
                 .keyboardType(keyboard)
                 .focused($focused, equals: focusBinding)
                 .submitLabel(next == nil ? .done : .next)
@@ -175,7 +175,7 @@ struct FirstOpenView: View {
                     }
                 }
 
-            Color("HeaderColor")
+            Color(.header)
                 .frame(height: 2)
                 .opacity(0.5)
         }

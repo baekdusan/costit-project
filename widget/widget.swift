@@ -107,7 +107,7 @@ struct widgetEntryView: View {
                     .opacity(0.72)
 
                 HStack(alignment: .bottom, spacing: 0) {
-                    Text("\(percent)%")
+                    Text(verbatim: "\(percent)%")
                         .font(.system(size: 28, weight: .semibold))
                         .frame(width: geometry.size.width * 0.45, alignment: .leading)
                         .opacity(0.84)
@@ -125,7 +125,7 @@ struct widgetEntryView: View {
                    alignment: .center)
 
             ZStack(alignment: .leading) {
-                Color("WidgetStatusBarBackground")
+                Color(.widgetStatusBarBackground)
                     .frame(width: geometry.size.width, height: geometry.size.height * 0.08)
                 color
                     .frame(width: geometry.size.width * CGFloat(percent) / 100,
@@ -135,7 +135,7 @@ struct widgetEntryView: View {
                    height: geometry.size.height,
                    alignment: .bottom)
         }
-        .containerBackground(Color("WidgetBackground"), for: .widget)
+        .containerBackground(Color(.widgetBackground), for: .widget)
     }
 }
 

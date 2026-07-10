@@ -48,7 +48,7 @@ struct FixedExpenditureView: View {
 
     var body: some View {
         ZStack {
-            Color("backgroundColor")
+            Color(.background)
                 .ignoresSafeArea()
                 .onTapGesture { focused = nil }
 
@@ -99,7 +99,7 @@ struct FixedExpenditureView: View {
             } label: {
                 Image(systemName: "xmark")
                     .font(.system(size: 16, weight: .medium))
-                    .foregroundStyle(Color("customLabel"))
+                    .foregroundStyle(Color(.customLabel))
                     .frame(width: 44, height: 44)
             }
 
@@ -110,7 +110,7 @@ struct FixedExpenditureView: View {
             } label: {
                 Image(systemName: "plus")
                     .font(.system(size: 20, weight: .medium))
-                    .foregroundStyle(Color("fixedColor"))
+                    .foregroundStyle(Color(.fixed))
                     .frame(width: 44, height: 44)
             }
             .disabled(!canAdd)
@@ -120,7 +120,7 @@ struct FixedExpenditureView: View {
         .overlay {
             Text("📌 \(totalCost.toDecimal())원")
                 .font(.system(size: 12, weight: .semibold))
-                .foregroundStyle(Color("customLabel"))
+                .foregroundStyle(Color(.customLabel))
         }
         .padding(.horizontal, 8)
     }
@@ -140,17 +140,17 @@ struct FixedExpenditureView: View {
                     showDayPicker = true
                 } label: {
                     Text(dayText.isEmpty ? "언제?" : dayText)
-                        .font(.custom("PretendardVariable-Bold", size: 14))
+                        .font(.pretendard(.bold, size: 14))
                         .foregroundStyle(dayText.isEmpty
                                          ? Color(uiColor: .placeholderText)
-                                         : Color("customLabel"))
+                                         : Color(.customLabel))
                         .frame(maxWidth: .infinity)
                 }
                 .frame(width: 70)
 
                 TextField("어디서?", text: $towhat)
-                    .font(.custom("PretendardVariable-SemiBold", size: 14))
-                    .foregroundStyle(Color("customLabel"))
+                    .font(.pretendard(.semiBold, size: 14))
+                    .foregroundStyle(Color(.customLabel))
                     .multilineTextAlignment(.center)
                     .focused($focused, equals: .towhat)
                     .submitLabel(.next)
@@ -160,8 +160,8 @@ struct FixedExpenditureView: View {
                     }
 
                 TextField("얼마?", text: $howText)
-                    .font(.custom("PretendardVariable-SemiBold", size: 14))
-                    .foregroundStyle(Color("customLabel"))
+                    .font(.pretendard(.semiBold, size: 14))
+                    .foregroundStyle(Color(.customLabel))
                     .multilineTextAlignment(.center)
                     .keyboardType(.numberPad)
                     .focused($focused, equals: .how)
@@ -180,7 +180,7 @@ struct FixedExpenditureView: View {
 
             // 하단 줄 (fixedColor 1.5pt)
             Rectangle()
-                .fill(Color("fixedColor"))
+                .fill(Color(.fixed))
                 .frame(height: 1.5)
         }
         .toolbar {
@@ -200,8 +200,8 @@ struct FixedExpenditureView: View {
         ScrollView {
             LazyVStack(alignment: .leading, spacing: 0) {
                 ForEach(groupedByDay, id: \.day) { group in
-                    // 섹션 헤더 "n일"
-                    Text("\(group.day)일")
+                    // 섹션 헤더 "n일" (정수 보간 Text는 LocalizedStringKey 콤마 함정 예방 위해 verbatim)
+                    Text(verbatim: "\(group.day)일")
                         .font(.system(size: 12, weight: .bold))
                         .opacity(0.4)
                         .frame(height: 36)
@@ -222,22 +222,22 @@ struct FixedExpenditureView: View {
         VStack(spacing: 0) {
             HStack(spacing: 0) {
                 Text(item.towhat)
-                    .font(.custom("PretendardVariable-SemiBold", size: 14))
-                    .foregroundStyle(Color("customLabel"))
+                    .font(.pretendard(.semiBold, size: 14))
+                    .foregroundStyle(Color(.customLabel))
                     .lineLimit(1)
 
                 Spacer()
 
                 Text("\(item.how.toDecimal()) 원")
-                    .font(.custom("PretendardVariable-SemiBold", size: 16))
-                    .foregroundStyle(Color("customLabel"))
+                    .font(.pretendard(.semiBold, size: 16))
+                    .foregroundStyle(Color(.customLabel))
 
                 Button {
                     deleteTarget = item
                 } label: {
                     Image(systemName: "trash.square")
                         .font(.system(size: 22))
-                        .foregroundStyle(Color("fixedColor"))
+                        .foregroundStyle(Color(.fixed))
                         .frame(width: 50, height: 50)
                 }
             }
@@ -330,7 +330,7 @@ struct DaySelectorSheet: View {
         NavigationStack {
             Picker("일", selection: $selectedDay) {
                 ForEach(1...31, id: \.self) { day in
-                    Text("\(day)일").tag(day)
+                    Text(verbatim: "\(day)일").tag(day)
                 }
             }
             .pickerStyle(.wheel)
