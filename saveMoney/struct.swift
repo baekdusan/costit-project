@@ -91,11 +91,6 @@ extension Date {
         AppDateFormatters.monthDay.string(from: self)
     }
 
-    // 날짜를 전체 문자열로 변경
-    func toFullString() -> String {
-        AppDateFormatters.fullDate.string(from: self)
-    }
-
     func onlydate() -> String {
         AppDateFormatters.dayOnly.string(from: self)
     }
@@ -108,7 +103,6 @@ extension Date {
 // 디바이스가 비양력 캘린더(불교력 등)여도 양력 숫자가 나오도록 캘린더를 고정한다.
 // DateFormatter는 스레드 세이프하지 않지만 사용처가 전부 메인 스레드 경로라 안전.
 enum AppDateFormatters {
-    static let fullDate = make("yyyy. MM. dd")    // Date.toFullString
     static let monthDay = make("MM. dd.")         // Date.toString
     static let dayOnly = make("d")                // Date.onlydate
     static let shortDate = make("yy. MM. dd")     // SearchView 셀
@@ -204,8 +198,9 @@ struct FixedExpenditureItem {
 // MARK: - 숫자/문자열 변환
 
 extension String {
-    // 파싱 실패(비숫자·Int 범위 초과) 시 0 폴백 — 입력 필드는 currencyInputFormatted의
-    // 자릿수 가드가 이 폴백에 도달하지 않게 막아준다
+    // 파싱 실패(비숫자·Int 범위 초과) 시 0 폴백. 입력 필드의 currencyInputFormatted
+    // 자릿수 가드가 대부분의 경로를 막지만, keepAsIs 정책의 비파싱 입력
+    // (전각 숫자 붙여넣기 등)은 여전히 이 폴백에 도달할 수 있음 (기존 동작 유지)
     func toInt() -> Int {
         if self.contains(",") {
             return Int(self.split(separator: ",").joined()) ?? 0

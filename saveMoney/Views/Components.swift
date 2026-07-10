@@ -62,11 +62,12 @@ extension View {
 
 // MARK: - 금액 입력 실시간 콤마 포맷
 
-// 세 화면의 기존 변종 동작을 파라미터로 보존한다 (동작 통일은 별도 결정 사항).
+// 두 화면군의 기존 변종 동작을 파라미터로 보존한다 (동작 통일은 별도 결정 사항).
+// 주의: "제한 없음" case는 두지 않는다 — Int 범위 초과 붙여넣기가 toInt()의 0 폴백으로
+// 조용히 유실되는 경로가 생기므로 (fix 523a76c), 새 금액 필드도 반드시 자릿수 제한을 골라야 함.
 enum CurrencyInputLimit {
-    case rawDigits(Int)       // 콤마 제거 기준 자릿수 제한 — 초과 시 콤마 없이 절삭 (AddFinView)
-    case formattedChars(Int)  // 콤마 포함 문자수 제한 (FixedExpenditureView)
-    case unlimited            // 제한 없음 (FirstOpenView)
+    case rawDigits(Int)       // 콤마 제거 기준 자릿수 제한 — 초과 시 콤마 없이 절삭 (AddFinView/FirstOpenView: 15)
+    case formattedChars(Int)  // 콤마 포함 문자수 제한 (FixedExpenditureView: 11)
 }
 
 enum CurrencyParseFailurePolicy {

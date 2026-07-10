@@ -36,21 +36,22 @@ struct CalendarView: View {
     private var expenses: [FinDataEntity] { allFin.filter { !$0.isRevenue } }
     private var revenues: [FinDataEntity] { allFin.filter { $0.isRevenue } }
 
-    // 날짜(그 날 00:00)별 그룹핑 — 모든 일 단위 파생의 단일 소스 (MainView.sections와 동일 규칙)
+    // 날짜(그 날 00:00)별 그룹핑 — 모든 일 단위 파생의 단일 소스 (MainView.sections와 동일 규칙).
+    // 파생 프로퍼티들이 각자 재계산하지 않도록 body에서 1회만 계산해 파라미터로 내려보낸다.
     private var itemsByDay: [Date: [FinDataEntity]] {
         Dictionary(grouping: allFin) { $0.when.startOfDay }
     }
 
     // 날짜별 지출 총액 — 달력 점 색상 계산용.
     // 지출 항목이 없는 날은 엔트리 자체가 없어야 함 (수입만 있는 날에 지출 점이 찍히면 안 됨)
-    private var expenseTotalsByDay: [Date: Int] {
+    private func expenseTotalsByDay(from itemsByDay: [Date: [FinDataEntity]]) -> [Date: Int] {
         itemsByDay.compactMapValues { items in
             let dayExpenses = items.filter { !$0.isRevenue }
             return dayExpenses.isEmpty ? nil : dayExpenses.reduce(0) { $0 + $1.how }
         }
     }
 
-    private var revenueDays: Set<Date> {
+    private func revenueDays(from itemsByDay: [Date: [FinDataEntity]]) -> Set<Date> {
         Set(itemsByDay.filter { $0.value.contains { $0.isRevenue } }.keys)
     }
 
@@ -65,19 +66,6 @@ struct CalendarView: View {
 
     private var fixedTotal: Int {
         fixedItems.reduce(0) { $0 + $1.how }
-    }
-
-    // 선택 날짜의 내역 (@Query 정렬 순서 유지 — 시간 내림차순)
-    private var selectedItems: [FinDataEntity] {
-        itemsByDay[selectedDate.startOfDay] ?? []
-    }
-
-    private var selectedExpenseTotal: Int {
-        selectedItems.filter { !$0.isRevenue }.reduce(0) { $0 + $1.how }
-    }
-
-    private var selectedRevenueTotal: Int {
-        selectedItems.filter { $0.isRevenue }.reduce(0) { $0 + $1.how }
     }
 
     // 남은 기간 타이틀
@@ -99,6 +87,9 @@ struct CalendarView: View {
                 // 초기 레이아웃 패스에서 proxy.size.width가 0이면 음수가 되어
                 // .frame(width:)에 "Invalid frame dimension" 경고가 발생하므로 방어
                 let calendarWidth = max(0, proxy.size.width - 60)
+                // 일 단위 그룹핑은 body 평가당 1회만 (선택 날짜 내역도 여기서 유도)
+                let byDay = itemsByDay
+                let selectedItems = byDay[selectedDate.startOfDay] ?? []
 
                 ScrollView(showsIndicators: false) {
                     VStack(spacing: 0) {
@@ -106,10 +97,10 @@ struct CalendarView: View {
                             .padding(.top, 30)
                             .padding(.horizontal, 10)
 
-                        calendarBlock(width: calendarWidth)
+                        calendarBlock(width: calendarWidth, itemsByDay: byDay)
                             .padding(.top, 50)
 
-                        dailyCard
+                        dailyCard(items: selectedItems)
                             .padding(.top, 30)
                             .padding(.horizontal, 20)
                             .padding(.bottom, 20)
@@ -195,7 +186,7 @@ struct CalendarView: View {
 
     // MARK: - 달력 블록 (테이프 이미지 + 배경 매트 + 월 그리드)
 
-    private func calendarBlock(width: CGFloat) -> some View {
+    private func calendarBlock(width: CGFloat, itemsByDay: [Date: [FinDataEntity]]) -> some View {
         ZStack(alignment: .top) {
             VStack(spacing: 0) {
                 // 테이프 이미지가 매트 위로 겹치는 영역
@@ -208,8 +199,8 @@ struct CalendarView: View {
                     selectedDate: $selectedDate,
                     periodStart: start,
                     periodEnd: end,
-                    expenseTotalsByDay: expenseTotalsByDay,
-                    revenueDays: revenueDays,
+                    expenseTotalsByDay: expenseTotalsByDay(from: itemsByDay),
+                    revenueDays: revenueDays(from: itemsByDay),
                     dailyBudget: dailyBudget
                 )
                 .frame(width: width)
@@ -238,8 +229,15 @@ struct CalendarView: View {
 
     // MARK: - 선택 날짜 상세 카드
 
-    private var dailyCard: some View {
-        VStack(alignment: .leading, spacing: 0) {
+    private func dailyCard(items: [FinDataEntity]) -> some View {
+        let expenseTotal = items.filter { !$0.isRevenue }.reduce(0) { $0 + $1.how }
+        let revenueTotal = items.filter { $0.isRevenue }.reduce(0) { $0 + $1.how }
+        // 기존 selectDate()의 알파 규칙: 양쪽 다 0이면 둘 다 표시, 한쪽만 있으면 그쪽만 표시
+        let bothZero = expenseTotal == 0 && revenueTotal == 0
+        let expenseVisible = expenseTotal > 0 || bothZero
+        let revenueVisible = revenueTotal > 0 || bothZero
+
+        return VStack(alignment: .leading, spacing: 0) {
             // 상단: 날짜 (좌) + 수입 총액 (우, 파란색)
             HStack(alignment: .center) {
                 Text(selectedDate.onlydate())
@@ -247,7 +245,7 @@ struct CalendarView: View {
 
                 Spacer()
 
-                Text("+ \(selectedRevenueTotal.toDecimal()) 원")
+                Text("+ \(revenueTotal.toDecimal()) 원")
                     .font(.custom("AppleSDGothicNeo-SemiBold", size: 20))
                     .foregroundStyle(Color(uiColor: .systemBlue))
                     .opacity(revenueVisible ? 1 : 0)
@@ -258,7 +256,7 @@ struct CalendarView: View {
             // 선택 날짜 내역 목록 (높이 고정, 내부 스크롤 — 기존 테이블 뷰와 동일)
             ScrollView(showsIndicators: false) {
                 LazyVStack(spacing: 0) {
-                    ForEach(selectedItems) { item in
+                    ForEach(items) { item in
                         HStack {
                             // 스토리보드(calendarVC 테이블 셀): system 16/18, weight 미지정(regular)
                             Text(item.towhat)
@@ -282,7 +280,7 @@ struct CalendarView: View {
             // 하단: 지출 총액 (우)
             HStack {
                 Spacer()
-                Text("- \(selectedExpenseTotal.toDecimal()) 원")
+                Text("- \(expenseTotal.toDecimal()) 원")
                     .font(.custom("AppleSDGothicNeo-Bold", size: 22))
                     .opacity(expenseVisible ? 1 : 0)
             }
@@ -293,15 +291,6 @@ struct CalendarView: View {
         .background(Color(.background))
         .clipShape(RoundedRectangle(cornerRadius: 20))
         .paperShadow(y: -4)
-    }
-
-    // 기존 selectDate()의 알파 규칙: 양쪽 다 0이면 둘 다 표시, 한쪽만 있으면 그쪽만 표시
-    private var expenseVisible: Bool {
-        selectedExpenseTotal > 0 || (selectedExpenseTotal == 0 && selectedRevenueTotal == 0)
-    }
-
-    private var revenueVisible: Bool {
-        selectedRevenueTotal > 0 || (selectedExpenseTotal == 0 && selectedRevenueTotal == 0)
     }
 }
 

@@ -75,6 +75,8 @@ extension PersistenceController {
     static let logger = Logger(subsystem: cloudContainerID, category: "persistence")
 
     // 저장 실패 시에도 기존 try? 흐름과 동일하게 진행하되(위젯 리로드 포함), 로그는 남긴다.
+    // 실패한 pending 변경은 rollback하지 않는다 — mainContext는 autosave가 켜져 있어
+    // 일시 오류라면 재시도로 데이터가 살아남는 쪽을 택함 (그 사이 위젯과 화면이 잠시 어긋날 수 있음).
     @discardableResult
     static func saveAndRefreshWidgets(_ context: ModelContext) -> Bool {
         var saved = true
