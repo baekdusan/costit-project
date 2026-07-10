@@ -41,10 +41,17 @@ func presentAddFin(source: AddFinView.Source, mode: AddFinView.Mode) {
     let presenter = root.topMostPresentedViewController
     guard !presenter.isBeingDismissed else { return }
 
-    let view = AddFinView(source: source, mode: mode)
+    // onDismiss 클로저가 host를 참조해야 하므로 빈 rootView로 먼저 만들고 교체
+    // (제네릭 제약상 AnyView 필요). animated: true는 기존 SwiftUI dismiss의
+    // 슬라이드 다운 애니메이션과 동일함을 프레임 캡처로 확인한 값.
+    let host = UIHostingController<AnyView>(rootView: AnyView(EmptyView()))
+    host.rootView = AnyView(
+        AddFinView(source: source, mode: mode, onDismiss: { [weak host] in
+            host?.dismiss(animated: true)
+        })
         .modelContainer(PersistenceController.shared)
         .dynamicTypeSize(.large)
-    let host = UIHostingController(rootView: view)
+    )
     host.modalPresentationStyle = .overFullScreen
     host.view.backgroundColor = .clear
     presenter.present(host, animated: false)

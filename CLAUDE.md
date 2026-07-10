@@ -67,7 +67,7 @@ xcodebuild -project saveMoney.xcodeproj -scheme saveMoney \
 - **데이터 소스**: SwiftData 단일 source of truth. 모든 SwiftUI 화면이 `@Query` / environment `\.modelContext` 사용 (AddFinView 포함 — 과거의 `ModelContext(...)` 직접 생성은 environment로 통일됨)
 - **저장 경로**: 지출/수입/프로필 변경은 `PersistenceController.saveAndRefreshWidgets(_:)` 경유 (위젯 리로드 동반). 고정 지출은 위젯 미표시라 일반 `save()` (의도된 비대칭)
 - **위젯**: `PersistenceController.shared` 컨테이너에서 직접 fetch (App Group으로 앱과 공유)
-- **AddFinView dismiss**: SwiftUI dismiss + 50ms 후 UIKit topMostPresentedViewController dismiss 폴백 (onDismiss 클로저 교체는 시각 회귀 검증 필요로 보류)
+- **AddFinView dismiss**: present 측(`presentAddFin`)이 주입하는 `onDismiss` 클로저가 호스트 VC를 직접 dismiss(animated: true — 기존 SwiftUI dismiss의 슬라이드 다운과 동일함을 프레임 캡처로 확인). 과거의 SwiftUI dismiss + 50ms UIKit 폴백 이중 경로는 제거됨
 
 ### 화면 표시 방식 (경위)
 | 경로 | 방식 | 이유 |
@@ -99,7 +99,8 @@ xcodebuild -project saveMoney.xcodeproj -scheme saveMoney \
 - **DONE (Step 3, 2026-06-14, 브랜치 `refactor/phase4-naming`)**: 네이밍 컨벤션 정리. `finData` dead code 삭제(사용처 0), `FixedExpenditure`(struct)→`FixedExpenditureItem`(SwiftData `FixedExpenditureEntity`와 구분), `profile`→`Profile`, `salaryDate`→`SalaryDate`. CodingKeys 호환 불필요(저장은 SwiftData Entity, 레거시 디코딩은 LegacyMigration의 자체 `Legacy*` 타입)했고 빌드 통과
 - **DONE (Step 4 라운드, 2026-07-10, 브랜치 `refactor/phase4-cleanup`)**: 멀티에이전트 분석(56건 검증) 기반 정리 라운드.
   ① dead code 일괄 삭제(struct.swift 확장 5종, ClearBackground/AddFinSheet 등) ② DateFormatter/NumberFormatter 캐시 통일(`AppDateFormatters`) ③ CalendarView 일 단위 집계를 Date 키로 일원화 + MonthCalendarGrid 파일 분리 ④ 저장+위젯 리로드 헬퍼(`saveAndRefreshWidgets`) + AddFinView environment context 통일 ⑤ 급여 기간 로직 `SalaryDate.period` 이동 + 엔티티 fallback(`asProfile`/`asSalaryDate`)/상수(`SalaryDay`/`AppKeys`) 집약 ⑥ Color asset 심볼(59곳)/Font 토큰(25곳) ⑦ 공용 컴포넌트 추출(Components.swift) ⑧ UIKit 브리지 통합(UIKitPresentation.swift) ⑨ 버그 4건 fix: 월급날 당일 지출 누락 / ddayTitle 오표시 / 금액 오버플로 0 저장 / 고정지출 날짜 표시·저장 불일치 ⑩ 위젯 타입 리네임(`CostItWidget`)
-- **보류 (수동 시각 검증 필요)**: AddFinView 50ms dismiss 폴백 → onDismiss 클로저 교체, RevenueView 닫기 onClose 명시화, 금액 입력 자릿수 정책 통일(15자리/11자 변종이 의도인지 확인), FinStore 계층 도입
+- **DONE (2026-07-11)**: AddFinView 50ms dismiss 폴백 → onDismiss 클로저 교체 (시뮬레이터 탭 자동화로 X 버튼/배경 탭/스와이프/저장 dismiss 4경로 + RevenueView 위 present 회귀 검증)
+- **보류**: RevenueView 닫기 onClose 명시화(현행 1줄 lookup이 더 단순해 실익 없음 판단), 금액 입력 자릿수 정책 통일(15자리/11자 변종이 의도인지 사용자 확인 필요), FinStore 계층 도입(saveAndRefreshWidgets로 충분)
 - **TODO — Xcode Cloud 연동 마무리** (App Store Connect, 사용자 직접 작업): main 브랜치 → 아카이브 워크플로 생성됨 (2026-06-04). 이제 Pod이 제거됐으므로 워크플로 설정에서 "프로젝트 또는 워크스페이스"를 `saveMoney.xcworkspace` → `saveMoney.xcodeproj`로 변경하고, "배포 준비"를 없음 → TestFlight/App Store Connect로 설정해야 동작
 - **TODO — 실기기/UI 직접 테스트** (아래 "디자인/검증 도구"의 체크리스트)
 

@@ -7,10 +7,11 @@ struct AddFinView: View {
     enum Mode { case new, edit(FinDataEntity) }
 
     @Environment(\.modelContext) private var modelContext
-    @Environment(\.dismiss) private var dismiss
 
     let source: Source
     let mode: Mode
+    // present한 쪽이 주입하는 닫기 동작 (UIKit present라 SwiftUI dismiss 대신 호스트 VC를 직접 dismiss)
+    let onDismiss: () -> Void
 
     @State private var when: Date = Date()
     @State private var towhat: String = ""
@@ -224,20 +225,14 @@ struct AddFinView: View {
     }
 
     private func performDismiss() {
-        // SwiftUI dismiss action 우선, 실패 시 UIKit 직접 dismiss
-        dismiss()
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) {
-            UIApplication.shared.appRootViewController?
-                .topMostPresentedViewController
-                .dismiss(animated: false)
-        }
+        onDismiss()
     }
 }
 
 #Preview {
     ZStack {
         Color.gray.opacity(0.3).ignoresSafeArea()
-        AddFinView(source: .revenue, mode: .new)
+        AddFinView(source: .revenue, mode: .new, onDismiss: {})
             .modelContainer(PreviewSampleData.container)
     }
 }
