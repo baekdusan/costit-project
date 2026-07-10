@@ -106,7 +106,7 @@ struct RevenueView: View {
 
                         // 오른쪽: 수입 추가
                         CircleActionButton(systemName: "highlighter", background: Color(.pin)) {
-                            presentAddFin(mode: .new)
+                            presentAddFin(source: .revenue, mode: .new)
                         }
                         .padding(.trailing, 30)
                     }
@@ -129,14 +129,11 @@ struct RevenueView: View {
     //  시트 안 버튼 탭이 전달되지 않는 문제가 있음 — AddFinView와 같은 패턴으로 회피)
     private func presentMonthSelector() {
         guard let root = UIApplication.shared.appRootViewController else { return }
-        var presenter = root
-        while let next = presenter.presentedViewController { presenter = next }
+        let presenter = root.topMostPresentedViewController
         guard !presenter.isBeingDismissed else { return }
 
         func dismissSheet() {
-            var top: UIViewController = root
-            while let next = top.presentedViewController { top = next }
-            top.dismiss(animated: true)
+            root.topMostPresentedViewController.dismiss(animated: true)
         }
 
         let host = UIHostingController(rootView: MonthSelectorSheet(
@@ -180,24 +177,6 @@ struct RevenueView: View {
             }
         }
         .padding(.top, topInset)
-    }
-
-    // 수입 추가/수정 화면을 UIKit으로 직접 present.
-    // (이전의 onChange(of: addMode != nil) 패턴은 편집→편집 연속 진입 시 발화하지 않는 버그가 있었음)
-    private func presentAddFin(mode: AddFinView.Mode) {
-        guard let root = UIApplication.shared.appRootViewController else { return }
-        // 최상단 VC에서 present (이미 다른 모달이 진행 중이면 그 위에 얹지 않고 무시됨 방지 +
-        // RevenueView가 루트로 뜨는 DEBUG 모드에서도 동작)
-        var presenter = root
-        while let next = presenter.presentedViewController { presenter = next }
-        guard !presenter.isBeingDismissed else { return }   // dismiss 진행 중인 VC 위에는 present하지 않음
-        let view = AddFinView(source: .revenue, mode: mode)
-            .modelContainer(PersistenceController.shared)
-            .dynamicTypeSize(.large)
-        let host = UIHostingController(rootView: view)
-        host.modalPresentationStyle = .overFullScreen
-        host.view.backgroundColor = .clear
-        presenter.present(host, animated: false)
     }
 
     // MARK: - 리스트 셀
@@ -253,7 +232,7 @@ struct RevenueView: View {
         .frame(width: cardWidth, height: 72)
         .contentShape(Rectangle())
         .onLongPressGesture {
-            presentAddFin(mode: .edit(item))
+            presentAddFin(source: .revenue, mode: .edit(item))
         }
     }
 

@@ -234,16 +234,6 @@ struct AddFinView: View {
     }
 }
 
-private extension UIViewController {
-    var topMostPresentedViewController: UIViewController {
-        var top = self
-        while let next = top.presentedViewController {
-            top = next
-        }
-        return top
-    }
-}
-
 #Preview {
     ZStack {
         Color.gray.opacity(0.3).ignoresSafeArea()

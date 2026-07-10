@@ -1,22 +1,6 @@
 import SwiftUI
 import SwiftData
 
-// MARK: - 키 윈도우 탐색 (UIKit present/dismiss 공통 헬퍼)
-// windows.first는 키보드/권한 다이얼로그 등 시스템 윈도우가 잡힐 수 있으므로
-// isKeyWindow 기준으로 앱 윈도우를 찾는다.
-extension UIApplication {
-    var appKeyWindow: UIWindow? {
-        let windows = connectedScenes
-            .compactMap { $0 as? UIWindowScene }
-            .flatMap(\.windows)
-        return windows.first(where: \.isKeyWindow) ?? windows.first
-    }
-
-    var appRootViewController: UIViewController? {
-        appKeyWindow?.rootViewController
-    }
-}
-
 // mainVC를 SwiftUI로 옮긴 버전 — 앱의 루트 화면 (SceneDelegate에서 직접 띄움).
 // SwiftData만 사용한다. UserDefaults에는 더 이상 데이터를 기록하지 않으며
 // "firstOpen" 플래그만 유지한다.
@@ -156,7 +140,7 @@ struct MainView: View {
                             Spacer()
 
                             CircleActionButton(systemName: "highlighter", background: Color(.header)) {
-                                presentAddFin(mode: .new)
+                                presentAddFin(source: .expense, mode: .new)
                             }
                             .padding(.trailing, 30)
                         }
@@ -311,25 +295,12 @@ struct MainView: View {
         .frame(width: size, height: size)
         .paperShadow(y: 6)
         .onLongPressGesture {
-            presentAddFin(mode: .edit(item))
+            presentAddFin(source: .expense, mode: .edit(item))
         }
     }
 
-    // MARK: - 화면 전환 (AddFinView / RevenueView는 투명 배경 위해 UIKit present)
-
-    private var rootViewController: UIViewController? {
-        UIApplication.shared.appRootViewController
-    }
-
-    private func presentAddFin(mode: AddFinView.Mode) {
-        let view = AddFinView(source: .expense, mode: mode)
-            .modelContainer(PersistenceController.shared)
-            .dynamicTypeSize(.large)
-        let host = UIHostingController(rootView: view)
-        host.modalPresentationStyle = .overFullScreen
-        host.view.backgroundColor = .clear
-        rootViewController?.present(host, animated: false)
-    }
+    // MARK: - 화면 전환 (AddFinView / RevenueView는 투명 배경/즉시 전환 위해 UIKit present)
+    // AddFinView는 공용 presentAddFin(source:mode:) 경로 사용 (UIKitPresentation.swift)
 
     private func presentRevenue() {
         let view = RevenueView(start: salaryData.startDate, end: salaryData.endDate)
@@ -337,7 +308,7 @@ struct MainView: View {
             .dynamicTypeSize(.large)
         let host = UIHostingController(rootView: view)
         host.modalPresentationStyle = .fullScreen
-        rootViewController?.present(host, animated: false)
+        UIApplication.shared.appRootViewController?.present(host, animated: false)
     }
 
     // MARK: - 데이터 조작

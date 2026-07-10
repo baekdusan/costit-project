@@ -36,6 +36,7 @@
 		31DEEB532FAE0001006C2F1F /* MonthCalendarGrid.swift in Sources */ = {isa = PBXBuildFile; fileRef = 31DEEB522FAE0001006C2F1F /* MonthCalendarGrid.swift */; };
 		31DEEB552FAE0001006C2F1F /* Theme.swift in Sources */ = {isa = PBXBuildFile; fileRef = 31DEEB542FAE0001006C2F1F /* Theme.swift */; };
 		31DEEB572FAE0001006C2F1F /* Components.swift in Sources */ = {isa = PBXBuildFile; fileRef = 31DEEB562FAE0001006C2F1F /* Components.swift */; };
+		31DEEB592FAE0001006C2F1F /* UIKitPresentation.swift in Sources */ = {isa = PBXBuildFile; fileRef = 31DEEB582FAE0001006C2F1F /* UIKitPresentation.swift */; };
 		31DEEB4F2FAE2EB5006C2F1F /* MainView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 31DEEB4E2FAE2EB5006C2F1F /* MainView.swift */; };
 		31DEEB512FAE2EB5006C2F1F /* PreviewSampleData.swift in Sources */ = {isa = PBXBuildFile; fileRef = 31DEEB502FAE2EB5006C2F1F /* PreviewSampleData.swift */; };
 /* End PBXBuildFile section */
@@ -94,6 +95,7 @@
 		31DEEB522FAE0001006C2F1F /* MonthCalendarGrid.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MonthCalendarGrid.swift; sourceTree = "<group>"; };
 		31DEEB542FAE0001006C2F1F /* Theme.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Theme.swift; sourceTree = "<group>"; };
 		31DEEB562FAE0001006C2F1F /* Components.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Components.swift; sourceTree = "<group>"; };
+		31DEEB582FAE0001006C2F1F /* UIKitPresentation.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UIKitPresentation.swift; sourceTree = "<group>"; };
 		31DEEB4E2FAE2EB5006C2F1F /* MainView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MainView.swift; sourceTree = "<group>"; };
 		31DEEB502FAE2EB5006C2F1F /* PreviewSampleData.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PreviewSampleData.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
@@ -199,6 +201,7 @@
 				31DEEB472FAE2EB5006C2F1F /* RevenueView.swift */,
 				31DEEB442FAE2A23006C2F1F /* SearchBarRepresentable.swift */,
 				31DEEB422FAE2941006C2F1F /* SearchView.swift */,
+				31DEEB582FAE0001006C2F1F /* UIKitPresentation.swift */,
 				31DEEB3A2FAE204C006C2F1F /* FirstOpenView.swift */,
 			);
 			path = Views;
@@ -316,6 +319,7 @@
 				31DEEB4B2FAE2EB5006C2F1F /* FixedExpenditureView.swift in Sources */,
 				31DEEB4D2FAE2EB5006C2F1F /* CalendarView.swift in Sources */,
 				31DEEB572FAE0001006C2F1F /* Components.swift in Sources */,
+				31DEEB592FAE0001006C2F1F /* UIKitPresentation.swift in Sources */,
 				31DEEB532FAE0001006C2F1F /* MonthCalendarGrid.swift in Sources */,
 				31DEEB4F2FAE2EB5006C2F1F /* MainView.swift in Sources */,
 				31DEEB512FAE2EB5006C2F1F /* PreviewSampleData.swift in Sources */,
