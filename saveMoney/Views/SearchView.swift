@@ -93,9 +93,7 @@ struct SearchView: View {
             }
             .padding(.vertical, 18)
 
-            Rectangle()
-                .fill(Color(uiColor: .systemGray6))
-                .frame(height: 1.5)
+            HairlineDivider()
         }
     }
 

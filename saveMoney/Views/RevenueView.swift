@@ -74,7 +74,7 @@ struct RevenueView: View {
                             .frame(width: cardWidth)
                             .background(Color(.memoPaper))
                             .compositingGroup()
-                            .shadow(color: .black.opacity(0.08), radius: 6, y: 5)
+                            .paperShadow(y: 5)
                             .padding(.top, 15)
                         }
                         .frame(maxWidth: .infinity)
@@ -96,31 +96,17 @@ struct RevenueView: View {
                     Spacer()
                     HStack {
                         // 왼쪽: dismiss (애니메이션 없이 → 화면 전환처럼 보임)
-                        Button {
+                        CircleActionButton(systemName: "arrow.left.arrow.right", background: Color(.pin)) {
                             UIApplication.shared.appRootViewController?
                                 .presentedViewController?.dismiss(animated: false)
-                        } label: {
-                            Image(systemName: "arrow.left.arrow.right")
-                                .font(.system(size: 20, weight: .semibold))
-                                .frame(width: 60, height: 60)
-                                .background(Color(.pin))
-                                .foregroundStyle(Color(.background))
-                                .clipShape(Circle())
                         }
                         .padding(.leading, 30)
 
                         Spacer()
 
                         // 오른쪽: 수입 추가
-                        Button {
+                        CircleActionButton(systemName: "highlighter", background: Color(.pin)) {
                             presentAddFin(mode: .new)
-                        } label: {
-                            Image(systemName: "highlighter")
-                                .font(.system(size: 20, weight: .semibold))
-                                .frame(width: 60, height: 60)
-                                .background(Color(.pin))
-                                .foregroundStyle(Color(.background))
-                                .clipShape(Circle())
                         }
                         .padding(.trailing, 30)
                     }
@@ -131,21 +117,12 @@ struct RevenueView: View {
             .ignoresSafeArea()
         }
         .ignoresSafeArea(.keyboard)
-        .alert("삭제", isPresented: Binding(
-            get: { deleteTarget != nil },
-            set: { if !$0 { deleteTarget = nil } }
-        )) {
-            Button("취소", role: .cancel) { deleteTarget = nil }
-            Button("확인") {
-                if let target = deleteTarget {
-                    deleteItem(target)
-                }
-                deleteTarget = nil
-            }
-        } message: {
-            Text("해당 수입 내역을 삭제해요.")
+        .deleteConfirmationAlert(item: $deleteTarget, message: "해당 수입 내역을 삭제해요.") {
+            deleteItem($0)
         }
     }
+
+    // MARK: - 화면 전환 (UIKit present)
 
     // 날짜 선택 시트를 UIKit으로 직접 present.
     // (RevenueView 자체가 UIKit으로 present된 호스트라, 그 위에 SwiftUI .sheet를 띄우면
@@ -223,6 +200,8 @@ struct RevenueView: View {
         presenter.present(host, animated: false)
     }
 
+    // MARK: - 리스트 셀
+
     private func headerRow(cardWidth: CGFloat) -> some View {
         HStack {
             Text("이번 달 수입은")
@@ -277,6 +256,8 @@ struct RevenueView: View {
             presentAddFin(mode: .edit(item))
         }
     }
+
+    // MARK: - 데이터 조작
 
     private func deleteItem(_ item: FinDataEntity) {
         PersistenceController.delete(item, in: modelContext)

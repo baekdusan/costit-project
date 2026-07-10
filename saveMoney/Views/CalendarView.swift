@@ -173,9 +173,7 @@ struct CalendarView: View {
                 totalColumn(title: "고정 지출 📌", value: fixedTotal)
             }
 
-            Rectangle()
-                .fill(Color(uiColor: .systemGray6))
-                .frame(height: 1.5)
+            HairlineDivider()
                 .padding(.horizontal, 10)
                 .padding(.top, 18)
         }
@@ -293,7 +291,7 @@ struct CalendarView: View {
         }
         .background(Color(.background))
         .clipShape(RoundedRectangle(cornerRadius: 20))
-        .shadow(color: .black.opacity(0.08), radius: 6, y: -4)
+        .paperShadow(y: -4)
     }
 
     // 기존 selectDate()의 알파 규칙: 양쪽 다 0이면 둘 다 표시, 한쪽만 있으면 그쪽만 표시

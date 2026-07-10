@@ -24,7 +24,7 @@ struct AddFinView: View {
     enum Field: Hashable { case towhat, how }
 
     private var howInt: Int {
-        howText.replacingOccurrences(of: ",", with: "").toInt()
+        howText.toInt()   // toInt()가 콤마 처리 포함
     }
 
     private var canSave: Bool {
@@ -35,6 +35,8 @@ struct AddFinView: View {
     private var formattedDate: String {
         AppDateFormatters.editDate.string(from: when)
     }
+
+    // MARK: - Body
 
     var body: some View {
         GeometryReader { proxy in
@@ -107,15 +109,8 @@ struct AddFinView: View {
                             .keyboardType(.numberPad)
                             .focused($focused, equals: .how)
                             .onChange(of: howText) { _, new in
-                                let raw = new.replacingOccurrences(of: ",", with: "")
-                                if raw.isEmpty {
-                                    howText = ""
-                                } else if raw.count > 15 {
-                                    howText = String(raw.prefix(15))
-                                } else if let int = Int(raw) {
-                                    howText = int.toDecimal()
-                                } else {
-                                    howText = String(raw.filter(\.isNumber))
+                                if let formatted = new.currencyInputFormatted(limit: .rawDigits(15), onParseFailure: .filterDigits) {
+                                    howText = formatted
                                 }
                             }
                             .padding(.bottom, cardSize * 0.1)
@@ -181,6 +176,8 @@ struct AddFinView: View {
             .presentationDetents([.fraction(0.4)])
         }
     }
+
+    // MARK: - 데이터 조작 / Dismiss
 
     private func prefill() {
         if case .edit(let item) = mode {

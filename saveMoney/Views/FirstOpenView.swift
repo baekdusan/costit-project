@@ -5,10 +5,6 @@ import SwiftUI
 // 화면을 storyboard segue 대신 UIHostingController로 띄우는 게 점진 전환 방식.
 struct FirstOpenView: View {
 
-    // 입력 초기값 (프로필 편집 모드일 때 사용)
-    let initialNickname: String
-    let initialOutLay: Int
-    let initialPeriod: String
     // true면 첫 실행 (빈 입력 + 닉네임에 자동 포커스), false면 프로필 편집 (기존 값 채워서 표시)
     let isFirstOpen: Bool
 
@@ -17,21 +13,20 @@ struct FirstOpenView: View {
 
     /// 첫 실행용 — 빈 입력 상태로 시작.
     init(onConfirm: @escaping (String, Int, String) -> Void) {
-        self.initialNickname = ""
-        self.initialOutLay = 0
-        self.initialPeriod = SalaryDay.firstDay
         self.isFirstOpen = true
         self.onConfirm = onConfirm
+        // @State 기본값이 이미 빈 입력 상태
     }
 
     /// 프로필 편집용 — 기존 값으로 입력 채워줌.
+    // (onAppear 초기화 패턴은 UIKit present 경로에서 발화하지 않을 수 있어 init에서 State를 직접 채움)
     init(editing profile: Profile,
          onConfirm: @escaping (String, Int, String) -> Void) {
-        self.initialNickname = profile.nickName
-        self.initialOutLay = profile.outLay
-        self.initialPeriod = profile.period.isEmpty ? SalaryDay.firstDay : profile.period
         self.isFirstOpen = false
         self.onConfirm = onConfirm
+        _nickname = State(initialValue: profile.nickName)
+        _outLayText = State(initialValue: profile.outLay > 0 ? profile.outLay.toDecimal() : "")
+        _period = State(initialValue: profile.period.isEmpty ? SalaryDay.firstDay : profile.period)
     }
 
     @State private var nickname: String = ""
@@ -47,7 +42,7 @@ struct FirstOpenView: View {
         (1...30).map(SalaryDay.day) + [SalaryDay.lastDay]
 
     private var outLayInt: Int {
-        outLayText.replacingOccurrences(of: ",", with: "").toInt()
+        outLayText.toInt()   // toInt()가 콤마 처리 포함
     }
 
     private var isAllFilled: Bool {
@@ -81,9 +76,6 @@ struct FirstOpenView: View {
             salaryPickerSheet
         }
         .onAppear {
-            nickname = initialNickname
-            outLayText = initialOutLay > 0 ? initialOutLay.toDecimal() : ""
-            period = initialPeriod
             if isFirstOpen {
                 focused = .nickname
             }
@@ -108,13 +100,8 @@ struct FirstOpenView: View {
                 next: nil
             )
             .onChange(of: outLayText) { _, newValue in
-                let raw = newValue.replacingOccurrences(of: ",", with: "")
-                if raw.isEmpty {
-                    outLayText = ""
-                } else if let int = Int(raw) {
-                    outLayText = int.toDecimal()
-                } else {
-                    outLayText = String(raw.filter(\.isNumber))
+                if let formatted = newValue.currencyInputFormatted(limit: .unlimited, onParseFailure: .filterDigits) {
+                    outLayText = formatted
                 }
             }
 

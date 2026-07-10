@@ -117,21 +117,7 @@ struct MainView: View {
 
                 ZStack {
                     VStack(spacing: 0) {
-                        // 잔액 헤더
-                        VStack(alignment: .trailing, spacing: 6) {
-                            Text(balanceText)
-                                .font(.pretendard(.semiBold, size: 32))
-                                .opacity(0.78)
-                                .lineLimit(1)
-                                .minimumScaleFactor(0.5)
-                            Text(balanceConditionText)
-                                .font(.pretendard(.medium, size: 16))
-                                .opacity(0.48)
-                        }
-                        .frame(maxWidth: .infinity, alignment: .trailing)
-                        .padding(.top, 2)
-                        .padding(.trailing, 18)
-                        .padding(.leading, 18)
+                        BalanceHeader(balance: balanceText, condition: balanceConditionText)
 
                         // 지출 메모지 그리드
                         ScrollView(showsIndicators: false) {
@@ -162,29 +148,15 @@ struct MainView: View {
                     VStack {
                         Spacer()
                         HStack {
-                            Button {
+                            CircleActionButton(systemName: "arrow.left.arrow.right", background: Color(.header)) {
                                 presentRevenue()
-                            } label: {
-                                Image(systemName: "arrow.left.arrow.right")
-                                    .font(.system(size: 20, weight: .semibold))
-                                    .frame(width: 60, height: 60)
-                                    .background(Color(.header))
-                                    .foregroundStyle(Color(.background))
-                                    .clipShape(Circle())
                             }
                             .padding(.leading, 30)
 
                             Spacer()
 
-                            Button {
+                            CircleActionButton(systemName: "highlighter", background: Color(.header)) {
                                 presentAddFin(mode: .new)
-                            } label: {
-                                Image(systemName: "highlighter")
-                                    .font(.system(size: 20, weight: .semibold))
-                                    .frame(width: 60, height: 60)
-                                    .background(Color(.header))
-                                    .foregroundStyle(Color(.background))
-                                    .clipShape(Circle())
                             }
                             .padding(.trailing, 30)
                         }
@@ -193,22 +165,7 @@ struct MainView: View {
                 }
             }
             .background {
-                // 배경: backgroundColor + 상단 그라데이션 (기존 topView)
-                ZStack(alignment: .top) {
-                    Color(.background)
-                    VStack(spacing: 0) {
-                        LinearGradient(
-                            colors: [
-                                Color(.topView),
-                                Color(.background).opacity(0)
-                            ],
-                            startPoint: .top, endPoint: .bottom
-                        )
-                        .frame(height: 175)
-                        Spacer(minLength: 0)
-                    }
-                }
-                .ignoresSafeArea()
+                MainBackground()
             }
             .navigationBarTitleDisplayMode(.inline)
             .toolbarBackground(.hidden, for: .navigationBar)
@@ -271,19 +228,8 @@ struct MainView: View {
                 )
                 .presentationDetents([.fraction(0.4)])
             }
-            .alert("삭제", isPresented: Binding(
-                get: { deleteTarget != nil },
-                set: { if !$0 { deleteTarget = nil } }
-            )) {
-                Button("취소", role: .cancel) { deleteTarget = nil }
-                Button("확인") {
-                    if let target = deleteTarget {
-                        deleteExpense(target)
-                    }
-                    deleteTarget = nil
-                }
-            } message: {
-                Text("해당 지출 내역을 삭제해요.")
+            .deleteConfirmationAlert(item: $deleteTarget, message: "해당 지출 내역을 삭제해요.") {
+                deleteExpense($0)
             }
             .onAppear {
                 rolloverSalaryPeriodIfNeeded()
@@ -363,7 +309,7 @@ struct MainView: View {
             .padding(.bottom, 18)
         }
         .frame(width: size, height: size)
-        .shadow(color: .black.opacity(0.08), radius: 6, y: 6)
+        .paperShadow(y: 6)
         .onLongPressGesture {
             presentAddFin(mode: .edit(item))
         }
@@ -437,6 +383,52 @@ struct MainView: View {
             entity.endDate = newPeriod.endDate
             PersistenceController.saveAndRefreshWidgets(modelContext)   // 기간이 바뀌었으니 위젯도 갱신
         }
+    }
+}
+
+// MARK: - 서브뷰
+
+// 잔액 헤더 (우측 정렬 잔액 + 조건 문구)
+private struct BalanceHeader: View {
+    let balance: String
+    let condition: String
+
+    var body: some View {
+        VStack(alignment: .trailing, spacing: 6) {
+            Text(balance)
+                .font(.pretendard(.semiBold, size: 32))
+                .opacity(0.78)
+                .lineLimit(1)
+                .minimumScaleFactor(0.5)
+            Text(condition)
+                .font(.pretendard(.medium, size: 16))
+                .opacity(0.48)
+        }
+        .frame(maxWidth: .infinity, alignment: .trailing)
+        .padding(.top, 2)
+        .padding(.trailing, 18)
+        .padding(.leading, 18)
+    }
+}
+
+// 배경: backgroundColor + 상단 그라데이션 (기존 topView)
+private struct MainBackground: View {
+    var body: some View {
+        ZStack(alignment: .top) {
+            Color(.background)
+            VStack(spacing: 0) {
+                LinearGradient(
+                    colors: [
+                        Color(.topView),
+                        Color(.background).opacity(0)
+                    ],
+                    startPoint: .top, endPoint: .bottom
+                )
+                .frame(height: 175)
+                Spacer(minLength: 0)
+            }
+        }
+        .ignoresSafeArea()
     }
 }
 

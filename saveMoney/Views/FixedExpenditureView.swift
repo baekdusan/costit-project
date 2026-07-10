@@ -62,19 +62,8 @@ struct FixedExpenditureView: View {
                 itemList
             }
         }
-        .alert("삭제", isPresented: Binding(
-            get: { deleteTarget != nil },
-            set: { if !$0 { deleteTarget = nil } }
-        )) {
-            Button("취소", role: .cancel) { deleteTarget = nil }
-            Button("확인") {
-                if let target = deleteTarget {
-                    deleteItem(target)
-                }
-                deleteTarget = nil
-            }
-        } message: {
-            Text("해당 고정 지출 내역을 삭제해요.")
+        .deleteConfirmationAlert(item: $deleteTarget, message: "해당 고정 지출 내역을 삭제해요.") {
+            deleteItem($0)
         }
         .sheet(isPresented: $showDayPicker) {
             DaySelectorSheet(selectedDay: $selectedDay) { day in
@@ -167,12 +156,8 @@ struct FixedExpenditureView: View {
                     .focused($focused, equals: .how)
                     .onChange(of: howText) { _, new in
                         // 실시간 반점 + 11자(반점 포함) 제한
-                        let raw = new.replacingOccurrences(of: ",", with: "")
-                        if raw.isEmpty {
-                            howText = ""
-                        } else if let int = Int(raw) {
-                            let formatted = int.toDecimal()
-                            howText = formatted.count > 11 ? String(formatted.prefix(11)) : formatted
+                        if let formatted = new.currencyInputFormatted(limit: .formattedChars(11), onParseFailure: .keepAsIs) {
+                            howText = formatted
                         }
                     }
             }
@@ -243,10 +228,7 @@ struct FixedExpenditureView: View {
             }
             .frame(height: 36)
 
-            // 행 하단 줄 (systemGray6 1.5pt)
-            Rectangle()
-                .fill(Color(uiColor: .systemGray6))
-                .frame(height: 1.5)
+            HairlineDivider()
         }
         .padding(.horizontal, 24)
     }
