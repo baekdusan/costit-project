@@ -2,9 +2,8 @@ import SwiftUI
 import SwiftData
 import UserNotifications
 
-// 고정 지출 관리 화면 — fixedExpenditureVC의 SwiftUI 대체.
-// SwiftData를 직접 사용하고, 점진 전환 기간 동안 NotificationCenter("toMainVC")로
-// mainVC/calendarVC의 UserDefaults 경로와 동기화를 유지한다.
+// 고정 지출 관리 화면 (CalendarView에서 fullScreenCover로 표시).
+// SwiftData를 직접 사용하고, 항목별 푸시 알림을 externalID 기준으로 등록/해제한다.
 struct FixedExpenditureView: View {
 
     @Environment(\.modelContext) private var modelContext
@@ -314,7 +313,7 @@ struct FixedExpenditureView: View {
     // MARK: - Dismiss
 
     private func performDismiss() {
-        // calendarVC가 직접 present한 UIHostingController이므로 SwiftUI dismiss로 충분
+        // CalendarView가 fullScreenCover로 띄우므로 SwiftUI dismiss로 충분
         swiftUIDismiss()
     }
 }

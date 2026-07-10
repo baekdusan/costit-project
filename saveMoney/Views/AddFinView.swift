@@ -21,7 +21,6 @@ struct AddFinView: View {
 
     // 스와이프 dismiss용
     @GestureState private var dragOffset: CGFloat = 0
-    @State private var isDraggingDown: Bool = false
 
     enum Field: Hashable { case towhat, how }
 

@@ -108,7 +108,7 @@ struct MainView: View {
     private var navTitle: String {
         switch displayRange {
         case .salaryPeriod:
-            return salaryData.startDate.toString(false) + " ~ " + salaryData.endDate.toString(false)
+            return salaryData.startDate.toString() + " ~ " + salaryData.endDate.toString()
         case .custom(_, _, let label):
             return label
         }
@@ -336,7 +336,7 @@ struct MainView: View {
 
             VStack(alignment: .leading, spacing: 0) {
                 HStack(alignment: .top) {
-                    Text(item.when.toString(false))
+                    Text(item.when.toString())
                         .font(.custom("PretendardVariable-Regular", size: 12))
                         .padding(.top, 8)
 

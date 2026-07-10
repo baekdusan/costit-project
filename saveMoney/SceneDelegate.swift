@@ -66,21 +66,13 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate {
     }
     #endif
     
-    func sceneDidDisconnect(_ scene: UIScene) {
-        
-    }
-    
     // 액티브 상태가 되었을 경우
     func sceneDidBecomeActive(_ scene: UIScene) {
         callBackgroundImage(false)
         // iOS 17+: applicationIconBadgeNumber(get/set) deprecated → UNUserNotificationCenter 사용
         UNUserNotificationCenter.current().setBadgeCount(0)
     }
-    
-    // 홈 바를 쓸어 올리거나 홈버튼을 두번 눌렀을 경우
-    func sceneWillResignActive(_ scene: UIScene) {
-    }
-    
+
     // 백그라운드 상태였다가 돌아왔을 때
     func sceneWillEnterForeground(_ scene: UIScene) {
         callBackgroundImage(false)

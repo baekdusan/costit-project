@@ -135,7 +135,7 @@ struct widgetEntryView: View {
                    height: geometry.size.height,
                    alignment: .bottom)
         }
-        .widgetBackground(Color("WidgetBackground"))
+        .containerBackground(Color("WidgetBackground"), for: .widget)
     }
 }
 
@@ -150,7 +150,7 @@ struct widget: Widget {
         .configurationDisplayName("코스트잇")
         .description("나의 코스트 배터리는 몇% 남았을까요?")
         .supportedFamilies([.systemSmall])
-        .contentMarginsDisabledIfAvailable()
+        .contentMarginsDisabled()
     }
 }
 
@@ -164,23 +164,5 @@ struct widget_Previews: PreviewProvider {
             isOver: false
         ))
         .previewContext(WidgetPreviewContext(family: .systemSmall))
-    }
-}
-
-extension View {
-    func widgetBackground(_ backgroundColor: Color) -> some View {
-        if #available(iOSApplicationExtension 17.0, *) {
-            return self.containerBackground(backgroundColor, for: .widget)
-        } else {
-            return self.background(backgroundColor)
-        }
-    }
-}
-
-extension WidgetConfiguration {
-    func contentMarginsDisabledIfAvailable() -> some WidgetConfiguration {
-        if #available(iOSApplicationExtension 17.0, *) {
-            return self.contentMarginsDisabled()
-        } else { return self }
     }
 }

@@ -5,7 +5,6 @@ import WidgetKit
 struct RevenueView: View {
 
     @Environment(\.modelContext) private var modelContext
-    @Environment(\.dismiss) private var swiftUIDismiss
 
     @Query(filter: #Predicate<FinDataEntity> { $0.isRevenue == true },
            sort: \FinDataEntity.when, order: .reverse)
@@ -22,7 +21,7 @@ struct RevenueView: View {
     // @State + onAppear 초기화 패턴은 UIHostingController로 직접 present될 때
     // onAppear가 발화하지 않아 빈 타이틀이 되는 문제가 있어 computed로 유지한다.
     private var navTitle: String {
-        customTitle ?? (initialStart.toString(false) + " ~ " + initialEnd.toString(false))
+        customTitle ?? (initialStart.toString() + " ~ " + initialEnd.toString())
     }
 
     init(start: Date, end: Date) {
@@ -258,7 +257,7 @@ struct RevenueView: View {
                 .foregroundStyle(.primary)
                 .lineLimit(1)
                 .overlay(alignment: .topLeading) {
-                    Text(item.when.toString(false))
+                    Text(item.when.toString())
                         .font(.custom("PretendardVariable-Medium", size: 12))
                         .foregroundStyle(Color("customLabel"))
                         .fixedSize()
@@ -288,28 +287,6 @@ struct RevenueView: View {
 }
 
 // MARK: - Supporting Types
-
-// fullScreenCover의 배경을 투명하게 만들기 위한 UIKit 브리지
-struct ClearBackground: UIViewRepresentable {
-    func makeUIView(context: Context) -> UIView {
-        let view = UIView()
-        DispatchQueue.main.async {
-            view.superview?.superview?.backgroundColor = .clear
-        }
-        return view
-    }
-    func updateUIView(_ uiView: UIView, context: Context) {}
-}
-
-struct AddFinSheet: Identifiable {
-    let mode: AddFinView.Mode
-    var id: String {
-        switch mode {
-        case .new: return "new"
-        case .edit(let item): return "edit-\(item.externalID)"
-        }
-    }
-}
 
 struct MonthSelectorSheet: View {
     let onSelect: (Date, Date, String) -> Void
