@@ -44,14 +44,17 @@ struct Provider: TimelineProvider {
     private func loadEntry(date: Date = Date()) -> CostEntry {
         let context = ModelContext(PersistenceController.shared)
 
-        let profile = (try? context.fetch(FetchDescriptor<ProfileEntity>()))?.first
-        let salary = (try? context.fetch(FetchDescriptor<SalaryPeriodEntity>()))?.first
+        var profileDescriptor = FetchDescriptor<ProfileEntity>()
+        profileDescriptor.fetchLimit = 1
+        var salaryDescriptor = FetchDescriptor<SalaryPeriodEntity>()
+        salaryDescriptor.fetchLimit = 1
 
-        let nickname = profile?.nickName ?? "User"
-        let outLay = profile?.outLay ?? 0
+        // 엔티티 없을 때 기본값은 앱과 동일하게 Profile()/SalaryDate()를 단일 소스로 사용
+        let profile = (try? context.fetch(profileDescriptor))?.first?.asProfile ?? Profile()
+        let salary = (try? context.fetch(salaryDescriptor))?.first?.asSalaryDate ?? SalaryDate()
 
-        let start = salary?.startDate ?? Date().startOfThisMonth
-        let end = salary?.endDate ?? Date().endOfThisMonth
+        let start = salary.startDate
+        let end = salary.endDate
 
         let predicate = #Predicate<FinDataEntity> {
             $0.isRevenue == false && $0.when >= start && $0.when <= end
@@ -59,15 +62,12 @@ struct Provider: TimelineProvider {
         let expenses = (try? context.fetch(FetchDescriptor<FinDataEntity>(predicate: predicate))) ?? []
         let total = expenses.reduce(0) { $0 + $1.how }
 
-        let remaining = outLay - total
-        let isOver = total >= outLay
-
         return CostEntry(
             date: date,
-            nickname: nickname,
-            remaining: remaining,
-            outLay: outLay,
-            isOver: isOver
+            nickname: profile.nickName,
+            remaining: profile.outLay - total,
+            outLay: profile.outLay,
+            isOver: total >= profile.outLay
         )
     }
 }

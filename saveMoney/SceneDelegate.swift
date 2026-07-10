@@ -32,11 +32,11 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate {
     private func applyLaunchOverridesForUITest(_ window: UIWindow) {
         let env = ProcessInfo.processInfo.environment
 
-        if env["SEED_DEMO_DATA"] == "1" {
+        if env[LaunchEnvKeys.seedDemoData] == "1" {
             seedDemoData()
         }
 
-        switch env["SHOW_SCREEN"] {
+        switch env[LaunchEnvKeys.showScreen] {
         case "calendar":
             window.rootViewController = UIHostingController(rootView:
                 CalendarView(start: Date().startOfThisMonth, end: Date().endOfThisMonth)

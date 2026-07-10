@@ -19,7 +19,7 @@ struct FirstOpenView: View {
     init(onConfirm: @escaping (String, Int, String) -> Void) {
         self.initialNickname = ""
         self.initialOutLay = 0
-        self.initialPeriod = "1일"
+        self.initialPeriod = SalaryDay.firstDay
         self.isFirstOpen = true
         self.onConfirm = onConfirm
     }
@@ -29,14 +29,14 @@ struct FirstOpenView: View {
          onConfirm: @escaping (String, Int, String) -> Void) {
         self.initialNickname = profile.nickName
         self.initialOutLay = profile.outLay
-        self.initialPeriod = profile.period.isEmpty ? "1일" : profile.period
+        self.initialPeriod = profile.period.isEmpty ? SalaryDay.firstDay : profile.period
         self.isFirstOpen = false
         self.onConfirm = onConfirm
     }
 
     @State private var nickname: String = ""
     @State private var outLayText: String = ""
-    @State private var period: String = "1일"
+    @State private var period: String = SalaryDay.firstDay
     @State private var showSalaryPicker: Bool = false
 
     @FocusState private var focused: Field?
@@ -44,7 +44,7 @@ struct FirstOpenView: View {
     enum Field: Hashable { case nickname, outLay }
 
     private static let salaryOptions: [String] =
-        (1...30).map { "\($0)일" } + ["마지막 날"]
+        (1...30).map(SalaryDay.day) + [SalaryDay.lastDay]
 
     private var outLayInt: Int {
         outLayText.replacingOccurrences(of: ",", with: "").toInt()

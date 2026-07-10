@@ -78,6 +78,6 @@ enum PreviewSampleData {
         try? context.save()
 
         // 첫 실행 온보딩을 건너뛰고 메인 그리드가 바로 보이게
-        UserDefaults.standard.setValue(true, forKey: "firstOpen")
+        UserDefaults.standard.setValue(true, forKey: AppKeys.firstOpen)
     }
 }

@@ -22,7 +22,7 @@ struct CalendarView: View {
         #if DEBUG
         // 디자인 검증/스크린샷 캡처 시 결제 있는 날(이번 달 13일)을 미리 선택해
         // 하단에 해당 날짜 내역이 보이도록 한다.
-        if ProcessInfo.processInfo.environment["SHOW_SCREEN"] == "calendar" {
+        if ProcessInfo.processInfo.environment[LaunchEnvKeys.showScreen] == "calendar" {
             return Calendar.current.date(byAdding: .day, value: 12, to: Date().startOfThisMonth) ?? Date()
         }
         #endif
@@ -233,7 +233,7 @@ struct CalendarView: View {
     // 일일 예산 (프로필 한 달 지출 목표 / 이번 달 일수) — 기존 percent()와 동일
     private var dailyBudget: Int {
         let daysInMonth = Int(Date().endOfThisMonth.onlydate()) ?? 30
-        let outLay = profiles.first?.outLay ?? 0
+        let outLay = (profiles.first?.asProfile ?? Profile()).outLay
         return daysInMonth > 0 ? outLay / daysInMonth : 0
     }
 

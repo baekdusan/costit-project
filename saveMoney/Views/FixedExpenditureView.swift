@@ -28,7 +28,7 @@ struct FixedExpenditureView: View {
     private let notificationCenter = UNUserNotificationCenter.current()
 
     private var nickName: String {
-        profiles.first?.nickName ?? "User"
+        (profiles.first?.asProfile ?? Profile()).nickName
     }
 
     private var totalCost: Int {
@@ -291,7 +291,7 @@ struct FixedExpenditureView: View {
     private func requestNotificationAuthorization() {
         #if DEBUG
         // 스크린샷 자동화(SHOW_SCREEN) 시 시스템 알림 권한 팝업이 화면을 가리지 않도록 스킵
-        if ProcessInfo.processInfo.environment["SHOW_SCREEN"] != nil { return }
+        if ProcessInfo.processInfo.environment[LaunchEnvKeys.showScreen] != nil { return }
         #endif
         notificationCenter.requestAuthorization(options: [.alert, .sound, .badge]) { _, error in
             if let error = error {

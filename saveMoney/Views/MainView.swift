@@ -48,17 +48,11 @@ struct MainView: View {
     // MARK: - 파생 데이터
 
     private var userProfile: Profile {
-        if let entity = profiles.first {
-            return Profile(nickName: entity.nickName, outLay: entity.outLay, period: entity.period)
-        }
-        return Profile()
+        profiles.first?.asProfile ?? Profile()
     }
 
     private var salaryData: SalaryDate {
-        if let entity = salaryPeriods.first {
-            return SalaryDate(startDate: entity.startDate, endDate: entity.endDate)
-        }
-        return SalaryDate()
+        salaryPeriods.first?.asSalaryDate ?? SalaryDate()
     }
 
     private var currentRange: (start: Date, end: Date) {
@@ -296,7 +290,7 @@ struct MainView: View {
 
                 // 첫 실행 감지 → 온보딩
                 // (NavigationStack 설치가 끝나기 전에 isPresented를 켜면 push가 무시될 수 있어 한 틱 지연)
-                if UserDefaults.standard.bool(forKey: "firstOpen") == false {
+                if UserDefaults.standard.bool(forKey: AppKeys.firstOpen) == false {
                     DispatchQueue.main.async {
                         showOnboarding = true
                     }
@@ -408,29 +402,25 @@ struct MainView: View {
 
     // 프로필 입력 처리 (온보딩 / 프로필 수정 공통 — 기존 handleProfileInput과 동일)
     private func handleProfileInput(nickname: String, outLay: Int, period: String) {
-        UserDefaults.standard.setValue(true, forKey: "firstOpen")
+        UserDefaults.standard.setValue(true, forKey: AppKeys.firstOpen)
 
         // 프로필 upsert
-        let profileEntity: ProfileEntity
-        if let existing = profiles.first {
-            profileEntity = existing
-        } else {
-            profileEntity = ProfileEntity()
-            modelContext.insert(profileEntity)
-        }
+        let profileEntity = profiles.first ?? {
+            let entity = ProfileEntity()
+            modelContext.insert(entity)
+            return entity
+        }()
         profileEntity.nickName = nickname
         profileEntity.outLay = outLay
         profileEntity.period = period
 
         // 급여일 기준으로 정산 기간 재설정
-        let newPeriod = Self.setSalaryDate(period)
-        let periodEntity: SalaryPeriodEntity
-        if let existing = salaryPeriods.first {
-            periodEntity = existing
-        } else {
-            periodEntity = SalaryPeriodEntity()
-            modelContext.insert(periodEntity)
-        }
+        let newPeriod = SalaryDate.period(forSalaryDay: period)
+        let periodEntity = salaryPeriods.first ?? {
+            let entity = SalaryPeriodEntity()
+            modelContext.insert(entity)
+            return entity
+        }()
         periodEntity.startDate = newPeriod.startDate
         periodEntity.endDate = newPeriod.endDate
 
@@ -442,38 +432,10 @@ struct MainView: View {
     private func rolloverSalaryPeriodIfNeeded() {
         guard let entity = salaryPeriods.first else { return }
         if Date() > entity.endDate {
-            let newPeriod = Self.setSalaryDate(userProfile.period)
+            let newPeriod = SalaryDate.period(forSalaryDay: userProfile.period)
             entity.startDate = newPeriod.startDate
             entity.endDate = newPeriod.endDate
             PersistenceController.saveAndRefreshWidgets(modelContext)   // 기간이 바뀌었으니 위젯도 갱신
-        }
-    }
-
-    // 급여일 문자열("1일", "29일", "마지막 날")로 한 달 정산 기간 계산 (기존 mainVC.setSalaryDate)
-    static func setSalaryDate(_ salary: String) -> SalaryDate {
-        // 비양력 디바이스 캘린더(불교력 등)에서도 양력 기준 일자를 얻도록 gregorian 고정 캐시 사용
-        let today = Int(AppDateFormatters.salaryDay.string(from: Date())) ?? 1
-
-        if salary == "마지막 날" {
-            let endOfMonthDay = Int(AppDateFormatters.salaryDay.string(from: Date().endOfThisMonth)) ?? 28
-            if today == endOfMonthDay {
-                return SalaryDate(startDate: Date().endOfThisMonth, endDate: Date().yesterdayOfEndOfNextMonth)
-            }
-            return SalaryDate(startDate: Date().endOfLastMonth, endDate: Date().yesterdayOfEndOfThisMonth)
-        }
-
-        if salary == "1일" {
-            return SalaryDate(startDate: Date().startOfThisMonth, endDate: Date().endOfThisMonth)
-        }
-
-        // "29일" → 29 추출
-        let digits = salary.filter { $0.isNumber }
-        let salaryDay = Int(digits) ?? 1
-
-        if today >= salaryDay {
-            return SalaryDate(startDate: Date().startOfSomeDay(salaryDay), endDate: Date().endOfSomeDay(salaryDay))
-        } else {
-            return SalaryDate(startDate: Date().startOfLastSomeDay(salaryDay), endDate: Date().endOfLastSomeDay(salaryDay))
         }
     }
 }
