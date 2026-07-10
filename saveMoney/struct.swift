@@ -48,8 +48,8 @@ extension Date {
         return gregorian.date(byAdding: components, to: startOfThisMonth) ?? self
     }
 
-    // 지난 달의 끝
-    var endOfLastMonth: Date {
+    // 지난 달 마지막 날의 시작 (00:00) — 이름이 "끝"처럼 보이지만 시각은 하루의 시작임에 주의
+    var startOfLastDayOfLastMonth: Date {
         var components = DateComponents()
         components.day = -1
         return gregorian.date(byAdding: components, to: startOfThisMonth) ?? self
@@ -154,6 +154,8 @@ struct SalaryDate {
 
 extension SalaryDate {
     // 급여일 문자열("1일", "29일", "마지막 날")로 한 달 정산 기간 계산 (기존 mainVC.setSalaryDate)
+    // 불변식: 기간 start는 그 날 00:00, end는 마지막 날 23:59:59 — start가 하루의 끝이면
+    // 그 날의 지출이 기간 필터($0.when >= start)에서 통째로 빠진다.
     static func period(forSalaryDay salary: String, now: Date = Date()) -> SalaryDate {
         // 비양력 디바이스 캘린더(불교력 등)에서도 양력 기준 일자를 얻도록 gregorian 고정 캐시 사용
         let today = Int(AppDateFormatters.salaryDay.string(from: now)) ?? 1
@@ -161,9 +163,11 @@ extension SalaryDate {
         if salary == SalaryDay.lastDay {
             let endOfMonthDay = Int(AppDateFormatters.salaryDay.string(from: now.endOfThisMonth)) ?? 28
             if today == endOfMonthDay {
-                return SalaryDate(startDate: now.endOfThisMonth, endDate: now.yesterdayOfEndOfNextMonth)
+                // 월급날(말일) 당일: 과거엔 start가 endOfThisMonth(23:59:59)여서
+                // 월급날 당일 지출이 정산 기간에서 누락되는 버그가 있었음 → 당일 00:00으로 시작
+                return SalaryDate(startDate: now.startOfDay, endDate: now.yesterdayOfEndOfNextMonth)
             }
-            return SalaryDate(startDate: now.endOfLastMonth, endDate: now.yesterdayOfEndOfThisMonth)
+            return SalaryDate(startDate: now.startOfLastDayOfLastMonth, endDate: now.yesterdayOfEndOfThisMonth)
         }
 
         if salary == SalaryDay.firstDay {
@@ -200,6 +204,8 @@ struct FixedExpenditureItem {
 // MARK: - 숫자/문자열 변환
 
 extension String {
+    // 파싱 실패(비숫자·Int 범위 초과) 시 0 폴백 — 입력 필드는 currencyInputFormatted의
+    // 자릿수 가드가 이 폴백에 도달하지 않게 막아준다
     func toInt() -> Int {
         if self.contains(",") {
             return Int(self.split(separator: ",").joined()) ?? 0
