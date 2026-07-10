@@ -15,8 +15,7 @@ struct FixedExpenditureView: View {
     @Query private var profiles: [ProfileEntity]
 
     // 입력 상태
-    @State private var dayText: String = ""        // "n일" — 비어있으면 미선택
-    @State private var selectedDay: Int = 1
+    @State private var selectedDay: Int?           // nil이면 미선택 ("언제?" 표시)
     @State private var towhat: String = ""
     @State private var howText: String = ""
     @State private var showDayPicker: Bool = false
@@ -43,7 +42,7 @@ struct FixedExpenditureView: View {
     }
 
     private var canAdd: Bool {
-        !dayText.isEmpty && !towhat.isEmpty && !howText.isEmpty
+        selectedDay != nil && !towhat.isEmpty && !howText.isEmpty
     }
 
     var body: some View {
@@ -66,9 +65,10 @@ struct FixedExpenditureView: View {
             deleteItem($0)
         }
         .sheet(isPresented: $showDayPicker) {
-            DaySelectorSheet(selectedDay: $selectedDay) { day in
+            // 초기값만 넘기고 확정("설정") 시에만 부모 상태 갱신 — 시트를 스와이프로 닫으면
+            // 휠 값이 버려진다 (과거 @Binding 공유로 표시값과 저장값이 어긋나던 버그 수정)
+            DaySelectorSheet(initialDay: selectedDay ?? 1) { day in
                 selectedDay = day
-                dayText = "\(day)일"
                 showDayPicker = false
             }
             .presentationDetents([.fraction(0.4)])
@@ -122,15 +122,11 @@ struct FixedExpenditureView: View {
                 // 언제? — 탭하면 일(day) wheel picker sheet
                 Button {
                     focused = nil
-                    if dayText.isEmpty {
-                        selectedDay = 1
-                        dayText = "1일"
-                    }
                     showDayPicker = true
                 } label: {
-                    Text(dayText.isEmpty ? "언제?" : dayText)
+                    Text(selectedDay.map { "\($0)일" } ?? "언제?")
                         .font(.pretendard(.bold, size: 14))
-                        .foregroundStyle(dayText.isEmpty
+                        .foregroundStyle(selectedDay == nil
                                          ? Color(uiColor: .placeholderText)
                                          : Color(.customLabel))
                         .frame(maxWidth: .infinity)
@@ -236,10 +232,10 @@ struct FixedExpenditureView: View {
     // MARK: - 데이터 조작
 
     private func addItem() {
-        guard canAdd else { return }
+        guard let day = selectedDay, canAdd else { return }
 
         let entity = FixedExpenditureEntity(
-            day: selectedDay,
+            day: day,
             towhat: towhat,
             how: howText.toInt()
         )
@@ -254,7 +250,7 @@ struct FixedExpenditureView: View {
         )
 
         // 입력 초기화
-        dayText = ""
+        selectedDay = nil
         towhat = ""
         howText = ""
         focused = nil
@@ -305,12 +301,17 @@ struct FixedExpenditureView: View {
 // MARK: - 일(day) 선택 시트
 
 struct DaySelectorSheet: View {
-    @Binding var selectedDay: Int
+    @State private var day: Int
     let onConfirm: (Int) -> Void
+
+    init(initialDay: Int, onConfirm: @escaping (Int) -> Void) {
+        _day = State(initialValue: initialDay)
+        self.onConfirm = onConfirm
+    }
 
     var body: some View {
         NavigationStack {
-            Picker("일", selection: $selectedDay) {
+            Picker("일", selection: $day) {
                 ForEach(1...31, id: \.self) { day in
                     Text(verbatim: "\(day)일").tag(day)
                 }
@@ -319,7 +320,7 @@ struct DaySelectorSheet: View {
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {
                     Button("설정") {
-                        onConfirm(selectedDay)
+                        onConfirm(day)
                     }
                 }
             }
