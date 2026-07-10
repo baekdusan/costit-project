@@ -100,7 +100,9 @@ struct FirstOpenView: View {
                 next: nil
             )
             .onChange(of: outLayText) { _, newValue in
-                if let formatted = newValue.currencyInputFormatted(limit: .unlimited, onParseFailure: .filterDigits) {
+                // rawDigits(15): 과거 무제한이라 Int 범위 초과 입력 시 화면엔 큰 숫자,
+                // 저장은 0이 되는 조용한 유실이 있었음 (지출 입력과 동일한 15자리 가드)
+                if let formatted = newValue.currencyInputFormatted(limit: .rawDigits(15), onParseFailure: .filterDigits) {
                     outLayText = formatted
                 }
             }

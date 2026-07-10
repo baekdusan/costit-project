@@ -87,7 +87,7 @@ extension String {
             return String(raw.prefix(maxDigits))
         }
 
-        if let int = Int(raw) {
+        func format(_ int: Int) -> String {
             let formatted = int.toDecimal()
             if case .formattedChars(let maxChars) = limit, formatted.count > maxChars {
                 return String(formatted.prefix(maxChars))
@@ -95,9 +95,21 @@ extension String {
             return formatted
         }
 
+        if let int = Int(raw) {
+            return format(int)
+        }
+
+        // Int 파싱 실패 = 숫자가 아니거나 Int 범위 초과(20자리 이상 붙여넣기 등)
         switch onParseFailure {
-        case .filterDigits: return String(raw.filter(\.isNumber))
-        case .keepAsIs: return nil
+        case .filterDigits:
+            return String(raw.filter(\.isNumber))
+        case .keepAsIs:
+            // 범위 초과 숫자를 그대로 두면 화면엔 큰 숫자, 저장은 toInt()의 0 폴백으로
+            // 조용히 유실됨 → 숫자로만 이뤄진 입력은 15자리로 절삭 후 재포맷
+            if raw.allSatisfy(\.isNumber), let int = Int(String(raw.prefix(15))) {
+                return format(int)
+            }
+            return nil
         }
     }
 }
