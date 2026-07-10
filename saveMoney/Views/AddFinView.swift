@@ -34,10 +34,7 @@ struct AddFinView: View {
 
     // "26. 5. 9." (앞 20 빼고 한 자리 숫자 그대로)
     private var formattedDate: String {
-        let formatter = DateFormatter()
-        formatter.dateFormat = "yy. M. d."
-        formatter.locale = Locale(identifier: "ko_KR")
-        return formatter.string(from: when)
+        AppDateFormatters.editDate.string(from: when)
     }
 
     var body: some View {

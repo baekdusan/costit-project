@@ -456,15 +456,11 @@ struct MainView: View {
 
     // 급여일 문자열("1일", "29일", "마지막 날")로 한 달 정산 기간 계산 (기존 mainVC.setSalaryDate)
     static func setSalaryDate(_ salary: String) -> SalaryDate {
-        let formatter = DateFormatter()
-        formatter.locale = Locale(identifier: "ko")
-        // 디바이스가 비양력 캘린더(불교력 등)여도 양력 기준 일자를 얻도록 고정
-        formatter.calendar = Calendar(identifier: .gregorian)
-        formatter.dateFormat = "dd"
-        let today = Int(formatter.string(from: Date())) ?? 1
+        // 비양력 디바이스 캘린더(불교력 등)에서도 양력 기준 일자를 얻도록 gregorian 고정 캐시 사용
+        let today = Int(AppDateFormatters.salaryDay.string(from: Date())) ?? 1
 
         if salary == "마지막 날" {
-            let endOfMonthDay = Int(formatter.string(from: Date().endOfThisMonth)) ?? 28
+            let endOfMonthDay = Int(AppDateFormatters.salaryDay.string(from: Date().endOfThisMonth)) ?? 28
             if today == endOfMonthDay {
                 return SalaryDate(startDate: Date().endOfThisMonth, endDate: Date().yesterdayOfEndOfNextMonth)
             }

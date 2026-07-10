@@ -80,29 +80,39 @@ extension Date {
         return Calendar.current.date(byAdding: components, to: startOfSomeDay(day)) ?? self
     }
     
-    // 표시/숫자 추출용 공통 포매터.
-    // 참고: 기존의 TimeZone(identifier: "ko-KR")은 잘못된 식별자라 항상 nil(no-op)이었음 → 제거.
-    // 디바이스가 비양력 캘린더(불교력 등)여도 양력 숫자가 나오도록 캘린더를 고정한다.
-    private static func gregorianFormatter(_ format: String) -> DateFormatter {
-        let dateFormatter = DateFormatter()
-        dateFormatter.calendar = Calendar(identifier: .gregorian)
-        dateFormatter.locale = Locale(identifier: "ko_KR")
-        dateFormatter.dateFormat = format
-        return dateFormatter
-    }
-
     // 날짜를 문자열로 변경 ("MM. dd.")
     func toString() -> String {
-        Date.gregorianFormatter("MM. dd.").string(from: self)
+        AppDateFormatters.monthDay.string(from: self)
     }
 
     // 날짜를 전체 문자열로 변경
     func toFullString() -> String {
-        Date.gregorianFormatter("yyyy. MM. dd").string(from: self)
+        AppDateFormatters.fullDate.string(from: self)
     }
 
     func onlydate() -> String {
-        Date.gregorianFormatter("d").string(from: self)
+        AppDateFormatters.dayOnly.string(from: self)
+    }
+}
+
+// 표시/숫자 추출용 공통 포매터 캐시 (호출마다 DateFormatter를 새로 만들던 안티패턴 제거).
+// 참고: 과거의 TimeZone(identifier: "ko-KR")은 잘못된 식별자라 항상 nil(no-op)이었음 → 미지정 유지.
+// 디바이스가 비양력 캘린더(불교력 등)여도 양력 숫자가 나오도록 캘린더를 고정한다.
+// DateFormatter는 스레드 세이프하지 않지만 사용처가 전부 메인 스레드 경로라 안전.
+enum AppDateFormatters {
+    static let fullDate = make("yyyy. MM. dd")    // Date.toFullString
+    static let monthDay = make("MM. dd.")         // Date.toString
+    static let dayOnly = make("d")                // Date.onlydate
+    static let shortDate = make("yy. MM. dd")     // SearchView 셀
+    static let editDate = make("yy. M. d.")       // AddFinView 날짜 버튼
+    static let salaryDay = make("dd")             // 급여 기간 계산
+
+    private static func make(_ format: String) -> DateFormatter {
+        let formatter = DateFormatter()
+        formatter.calendar = Calendar(identifier: .gregorian)
+        formatter.locale = Locale(identifier: "ko_KR")
+        formatter.dateFormat = format
+        return formatter
     }
 }
 
@@ -128,11 +138,14 @@ extension String {
 }
 
 extension Int {
-    func toDecimal() -> String {
-        let nsnum = NSNumber(value: self)
+    private static let decimalFormatter: NumberFormatter = {
         let nf = NumberFormatter()
         nf.numberStyle = .decimal
-        return nf.string(from: nsnum) ?? "\(self)"
+        return nf
+    }()
+
+    func toDecimal() -> String {
+        Int.decimalFormatter.string(from: NSNumber(value: self)) ?? "\(self)"
     }
 }
 
