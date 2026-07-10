@@ -1,6 +1,5 @@
 import SwiftUI
 import SwiftData
-import WidgetKit
 
 // MARK: - 키 윈도우 탐색 (UIKit present/dismiss 공통 헬퍼)
 // windows.first는 키보드/권한 다이얼로그 등 시스템 윈도우가 잡힐 수 있으므로
@@ -404,9 +403,7 @@ struct MainView: View {
     // MARK: - 데이터 조작
 
     private func deleteExpense(_ item: FinDataEntity) {
-        modelContext.delete(item)
-        try? modelContext.save()
-        WidgetCenter.shared.reloadAllTimelines()
+        PersistenceController.delete(item, in: modelContext)
     }
 
     // 프로필 입력 처리 (온보딩 / 프로필 수정 공통 — 기존 handleProfileInput과 동일)
@@ -437,9 +434,8 @@ struct MainView: View {
         periodEntity.startDate = newPeriod.startDate
         periodEntity.endDate = newPeriod.endDate
 
-        try? modelContext.save()
         displayRange = .salaryPeriod
-        WidgetCenter.shared.reloadAllTimelines()
+        PersistenceController.saveAndRefreshWidgets(modelContext)
     }
 
     // 오늘이 정산 기간을 넘어가면 프로필 급여일에 맞춰 기간 갱신 (기존 viewDidLoad 로직)
@@ -449,8 +445,7 @@ struct MainView: View {
             let newPeriod = Self.setSalaryDate(userProfile.period)
             entity.startDate = newPeriod.startDate
             entity.endDate = newPeriod.endDate
-            try? modelContext.save()
-            WidgetCenter.shared.reloadAllTimelines()   // 기간이 바뀌었으니 위젯도 갱신
+            PersistenceController.saveAndRefreshWidgets(modelContext)   // 기간이 바뀌었으니 위젯도 갱신
         }
     }
 

@@ -1,6 +1,5 @@
 import SwiftUI
 import SwiftData
-import WidgetKit
 
 struct AddFinView: View {
 
@@ -196,9 +195,8 @@ struct AddFinView: View {
 
     private func save() {
         guard canSave else { return }
-        // UIHostingController로 띄울 때 환경 modelContext 주입이 누락되는 케이스 방지를 위해
-        // 직접 컨테이너로부터 context를 만들어 저장한다 (위젯/메인 화면도 같은 컨테이너 공유).
-        let context = ModelContext(PersistenceController.shared)
+        // 모든 present 경로가 .modelContainer(PersistenceController.shared)를 주입하므로
+        // 다른 화면들과 동일하게 environment context를 사용한다.
         switch mode {
         case .new:
             let entity = FinDataEntity(
@@ -207,21 +205,23 @@ struct AddFinView: View {
                 how: howInt,
                 isRevenue: source == .revenue
             )
-            context.insert(entity)
+            modelContext.insert(entity)
         case .edit(let item):
             // edit 대상은 다른 context에서 fetch된 인스턴스일 수 있으므로 externalID로 다시 찾음
             let externalID = item.externalID
             let descriptor = FetchDescriptor<FinDataEntity>(
                 predicate: #Predicate { $0.externalID == externalID }
             )
-            if let target = (try? context.fetch(descriptor))?.first {
+            if let target = (try? modelContext.fetch(descriptor))?.first {
                 target.when = when
                 target.towhat = towhat
                 target.how = howInt
+            } else {
+                // edit 도중 다른 기기에서 삭제된 경우 등 — 기존과 동일하게 조용히 무시 (관측용 로그만)
+                PersistenceController.logger.error("AddFinView edit 대상 미발견: externalID \(externalID, privacy: .public)")
             }
         }
-        try? context.save()
-        WidgetCenter.shared.reloadAllTimelines()
+        PersistenceController.saveAndRefreshWidgets(modelContext)
         focused = nil
         performDismiss()
     }

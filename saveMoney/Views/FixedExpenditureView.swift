@@ -262,6 +262,7 @@ struct FixedExpenditureView: View {
             how: howText.toInt()
         )
         modelContext.insert(entity)
+        // 위젯이 FixedExpenditureEntity를 표시하지 않으므로 타임라인 리로드는 생략 (일반 save)
         try? modelContext.save()
 
         // 푸시 알림 등록 (externalID를 식별자로 사용)
@@ -281,6 +282,7 @@ struct FixedExpenditureView: View {
     private func deleteItem(_ item: FixedExpenditureEntity) {
         notificationCenter.removePendingNotificationRequests(withIdentifiers: [item.externalID])
         modelContext.delete(item)
+        // 위젯이 FixedExpenditureEntity를 표시하지 않으므로 타임라인 리로드는 생략 (일반 save)
         try? modelContext.save()
     }
 
