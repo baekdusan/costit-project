@@ -348,10 +348,23 @@ struct MainView: View {
     // 오늘이 정산 기간을 넘어가면 프로필 급여일에 맞춰 기간 갱신 (기존 viewDidLoad 로직)
     private func rolloverSalaryPeriodIfNeeded() {
         guard let entity = salaryPeriods.first else { return }
+        var changed = false
+
+        // 구버전 '마지막 날' 로직이 저장한 start(말일 23:59:59)를 즉시 교정 — 정상 기간의
+        // start는 항상 그 날 00:00이므로 정당한 값은 건드리지 않음 (endDate 불변이라 rollover 무영향)
+        if entity.startDate != entity.startDate.startOfDay {
+            entity.startDate = entity.startDate.startOfDay
+            changed = true
+        }
+
         if Date() > entity.endDate {
             let newPeriod = SalaryDate.period(forSalaryDay: userProfile.period)
             entity.startDate = newPeriod.startDate
             entity.endDate = newPeriod.endDate
+            changed = true
+        }
+
+        if changed {
             PersistenceController.saveAndRefreshWidgets(modelContext)   // 기간이 바뀌었으니 위젯도 갱신
         }
     }
