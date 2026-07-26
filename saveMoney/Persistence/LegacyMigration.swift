@@ -338,10 +338,17 @@ enum LegacyMigration {
     // 다음 버전에서 다시 시도할 수 있다. 프로필 blob만 손상된 사용자가 목표 지출액·급여일을
     // 영영 되찾지 못하는 것을 막는다)
     private static func migrateProfile(into context: ModelContext, defaults: UserDefaults) -> Outcome {
-        // 기존 ProfileEntity가 이미 있으면 skip
+        // 기존 ProfileEntity가 이미 있으면 skip.
+        // 조회 실패(throw)를 try?로 삼켜 "없음"으로 취급하면 안 된다 — 이미 프로필이 있는데도
+        // 레거시 사본을 하나 더 만들고, canonical이 그 사본을 고르면 사용자가 설정한 예산·급여일이
+        // 옛 값으로 되돌아가 이전 기간 지출이 화면에서 사라진다.
         var descriptor = FetchDescriptor<ProfileEntity>()
         descriptor.fetchLimit = 1
-        if (try? context.fetch(descriptor))?.first != nil { return Outcome() }
+        guard let existing = try? context.fetch(descriptor) else {
+            print("[LegacyMigration] 기존 프로필 조회 실패 — 이번 이전 건너뜀")
+            return Outcome(decodeFailed: false, aborted: true)
+        }
+        if existing.first != nil { return Outcome() }
 
         // 레거시 프로필이 없으면 아무것도 만들지 않는다.
         // 과거엔 기본값(“User”/0원/“1일”) 프로필을 무조건 삽입했는데, 그 결과
@@ -363,9 +370,14 @@ enum LegacyMigration {
     }
 
     private static func migrateSalaryPeriod(into context: ModelContext, defaults: UserDefaults) -> Outcome {
+        // 프로필과 같은 이유로 조회 실패와 "행 없음"을 구분한다
         var descriptor = FetchDescriptor<SalaryPeriodEntity>()
         descriptor.fetchLimit = 1
-        if (try? context.fetch(descriptor))?.first != nil { return Outcome() }
+        guard let existing = try? context.fetch(descriptor) else {
+            print("[LegacyMigration] 기존 정산 기간 조회 실패 — 이번 이전 건너뜀")
+            return Outcome(decodeFailed: false, aborted: true)
+        }
+        if existing.first != nil { return Outcome() }
 
         // 프로필과 같은 이유로, 레거시 기간 정보가 없으면 만들지 않는다.
         // (기본 슬롯을 넣으면 start=end=삽입 시각이라 곧바로 rollover가 발동해

@@ -9,6 +9,11 @@ struct CostEntry: TimelineEntry {
     let remaining: Int
     let outLay: Int
     let isOver: Bool
+
+    // 예산이 아직 없는 상태 — "다 썼다"가 아니라 "판단할 수 없다"이다.
+    // (온보딩 전, 레거시 이전 전, CloudKit 첫 동기화 전 모두 여기 해당한다)
+    var isUnset: Bool { outLay <= 0 }
+
     // 0~100 사이의 잔여 비율 (정수, %)
     var percent: Int {
         guard outLay > 0 else { return 0 }
@@ -94,12 +99,17 @@ struct CostItWidgetEntryView: View {
     @ViewBuilder
     var body: some View {
         let percent = entry.percent
-        let color: Color = percent > 50
-            ? Color(#colorLiteral(red: 0.3518846035, green: 0.6747873425, blue: 0.622913003, alpha: 1))
-            : (percent > 20
-                ? Color(#colorLiteral(red: 0.9529411793, green: 0.6862745285, blue: 0.1333333403, alpha: 1))
-                : Color(#colorLiteral(red: 0.9464814067, green: 0.240496546, blue: 0.2090002298, alpha: 1)))
-        let emoji: String = percent >= 80 ? "🤑"
+        // 예산 미설정 상태에서는 게이지·이모지도 중립으로 둔다. percent가 0이라는 이유로
+        // 빨간 게이지와 😱를 쓰면, 데이터가 멀쩡한데 최악 상태인 것처럼 보인다.
+        let color: Color = entry.isUnset
+            ? Color(#colorLiteral(red: 0.6862745285, green: 0.6862745285, blue: 0.6862745285, alpha: 1))
+            : (percent > 50
+                ? Color(#colorLiteral(red: 0.3518846035, green: 0.6747873425, blue: 0.622913003, alpha: 1))
+                : (percent > 20
+                    ? Color(#colorLiteral(red: 0.9529411793, green: 0.6862745285, blue: 0.1333333403, alpha: 1))
+                    : Color(#colorLiteral(red: 0.9464814067, green: 0.240496546, blue: 0.2090002298, alpha: 1))))
+        let emoji: String = entry.isUnset ? "🙂"
+            : percent >= 80 ? "🤑"
             : percent >= 60 ? "😊"
             : percent >= 40 ? "🙂"
             : percent >= 20 ? "🤔" : "😱"
@@ -113,13 +123,15 @@ struct CostItWidgetEntryView: View {
 
                 // 앱과 같은 ko_KR 고정 포맷(Int.toDecimal) — .formatted(.number)는 기기 로케일을 따라
                 // 비한국 로케일에서 앱과 구분자가 달라진다
-                Text(verbatim: "\(entry.remaining.toDecimal())원")
+                // 예산 미설정이면 "남은 금액"이라는 개념 자체가 없다.
+                // 그대로 두면 지출만 동기화된 순간 "-50,000원 남았어요" 같은 모순이 표시된다.
+                Text(verbatim: entry.isUnset ? "-" : "\(entry.remaining.toDecimal())원")
                     .font(.system(size: 24, weight: .bold))
                     .frame(height: geometry.size.height * 0.2)
                     .opacity(0.84)
                     .minimumScaleFactor(0.72)
 
-                Text(entry.isOver ? "망했어요" : "남았어요")
+                Text(entry.isUnset ? "예산을 설정해주세요" : (entry.isOver ? "망했어요" : "남았어요"))
                     .font(.system(size: 12, weight: .bold))
                     .frame(height: geometry.size.height * 0.1)
                     .opacity(0.72)

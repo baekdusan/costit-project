@@ -113,8 +113,14 @@ extension PersistenceController {
         let descriptor = FetchDescriptor<FinDataEntity>(
             predicate: #Predicate { $0.externalID == externalID }
         )
+        // 조회 실패와 "이미 없음"을 구분한다 — 조회가 throw했는데 성공으로 반환하면
+        // 실제로는 아무것도 지워지지 않았는데 화면에서만 사라지고 알림도 뜨지 않는다
+        guard let found = try? context.fetch(descriptor) else {
+            logger.error("삭제 대상 조회 실패: externalID \(externalID, privacy: .public)")
+            return false
+        }
         // 이미 사라진 항목이면 "삭제됨"과 결과가 같으므로 성공으로 본다
-        guard let item = (try? context.fetch(descriptor))?.first, !item.isDeleted else { return true }
+        guard let item = found.first, !item.isDeleted else { return true }
         context.delete(item)
         // 저장 실패를 호출부에 전달한다 — 화면에서만 사라지고 다음 실행에 되살아나는 것을 알릴 수 있게
         return saveAndRefreshWidgets(context)

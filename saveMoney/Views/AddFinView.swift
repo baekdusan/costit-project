@@ -267,7 +267,15 @@ struct AddFinView: View {
             let descriptor = FetchDescriptor<FinDataEntity>(
                 predicate: #Predicate { $0.externalID == externalID }
             )
-            guard let entity = (try? modelContext.fetch(descriptor))?.first else {
+            // 조회 실패(throw)와 "정말 삭제됨"을 구분한다 — 뭉개면 조회만 실패했는데도
+            // "다른 기기에서 삭제된 내역"이라고 잘못 단정하게 된다
+            guard let found = try? modelContext.fetch(descriptor) else {
+                PersistenceController.logger.error("AddFinView edit 대상 조회 실패: externalID \(externalID, privacy: .public)")
+                isSaving = false
+                saveFailureMessage = "저장에 실패했어요. 잠시 후 다시 시도해주세요."
+                return
+            }
+            guard let entity = found.first else {
                 // edit 도중 다른 기기에서 삭제된 경우 등. 과거엔 조용히 무시하고 화면을 닫아
                 // 사용자는 수정이 저장된 것으로 오인했다 → 입력을 유지한 채 사실을 알린다.
                 PersistenceController.logger.error("AddFinView edit 대상 미발견: externalID \(externalID, privacy: .public)")

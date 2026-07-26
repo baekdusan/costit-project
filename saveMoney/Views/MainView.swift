@@ -378,9 +378,13 @@ struct MainView: View {
     // MARK: - 데이터 조작
 
     private func deleteExpense(_ externalID: String) {
-        // 저장에 실패하면 화면에서만 사라지고 다음 실행에 되살아난다 → 사실을 알린다
+        // 저장에 실패하면 화면에서만 사라지고 다음 실행에 되살아난다 → 사실을 알린다.
+        // 이 함수는 삭제 확인 알럿의 "확인" 액션에서 호출되므로, 그 알럿이 닫히는 도중에
+        // 곧바로 다음 알럿을 띄우면 표시 요청이 통째로 무시된다 → 닫힌 뒤로 미룬다.
         if !PersistenceController.deleteFin(externalID: externalID, in: modelContext) {
-            deleteFailureMessage = "삭제를 저장하지 못했어요. 잠시 후 다시 시도해주세요."
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.4) {
+                deleteFailureMessage = "삭제를 저장하지 못했어요. 잠시 후 다시 시도해주세요."
+            }
         }
     }
 

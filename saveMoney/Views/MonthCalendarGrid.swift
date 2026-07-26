@@ -163,6 +163,13 @@ struct MonthCalendarGrid: View {
         }
 
         let total = expenseTotalsByDay[date.startOfDay] ?? 0
+
+        // 예산이 아직 없으면(온보딩 전 / 동기화 전) 강도를 판단할 기준이 없다.
+        // dailyBudget이 0이면 지출이 1원만 있어도 "1.5배 초과"가 되어 모든 날이 최대 강도로 칠해진다.
+        guard dailyBudget > 0 else {
+            return Color(uiColor: .systemPink).opacity(0.2)
+        }
+
         if total > Int(Double(dailyBudget) * 1.5) {
             return Color(uiColor: .systemPink)
         } else if total > dailyBudget {

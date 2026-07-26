@@ -330,7 +330,10 @@ struct FixedExpenditureView: View {
             try modelContext.save()
         } catch {
             PersistenceController.logger.error("고정 지출 삭제 저장 실패: \(String(describing: error), privacy: .public)")
-            addFailureMessage = "삭제에 실패했어요. 잠시 후 다시 시도해주세요."
+            // 삭제 확인 알럿이 닫히는 도중에 띄우면 표시 요청이 무시되므로 닫힌 뒤로 미룬다
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.4) {
+                addFailureMessage = "삭제에 실패했어요. 잠시 후 다시 시도해주세요."
+            }
         }
     }
 
