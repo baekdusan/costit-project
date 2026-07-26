@@ -30,7 +30,8 @@ struct Provider: TimelineProvider {
         // 매일 자정에 위젯이 갱신되도록 두 항목만 전달.
         // 그 외 갱신은 앱이 WidgetCenter.shared.reloadAllTimelines()로 트리거.
         let now = Date()
-        let nextMidnight = Calendar.current.nextDate(
+        // 날짜 산술은 프로젝트 전체가 gregorian 고정 (비양력 기기에서도 동일하게 동작)
+        let nextMidnight = Calendar(identifier: .gregorian).nextDate(
             after: now,
             matching: DateComponents(hour: 0, minute: 0),
             matchingPolicy: .nextTime
@@ -44,20 +45,32 @@ struct Provider: TimelineProvider {
     private func loadEntry(date: Date = Date()) -> CostEntry {
         let context = ModelContext(PersistenceController.shared)
 
-        var profileDescriptor = FetchDescriptor<ProfileEntity>()
-        profileDescriptor.fetchLimit = 1
-        var salaryDescriptor = FetchDescriptor<SalaryPeriodEntity>()
-        salaryDescriptor.fetchLimit = 1
+        // fetchLimit 1로 아무 행이나 집으면, CloudKit 경합으로 프로필이 여러 벌일 때
+        // 앱과 위젯이 서로 다른 예산·급여일을 표시한다 → 앱과 같은 canonical 선택 규칙을 쓴다
+        let profileEntity = (try? context.fetch(FetchDescriptor<ProfileEntity>()))?.canonical
 
         // 엔티티 없을 때 기본값은 앱과 동일하게 Profile()/SalaryDate()를 단일 소스로 사용
-        let profile = (try? context.fetch(profileDescriptor))?.first?.asProfile ?? Profile()
-        let salary = (try? context.fetch(salaryDescriptor))?.first?.asSalaryDate ?? SalaryDate()
+        let profile = profileEntity?.asProfile ?? Profile()
 
-        let start = salary.startDate
-        let end = salary.endDate
+        // 정산 기간 갱신(rollover)은 앱의 MainView에서만 일어난다. 저장된 SalaryPeriodEntity는
+        //  - 앱을 켜지 않은 채 급여일이 지나면 만료된 기간이고
+        //  - 구버전 로직이 계산해 넣은 잘못된 값일 수도 있다.
+        // 프로필이 있으면 앱과 같은 계산식으로 현재 기간을 직접 구해 항상 일치시킨다.
+        // 프로필이 없으면 급여일을 알 수 없으므로 저장값(또는 기본값)을 그대로 쓴다.
+        // (표시 전용 — 위젯은 저장하지 않는다)
+        let period: SalaryDate
+        if profileEntity != nil {
+            period = SalaryDate.period(forSalaryDay: profile.period, now: date)
+        } else {
+            period = (try? context.fetch(FetchDescriptor<SalaryPeriodEntity>()))?.canonical?.asSalaryDate ?? SalaryDate()
+        }
+
+        let start = period.startDate
+        // end(23:59:59)에 `<=`를 쓰면 소수초를 가진 레코드가 기간 사이로 빠진다 → 반열린 구간 (앱과 동일)
+        let upperBound = period.endDate.addingTimeInterval(1)
 
         let predicate = #Predicate<FinDataEntity> {
-            $0.isRevenue == false && $0.when >= start && $0.when <= end
+            $0.isRevenue == false && $0.when >= start && $0.when < upperBound
         }
         let expenses = (try? context.fetch(FetchDescriptor<FinDataEntity>(predicate: predicate))) ?? []
         let total = expenses.reduce(0) { $0 + $1.how }
@@ -95,7 +108,9 @@ struct CostItWidgetEntryView: View {
                     .frame(height: geometry.size.height * 0.1)
                     .opacity(0.72)
 
-                Text("\(entry.remaining.formatted(.number))원")
+                // 앱과 같은 ko_KR 고정 포맷(Int.toDecimal) — .formatted(.number)는 기기 로케일을 따라
+                // 비한국 로케일에서 앱과 구분자가 달라진다
+                Text(verbatim: "\(entry.remaining.toDecimal())원")
                     .font(.system(size: 24, weight: .bold))
                     .frame(height: geometry.size.height * 0.2)
                     .opacity(0.84)

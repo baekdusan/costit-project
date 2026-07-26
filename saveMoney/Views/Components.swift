@@ -62,55 +62,49 @@ extension View {
 
 // MARK: - 금액 입력 실시간 콤마 포맷
 
-// 두 화면군의 기존 변종 동작을 파라미터로 보존한다 (동작 통일은 별도 결정 사항).
+// 화면마다 다른 입력 길이 제한만 파라미터로 둔다.
 // 주의: "제한 없음" case는 두지 않는다 — Int 범위 초과 붙여넣기가 toInt()의 0 폴백으로
 // 조용히 유실되는 경로가 생기므로 (fix 523a76c), 새 금액 필드도 반드시 자릿수 제한을 골라야 함.
 enum CurrencyInputLimit {
-    case rawDigits(Int)       // 콤마 제거 기준 자릿수 제한 — 초과 시 콤마 없이 절삭 (AddFinView/FirstOpenView: 15)
+    case rawDigits(Int)       // 숫자 자릿수 제한 (AddFinView/FirstOpenView: 15)
     case formattedChars(Int)  // 콤마 포함 문자수 제한 (FixedExpenditureView: 11)
 }
 
-enum CurrencyParseFailurePolicy {
-    case filterDigits   // 숫자만 남김 (AddFinView / FirstOpenView)
-    case keepAsIs       // 입력 그대로 유지 (FixedExpenditureView)
-}
-
 extension String {
-    // 반환값이 nil이면 "기존 입력 유지" (호출부에서 대입 생략)
-    func currencyInputFormatted(
-        limit: CurrencyInputLimit,
-        onParseFailure: CurrencyParseFailurePolicy
-    ) -> String? {
-        let raw = replacingOccurrences(of: ",", with: "")
-        if raw.isEmpty { return "" }
+    // 입력에서 ASCII 숫자만 살려 콤마 포맷을 붙인다.
+    // 불변식: 반환값은 항상 "화면에 보이는 값 == 저장될 값(toInt())"을 만족한다.
+    //
+    // 과거 구현이 이 불변식을 깨던 경로들:
+    //  (1) formattedChars 제한을 콤마 포함 문자열에 prefix로 적용 → 1,234,567,890 입력이
+    //      화면엔 "1,234,567,8", 저장은 12,345,678로 서로 다른 값이 됨
+    //  (2) Int("-123") 파싱 성공 → 음수 금액이 그대로 저장되어 합계가 반대로 계산됨
+    //  (3) filter(\.isNumber)가 전각 숫자(１２３)를 통과 → 화면엔 남지만 toInt()는 0
+    //  (4) keepAsIs 정책이 "₩123" 같은 입력을 그대로 둬서 저장 시 0원
+    //  (5) 선행 0을 자릿수로 세고 먼저 절삭 → "0000000000000001"이 0으로 저장
+    func currencyInputFormatted(limit: CurrencyInputLimit) -> String {
+        // isNumber는 전각 숫자·타 문자권 숫자에도 true라 부적합. ASCII 숫자만 남긴다.
+        // (마이너스 기호·통화 기호·공백도 여기서 전부 탈락)
+        var digits = filter { $0.isASCII && $0.isNumber }
 
-        if case .rawDigits(let maxDigits) = limit, raw.count > maxDigits {
-            return String(raw.prefix(maxDigits))
+        // 선행 0 제거를 자릿수 절삭보다 먼저 — 순서가 반대면 유효 숫자가 잘려나간다
+        while digits.count > 1 && digits.hasPrefix("0") {
+            digits.removeFirst()
+        }
+        if digits.isEmpty { return "" }
+
+        let maxDigits: Int
+        switch limit {
+        case .rawDigits(let count):
+            maxDigits = max(1, count)
+        case .formattedChars(let count):
+            // 콤마 포함 count자를 넘지 않는 최대 자릿수 (d자리의 표시 길이 = d + (d-1)/3)
+            maxDigits = max(1, (count * 3 + 3) / 4)
+        }
+        if digits.count > maxDigits {
+            digits = String(digits.prefix(maxDigits))
         }
 
-        func format(_ int: Int) -> String {
-            let formatted = int.toDecimal()
-            if case .formattedChars(let maxChars) = limit, formatted.count > maxChars {
-                return String(formatted.prefix(maxChars))
-            }
-            return formatted
-        }
-
-        if let int = Int(raw) {
-            return format(int)
-        }
-
-        // Int 파싱 실패 = 숫자가 아니거나 Int 범위 초과(20자리 이상 붙여넣기 등)
-        switch onParseFailure {
-        case .filterDigits:
-            return String(raw.filter(\.isNumber))
-        case .keepAsIs:
-            // 범위 초과 숫자를 그대로 두면 화면엔 큰 숫자, 저장은 toInt()의 0 폴백으로
-            // 조용히 유실됨 → 숫자로만 이뤄진 입력은 15자리로 절삭 후 재포맷
-            if raw.allSatisfy(\.isNumber), let int = Int(String(raw.prefix(15))) {
-                return format(int)
-            }
-            return nil
-        }
+        // 자릿수를 제한한 뒤이므로 파싱은 항상 성공한다 (?? 는 방어용)
+        return Int(digits).map { $0.toDecimal() } ?? digits
     }
 }

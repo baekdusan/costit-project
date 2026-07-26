@@ -11,6 +11,12 @@ enum PersistenceController {
     static let cloudContainerID = "iCloud.kr.co.saveMoney"
     static let storeFileName = "CostIt.store"
 
+    // 영속 스토어를 끝내 열지 못해 in-memory 컨테이너로 폴백했는지 여부.
+    // true면 이번 실행에서 저장한 내역이 앱 종료와 함께 사라진다 — 조용히 성공한 척하면
+    // 사용자가 계속 입력하다 전부 잃으므로 화면에서 경고해야 한다.
+    // (스토어 파일 자체는 건드리지 않으므로 기존 데이터는 다음 정상 실행에서 그대로 돌아온다)
+    private(set) static var isEphemeralFallback = false
+
     static let shared: ModelContainer = {
         let schema = Schema([
             FinDataEntity.self,
@@ -45,9 +51,15 @@ enum PersistenceController {
         ]
         #endif
 
-        for configuration in candidates {
+        for (index, configuration) in candidates.enumerated() {
             do {
-                return try ModelContainer(for: schema, configurations: [configuration])
+                let container = try ModelContainer(for: schema, configurations: [configuration])
+                // 마지막 후보가 in-memory 안전망 — 여기까지 왔다면 저장이 휘발성이다
+                if index == candidates.count - 1 {
+                    isEphemeralFallback = true
+                    print("[PersistenceController] 영속 스토어를 열지 못해 in-memory로 폴백 (이번 실행 데이터는 저장되지 않음)")
+                }
+                return container
             } catch {
                 print("[PersistenceController] 컨테이너 생성 실패, 다음 후보로 폴백: \(error)")
             }
@@ -92,7 +104,15 @@ extension PersistenceController {
 
     // 지출/수입 삭제 공통 경로 (MainView/RevenueView 동일 구현 통합).
     // FinDataEntity 전용 — 고정 지출 삭제는 알림 해제가 필요하고 위젯 리로드가 불필요하므로 별도 경로.
-    static func delete(_ item: FinDataEntity, in context: ModelContext) {
+    //
+    // externalID로 받는 이유: 삭제 확인 알럿이 떠 있는 동안 다른 기기의 삭제가 동기화되면
+    // 붙들고 있던 @Model 인스턴스는 무효화되어 속성 접근만으로 크래시한다(AddFinView.EditTarget과 같은 이유).
+    // 알럿에는 식별자만 넘기고 확인 시점에 다시 찾는다 — 이미 사라졌으면 할 일이 없다.
+    static func deleteFin(externalID: String, in context: ModelContext) {
+        let descriptor = FetchDescriptor<FinDataEntity>(
+            predicate: #Predicate { $0.externalID == externalID }
+        )
+        guard let item = (try? context.fetch(descriptor))?.first, !item.isDeleted else { return }
         context.delete(item)
         saveAndRefreshWidgets(context)
     }

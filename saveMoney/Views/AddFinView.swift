@@ -4,7 +4,28 @@ import SwiftData
 struct AddFinView: View {
 
     enum Source { case expense, revenue }
-    enum Mode { case new, edit(FinDataEntity) }
+
+    enum Mode {
+        case new
+        case edit(EditTarget)
+
+        // 편집 대상을 @Model 인스턴스로 들고 있으면, 화면이 떠 있는 동안 다른 기기의 삭제가
+        // CloudKit으로 동기화됐을 때 속성 접근만으로 크래시한다(invalidated backing data).
+        // 표시/저장에 필요한 값만 복사해 보관하고, 실제 저장은 externalID로 다시 찾는다.
+        struct EditTarget {
+            let externalID: String
+            let when: Date
+            let towhat: String
+            let how: Int
+
+            init(_ item: FinDataEntity) {
+                externalID = item.externalID
+                when = item.when
+                towhat = item.towhat
+                how = item.how
+            }
+        }
+    }
 
     @Environment(\.modelContext) private var modelContext
 
@@ -17,6 +38,8 @@ struct AddFinView: View {
     @State private var towhat: String = ""
     @State private var howText: String = ""
     @State private var showDatePicker: Bool = false
+    @State private var isSaving: Bool = false          // 저장 버튼 연타로 중복 레코드가 생기는 것 방지
+    @State private var saveFailureMessage: String?     // 저장 실패 시 화면을 닫지 않고 알림
     @FocusState private var focused: Field?
 
     // 스와이프 dismiss용
@@ -24,12 +47,24 @@ struct AddFinView: View {
 
     enum Field: Hashable { case towhat, how }
 
+    // 날짜 휠에서 고를 수 있는 범위 (MonthSelectorSheet의 연도 목록 클램프와 같은 구간)
+    private static var selectableDateRange: ClosedRange<Date> {
+        let calendar = Calendar(identifier: .gregorian)
+        let lower = calendar.date(from: DateComponents(year: 1900, month: 1, day: 1)) ?? .distantPast
+        let upper = calendar.date(from: DateComponents(year: 2200, month: 12, day: 31)) ?? .distantFuture
+        return lower...upper
+    }
+
     private var howInt: Int {
         howText.toInt()   // toInt()가 콤마 처리 포함
     }
 
+    private var trimmedTowhat: String {
+        towhat.trimmingCharacters(in: .whitespacesAndNewlines)
+    }
+
     private var canSave: Bool {
-        !towhat.isEmpty && !howText.isEmpty
+        !trimmedTowhat.isEmpty && !howText.isEmpty
     }
 
     // "26. 5. 9." (앞 20 빼고 한 자리 숫자 그대로)
@@ -110,9 +145,8 @@ struct AddFinView: View {
                             .keyboardType(.numberPad)
                             .focused($focused, equals: .how)
                             .onChange(of: howText) { _, new in
-                                if let formatted = new.currencyInputFormatted(limit: .rawDigits(15), onParseFailure: .filterDigits) {
-                                    howText = formatted
-                                }
+                                let formatted = new.currencyInputFormatted(limit: .rawDigits(15))
+                                if formatted != new { howText = formatted }
                             }
                             .padding(.bottom, cardSize * 0.1)
                     }
@@ -158,7 +192,9 @@ struct AddFinView: View {
         .onAppear(perform: prefill)
         .sheet(isPresented: $showDatePicker) {
             NavigationStack {
-                DatePicker("날짜", selection: $when, displayedComponents: .date)
+                // 연도 범위를 열어두면 휠을 0001년까지 돌려 저장할 수 있고, 그 내역은
+                // 월 선택 시트(MonthSelectorSheet)의 연도 목록을 수천 개로 불어나게 한다
+                DatePicker("날짜", selection: $when, in: Self.selectableDateRange, displayedComponents: .date)
                     .datePickerStyle(.wheel)
                     .labelsHidden()
                     .environment(\.locale, Locale(identifier: "ko_KR"))
@@ -176,15 +212,24 @@ struct AddFinView: View {
             }
             .presentationDetents([.fraction(0.4)])
         }
+        // 저장 실패/대상 소실을 알린다 — 화면은 닫지 않으므로 입력값이 보존된다
+        .alert("알림", isPresented: Binding(
+            get: { saveFailureMessage != nil },
+            set: { if !$0 { saveFailureMessage = nil } }
+        )) {
+            Button("확인") { saveFailureMessage = nil }
+        } message: {
+            Text(saveFailureMessage ?? "")
+        }
     }
 
     // MARK: - 데이터 조작 / Dismiss
 
     private func prefill() {
-        if case .edit(let item) = mode {
-            when = item.when
-            towhat = item.towhat
-            howText = item.how.toDecimal()
+        if case .edit(let target) = mode {
+            when = target.when
+            towhat = target.towhat
+            howText = target.how.toDecimal()
         }
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
             focused = .towhat
@@ -192,34 +237,58 @@ struct AddFinView: View {
     }
 
     private func save() {
-        guard canSave else { return }
+        // 저장이 진행 중이면 무시 — dismiss 애니메이션 중 두 번째 탭이 들어오면
+        // .new 경로가 엔티티를 한 번 더 insert해 같은 지출이 두 건 저장된다.
+        guard canSave, !isSaving else { return }
+        isSaving = true
+
+        // 저장 실패 시 되돌리기 위해 이번에 새로 insert한 엔티티를 기억해둔다.
+        // (되돌리지 않으면 pending insert가 컨텍스트에 남아, 사용자가 알럿을 닫고 다시
+        //  저장을 누를 때 두 번째 엔티티가 또 insert되어 같은 지출이 두 건이 된다)
+        var insertedEntity: FinDataEntity?
+
         // 모든 present 경로가 .modelContainer(PersistenceController.shared)를 주입하므로
         // 다른 화면들과 동일하게 environment context를 사용한다.
         switch mode {
         case .new:
             let entity = FinDataEntity(
-                when: when,
-                towhat: towhat,
+                when: when.truncatingSubseconds,
+                towhat: trimmedTowhat,
                 how: howInt,
                 isRevenue: source == .revenue
             )
             modelContext.insert(entity)
-        case .edit(let item):
+            insertedEntity = entity
+        case .edit(let target):
             // edit 대상은 다른 context에서 fetch된 인스턴스일 수 있으므로 externalID로 다시 찾음
-            let externalID = item.externalID
+            let externalID = target.externalID
             let descriptor = FetchDescriptor<FinDataEntity>(
                 predicate: #Predicate { $0.externalID == externalID }
             )
-            if let target = (try? modelContext.fetch(descriptor))?.first {
-                target.when = when
-                target.towhat = towhat
-                target.how = howInt
-            } else {
-                // edit 도중 다른 기기에서 삭제된 경우 등 — 기존과 동일하게 조용히 무시 (관측용 로그만)
+            guard let entity = (try? modelContext.fetch(descriptor))?.first else {
+                // edit 도중 다른 기기에서 삭제된 경우 등. 과거엔 조용히 무시하고 화면을 닫아
+                // 사용자는 수정이 저장된 것으로 오인했다 → 입력을 유지한 채 사실을 알린다.
                 PersistenceController.logger.error("AddFinView edit 대상 미발견: externalID \(externalID, privacy: .public)")
+                isSaving = false
+                saveFailureMessage = "다른 기기에서 삭제된 내역이라 수정할 수 없어요."
+                return
             }
+            entity.when = when.truncatingSubseconds
+            entity.towhat = trimmedTowhat
+            entity.how = howInt
         }
-        PersistenceController.saveAndRefreshWidgets(modelContext)
+
+        // 저장 실패 시 화면을 닫으면 사용자가 입력한 내역이 그대로 사라진다 → 열어둔 채 알림.
+        // 이번에 insert한 엔티티는 되돌려 재시도 때 중복이 쌓이지 않게 한다.
+        guard PersistenceController.saveAndRefreshWidgets(modelContext) else {
+            if let insertedEntity {
+                modelContext.delete(insertedEntity)
+            }
+            isSaving = false
+            saveFailureMessage = "저장에 실패했어요. 잠시 후 다시 시도해주세요."
+            return
+        }
+
         focused = nil
         performDismiss()
     }

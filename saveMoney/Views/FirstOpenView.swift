@@ -45,8 +45,12 @@ struct FirstOpenView: View {
         outLayText.toInt()   // toInt()가 콤마 처리 포함
     }
 
+    private var trimmedNickname: String {
+        nickname.trimmingCharacters(in: .whitespacesAndNewlines)
+    }
+
     private var isAllFilled: Bool {
-        !nickname.isEmpty && !outLayText.isEmpty && !period.isEmpty
+        !trimmedNickname.isEmpty && !outLayText.isEmpty && !period.isEmpty
     }
 
     var body: some View {
@@ -102,9 +106,8 @@ struct FirstOpenView: View {
             .onChange(of: outLayText) { _, newValue in
                 // rawDigits(15): 과거 무제한이라 Int 범위 초과 입력 시 화면엔 큰 숫자,
                 // 저장은 0이 되는 조용한 유실이 있었음 (지출 입력과 동일한 15자리 가드)
-                if let formatted = newValue.currencyInputFormatted(limit: .rawDigits(15), onParseFailure: .filterDigits) {
-                    outLayText = formatted
-                }
+                let formatted = newValue.currencyInputFormatted(limit: .rawDigits(15))
+                if formatted != newValue { outLayText = formatted }
             }
 
             VStack(alignment: .trailing, spacing: 10) {
@@ -189,7 +192,7 @@ struct FirstOpenView: View {
 
     private func confirm() {
         guard isAllFilled else { return }
-        onConfirm(nickname, outLayInt, period)
+        onConfirm(trimmedNickname, outLayInt, period)
     }
 }
 

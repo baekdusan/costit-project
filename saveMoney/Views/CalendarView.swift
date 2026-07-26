@@ -55,13 +55,16 @@ struct CalendarView: View {
         Set(itemsByDay.filter { $0.value.contains { $0.isRevenue } }.keys)
     }
 
-    // 기간 내 수입/지출 총액
+    // 기간 내 수입/지출 총액.
+    // end(23:59:59)에 `<=`를 쓰면 소수초를 가진 레코드가 기간 사이로 빠진다 → 반열린 구간 (다른 화면과 동일)
+    private var periodUpperBound: Date { end.addingTimeInterval(1) }
+
     private var periodRevenueTotal: Int {
-        revenues.filter { $0.when >= start && $0.when <= end }.reduce(0) { $0 + $1.how }
+        revenues.filter { $0.when >= start && $0.when < periodUpperBound }.reduce(0) { $0 + $1.how }
     }
 
     private var periodExpenseTotal: Int {
-        expenses.filter { $0.when >= start && $0.when <= end }.reduce(0) { $0 + $1.how }
+        expenses.filter { $0.when >= start && $0.when < periodUpperBound }.reduce(0) { $0 + $1.how }
     }
 
     private var fixedTotal: Int {
@@ -71,7 +74,8 @@ struct CalendarView: View {
     // 남은 기간 타이틀
     private var ddayTitle: String {
         // [.month, .day]로 요청하면 day에 월을 뺀 나머지만 담겨 30일 이상 스팬에서 오표시 → [.day]만 사용
-        let dday = max(0, Calendar.current.dateComponents([.day], from: Date(), to: end).day ?? 0)
+        // 날짜 산술은 프로젝트 전체가 gregorian 고정
+        let dday = max(0, Calendar(identifier: .gregorian).dateComponents([.day], from: Date(), to: end).day ?? 0)
         switch dday {
         case 0: return "오늘이 마지막이에요!"
         case 1: return "하루 남았어요"
@@ -222,8 +226,10 @@ struct CalendarView: View {
 
     // 일일 예산 (프로필 한 달 지출 목표 / 이번 달 일수) — 기존 percent()와 동일
     private var dailyBudget: Int {
-        let daysInMonth = Int(Date().endOfThisMonth.onlydate()) ?? 30
-        let outLay = (profiles.first?.asProfile ?? Profile()).outLay
+        // 포매터 문자열 왕복 대신 Calendar 산술 (프로젝트 규약: 날짜 계산은 gregorian 고정)
+        let daysInMonth = Calendar(identifier: .gregorian)
+            .range(of: .day, in: .month, for: Date())?.count ?? 30
+        let outLay = (profiles.canonical?.asProfile ?? Profile()).outLay
         return daysInMonth > 0 ? outLay / daysInMonth : 0
     }
 

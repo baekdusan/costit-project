@@ -61,8 +61,12 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate {
     }
 
     private func seedDemoData() {
-        // Preview와 동일한 데모 데이터를 실제 컨테이너에 주입
+        // Preview와 동일한 데모 데이터를 실제 컨테이너에 주입.
+        // seed()는 기존 수입·지출·고정지출을 전부 지우므로 시뮬레이터에서만 허용한다
+        // (PreviewSampleData 쪽에도 같은 가드가 있음 — 실기기 데이터 보호용 이중 방어)
+        #if targetEnvironment(simulator)
         PreviewSampleData.seed(into: ModelContext(PersistenceController.shared))
+        #endif
     }
     #endif
     

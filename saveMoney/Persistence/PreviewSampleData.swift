@@ -23,11 +23,21 @@ enum PreviewSampleData {
     }()
 
     // 데모 데이터 주입 (멱등 — 기존 지출/수입/고정 지출은 지우고 다시 채움)
+    //
+    // ⚠️ 이 함수는 컨테이너의 수입·지출·고정지출을 전부 삭제한다. SceneDelegate가
+    // SEED_DEMO_DATA=1일 때 실제(App Group) 컨테이너에 적용하므로, DEBUG 빌드를 꽂은
+    // 실기기에서 환경변수가 걸리면 사용자 데이터가 통째로 날아간다.
+    // → 릴리스 빌드에서는 아예 컴파일되지 않게 하고, 실기기 DEBUG에서는
+    //   호출부(SceneDelegate.seedDemoData)의 시뮬레이터 가드가 막는다.
+    //   (여기를 시뮬레이터 전용으로 막으면 실기기 대상 빌드의 Xcode Preview가 빈 컨테이너가 된다)
     static func seed(into context: ModelContext) {
+        #if !DEBUG
+        _ = context
+        #else
         try? context.delete(model: FinDataEntity.self)
         try? context.delete(model: FixedExpenditureEntity.self)
 
-        let cal = Calendar.current
+        let cal = Calendar(identifier: .gregorian)   // 프로젝트 규약: 날짜 산술은 gregorian 고정
         func day(_ d: Int) -> Date {
             cal.date(byAdding: .day, value: d - 1, to: Date().startOfThisMonth) ?? Date()
         }
@@ -80,5 +90,6 @@ enum PreviewSampleData {
 
         // 첫 실행 온보딩을 건너뛰고 메인 그리드가 바로 보이게
         UserDefaults.standard.setValue(true, forKey: AppKeys.firstOpen)
+        #endif
     }
 }
