@@ -16,6 +16,7 @@ struct RevenueView: View {
     @State private var end: Date
     @State private var customTitle: String?   // 월 선택 시 라벨 (nil이면 기본 기간 표시)
     @State private var deleteTarget: String?   // 삭제 확인 알럿 대상의 externalID (MainView와 동일 패턴)
+    @State private var deleteFailureMessage: String?
 
     // @State + onAppear 초기화 패턴은 UIHostingController로 직접 present될 때
     // onAppear가 발화하지 않아 빈 타이틀이 되는 문제가 있어 computed로 유지한다.
@@ -121,6 +122,14 @@ struct RevenueView: View {
         .ignoresSafeArea(.keyboard)
         .deleteConfirmationAlert(item: $deleteTarget, message: "해당 수입 내역을 삭제해요.") {
             deleteItem($0)
+        }
+        .alert("삭제 실패", isPresented: Binding(
+            get: { deleteFailureMessage != nil },
+            set: { if !$0 { deleteFailureMessage = nil } }
+        )) {
+            Button("확인") { deleteFailureMessage = nil }
+        } message: {
+            Text(deleteFailureMessage ?? "")
         }
     }
 
@@ -246,7 +255,10 @@ struct RevenueView: View {
     // MARK: - 데이터 조작
 
     private func deleteItem(_ externalID: String) {
-        PersistenceController.deleteFin(externalID: externalID, in: modelContext)
+        // 저장에 실패하면 화면에서만 사라지고 다음 실행에 되살아난다 → 사실을 알린다
+        if !PersistenceController.deleteFin(externalID: externalID, in: modelContext) {
+            deleteFailureMessage = "삭제를 저장하지 못했어요. 잠시 후 다시 시도해주세요."
+        }
     }
 }
 

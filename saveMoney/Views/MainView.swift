@@ -43,6 +43,7 @@ struct MainView: View {
     // 가드가 풀려, 아직 저장되지 않은(pending) 프로필을 보고 firstOpen을 켜버려
     // 재입력 기회를 남기려던 의도가 무력화된다.
     @State private var didFailProfileSave = false
+    @State private var deleteFailureMessage: String?
 
     // MARK: - 파생 데이터
 
@@ -253,6 +254,14 @@ struct MainView: View {
             .deleteConfirmationAlert(item: $deleteTarget, message: "해당 지출 내역을 삭제해요.") {
                 deleteExpense($0)
             }
+            .alert("삭제 실패", isPresented: Binding(
+                get: { deleteFailureMessage != nil },
+                set: { if !$0 { deleteFailureMessage = nil } }
+            )) {
+                Button("확인") { deleteFailureMessage = nil }
+            } message: {
+                Text(deleteFailureMessage ?? "")
+            }
             .alert("프로필 저장 실패", isPresented: $showProfileSaveFailure) {
                 Button("확인", role: .cancel) { }
             } message: {
@@ -369,7 +378,10 @@ struct MainView: View {
     // MARK: - 데이터 조작
 
     private func deleteExpense(_ externalID: String) {
-        PersistenceController.deleteFin(externalID: externalID, in: modelContext)
+        // 저장에 실패하면 화면에서만 사라지고 다음 실행에 되살아난다 → 사실을 알린다
+        if !PersistenceController.deleteFin(externalID: externalID, in: modelContext) {
+            deleteFailureMessage = "삭제를 저장하지 못했어요. 잠시 후 다시 시도해주세요."
+        }
     }
 
     // firstOpen 플래그 기록 공통 경로.
@@ -411,25 +423,30 @@ struct MainView: View {
 
     // 프로필 입력 처리 (온보딩 / 프로필 수정 공통 — 기존 handleProfileInput과 동일)
     private func handleProfileInput(nickname: String, outLay: Int, period: String) {
-        // 프로필 upsert
-        let profileEntity = profiles.canonical ?? {
-            let entity = ProfileEntity()
-            modelContext.insert(entity)
-            return entity
-        }()
-        profileEntity.nickName = nickname
-        profileEntity.outLay = outLay
-        profileEntity.period = period
+        // 프로필 upsert — 사본이 여럿이면 "전부" 같은 값으로 맞춘다.
+        // CloudKit 경합으로 생긴 중복은 지우지 않는다(삭제는 되돌릴 수 없다). 대신 값을 동기화하면
+        // 어느 사본이 canonical로 뽑히든 사용자가 방금 입력한 값을 보게 되고,
+        // 기기마다 다른 급여일을 쓰는 상태도 사라진다.
+        if profiles.isEmpty {
+            modelContext.insert(ProfileEntity(nickName: nickname, outLay: outLay, period: period))
+        } else {
+            for entity in profiles {
+                entity.nickName = nickname
+                entity.outLay = outLay
+                entity.period = period
+            }
+        }
 
-        // 급여일 기준으로 정산 기간 재설정
+        // 급여일 기준으로 정산 기간 재설정 (같은 이유로 사본 전체를 갱신)
         let newPeriod = SalaryDate.period(forSalaryDay: period)
-        let periodEntity = salaryPeriods.canonical ?? {
-            let entity = SalaryPeriodEntity()
-            modelContext.insert(entity)
-            return entity
-        }()
-        periodEntity.startDate = newPeriod.startDate
-        periodEntity.endDate = newPeriod.endDate
+        if salaryPeriods.isEmpty {
+            modelContext.insert(SalaryPeriodEntity(startDate: newPeriod.startDate, endDate: newPeriod.endDate))
+        } else {
+            for entity in salaryPeriods {
+                entity.startDate = newPeriod.startDate
+                entity.endDate = newPeriod.endDate
+            }
+        }
 
         displayRange = .salaryPeriod
 
@@ -461,28 +478,21 @@ struct MainView: View {
         // 그 날 00:00으로 내려 급여일 당일 지출이 필터에서 빠지는 것만은 막는다(정상 값은 건드리지 않음).
         guard profiles.canonical != nil else {
             guard let entity = salaryPeriods.canonical else { return }
-            var changed = false
 
-            if entity.startDate != entity.startDate.startOfDay {
-                entity.startDate = entity.startDate.startOfDay
-                changed = true
-            }
-
-            // 프로필이 없다고 만료된 기간을 그대로 두면 정산 기간이 영구 동결되어,
+            // 프로필이 없다고 어긋난 기간을 그대로 두면 정산 기간이 영구 동결되어,
             // 그 뒤에 저장한 지출이 메인 화면과 위젯 양쪽에서 사라진다(캘린더에만 보임).
-            // 급여일을 모르므로 저장된 start의 '일'을 급여일로 간주해 다음 기간으로 굴린다 —
+            // 급여일을 모르므로 저장된 start의 '일'을 급여일로 간주해 "지금 맞는 기간"을 구한다 —
             // 그 값 자체가 과거에 급여일로 계산된 결과다.
-            if Date() > entity.endDate {
-                let day = Calendar(identifier: .gregorian).component(.day, from: entity.startDate)
-                let next = SalaryDate.period(forSalaryDay: SalaryDay.day(day))
-                entity.startDate = next.startDate
-                entity.endDate = next.endDate
-                changed = true
-            }
+            //
+            // 만료(과거)뿐 아니라 미래로 어긋난 경우도 교정해야 한다. 시계가 앞선 기기(또는 그 기기의
+            // CloudKit 동기화)가 미래 기간을 써두면, 만료 조건에 걸리지 않아 영원히 그 상태로 남고
+            // 그동안 모든 지출이 기간 밖으로 밀려난다.
+            let day = Calendar(identifier: .gregorian).component(.day, from: entity.startDate.startOfDay)
+            let expectedWithoutProfile = SalaryDate.period(forSalaryDay: SalaryDay.day(day))
+            guard entity.startDate != expectedWithoutProfile.startDate
+                    || entity.endDate != expectedWithoutProfile.endDate else { return }
 
-            if changed {
-                PersistenceController.saveAndRefreshWidgets(modelContext)
-            }
+            applyPeriodToAllEntities(expectedWithoutProfile)
             return
         }
 
@@ -496,8 +506,16 @@ struct MainView: View {
 
         guard entity.startDate != expected.startDate || entity.endDate != expected.endDate else { return }
 
-        entity.startDate = expected.startDate
-        entity.endDate = expected.endDate
+        applyPeriodToAllEntities(expected)
+    }
+
+    // 기간 사본이 여럿이면 전부 같은 값으로 맞춘다 — 삭제 없이 불일치를 없애는 방식.
+    // (어느 사본이 canonical로 뽑히든, 앱과 위젯이 각각 다른 사본을 읽든 결과가 같아진다)
+    private func applyPeriodToAllEntities(_ period: SalaryDate) {
+        for entity in salaryPeriods {
+            entity.startDate = period.startDate
+            entity.endDate = period.endDate
+        }
         PersistenceController.saveAndRefreshWidgets(modelContext)   // 기간이 바뀌었으니 위젯도 갱신
     }
 }

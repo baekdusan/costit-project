@@ -15,13 +15,15 @@ struct SearchView: View {
     @State private var query: String = ""
 
     private var filteredExpenses: [FinDataEntity] {
-        let q = query.lowercased()
+        // 저장 시 품목명은 trim되므로(AddFinView) 검색어도 앞뒤 공백을 떼야 매칭된다
+        let q = query.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
         guard !q.isEmpty else { return [] }
         return expenses.filter { $0.towhat.lowercased().contains(q) }
     }
 
     private var filteredRevenues: [FinDataEntity] {
-        let q = query.lowercased()
+        // 저장 시 품목명은 trim되므로(AddFinView) 검색어도 앞뒤 공백을 떼야 매칭된다
+        let q = query.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
         guard !q.isEmpty else { return [] }
         return revenues.filter { $0.towhat.lowercased().contains(q) }
     }

@@ -217,6 +217,10 @@ extension UNUserNotificationCenter {
         // 2/1 + 30일 = 3/3 → 전날 3/2 → 이후 매월 2일 18시에 발화.
         // 등록 달과 무관하게 결정적으로 계산한다.
         var components = DateComponents()
+        // 달력을 명시하지 않으면 트리거가 Calendar.current로 day를 해석한다. 기기가 이슬람력·히브리력
+        // 같은 비양력으로 설정돼 있으면 매월 반복 발화일이 양력 기준으로 어긋난다
+        // (프로젝트의 다른 날짜 산술은 전부 양력 고정이므로 여기만 예외가 되지 않게 맞춘다).
+        components.calendar = Calendar(identifier: .gregorian)
         components.day = Self.notificationDay(forExpenditureDay: alert.day)
         components.hour = 18
 

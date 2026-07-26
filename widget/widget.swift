@@ -80,7 +80,10 @@ struct Provider: TimelineProvider {
             nickname: profile.nickName,
             remaining: profile.outLay - total,
             outLay: profile.outLay,
-            isOver: total >= profile.outLay
+            // 예산이 0이면 "초과"가 아니라 "아직 설정 전"이다. total(0) >= outLay(0)로 판정하면
+            // 앱을 아직 열지 않아 데이터를 못 읽은 상태(레거시 이전 전 / CloudKit 동기화 전)에도
+            // "망했어요 · 😱 · 빨간 게이지"가 떠서, 실제 데이터가 멀쩡한데 초과한 것처럼 보인다.
+            isOver: profile.outLay > 0 && total >= profile.outLay
         )
     }
 }

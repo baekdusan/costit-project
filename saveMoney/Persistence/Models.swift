@@ -105,22 +105,24 @@ extension SalaryPeriodEntity {
 // 급여일이 튈 때마다 이전 기간 지출이 화면에서 사라진 것처럼 보인다.
 
 extension Collection where Element == ProfileEntity {
-    // 사용자가 실제로 입력한 프로필을 우선하고, 그 안에서는 "편집으로 바뀌지 않는" 키로 고른다.
+    // 사용자가 실제로 입력한 프로필을 우선하고, 그 안에서는 내용으로 결정적으로 고른다.
     //
-    // 예산·닉네임처럼 수정 대상 필드를 비교 키로 쓰면 안 된다: 중복이 있는 상태에서 예산을
-    // 낮추는 순간 선택이 손대지 않은 다른 사본으로 넘어가, 방금 한 편집이 화면에 반영되지 않고
-    // rollover가 그 사본의 급여일로 정산 기간을 되돌려 이전 기간 지출이 사라진다.
-    // persistentModelID는 한 기기 안에서 안정적이라 편집과 무관하게 같은 행을 가리킨다.
+    // persistentModelID를 키로 쓰지 않는 이유: 문자열 표현에 프로세스마다 달라지는 토큰이 섞여 있어
+    // "결정적"이라는 전제가 성립하지 않는다(앱과 위젯이 서로 다른 사본을 고를 수 있다).
+    // 반대로 내용을 키로 쓰면 편집 때 선택이 옮겨갈 수 있는데, 그건 쓰기 쪽에서 막는다 —
+    // 프로필을 저장할 때 사본 전체를 같은 값으로 맞추므로(MainView.handleProfileInput)
+    // 어느 사본이 뽑히든 값이 같아진다. 삭제 없이 불일치를 없애는 방식이다.
     var canonical: ProfileEntity? {
         let entered = self.filter { $0.outLay > 0 || $0.nickName != Profile().nickName }
         let pool = entered.isEmpty ? Array(self) : entered
-        return pool.min { String(describing: $0.persistentModelID) < String(describing: $1.persistentModelID) }
+        return pool.max { ($0.outLay, $0.nickName, $0.period) < ($1.outLay, $1.nickName, $1.period) }
     }
 }
 
 extension Collection where Element == SalaryPeriodEntity {
-    // 같은 이유로 안정 키를 쓴다 — 기간 값은 rollover가 계속 갱신하므로 비교 키로 쓸 수 없다.
+    // 같은 이유로 내용 기반 결정적 선택 — 쓰기 쪽(rolloverSalaryPeriodIfNeeded)이 사본 전체를
+    // 같은 값으로 맞추므로 어느 것이 뽑혀도 결과가 같다.
     var canonical: SalaryPeriodEntity? {
-        self.min { String(describing: $0.persistentModelID) < String(describing: $1.persistentModelID) }
+        self.max { ($0.startDate, $0.endDate) < ($1.startDate, $1.endDate) }
     }
 }

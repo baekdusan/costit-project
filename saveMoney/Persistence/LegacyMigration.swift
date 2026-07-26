@@ -32,6 +32,21 @@ enum LegacyMigration {
     // 되살아난다 — 깨진 blob은 어차피 같은 코드로는 못 읽으므로 재시도해도 결과가 같다.
     private static let logicVersion = "v1"
 
+    // 이전 단계의 결과. 두 실패를 구분하는 것이 핵심이다:
+    //  - decodeFailed: blob 자체를 못 읽음. 같은 코드로 재시도해도 결과가 같으므로 완료로 기록한다
+    //    (기록하지 않으면 매 실행 재이전이 돌아 사용자가 지운 지출이 되살아난다).
+    //  - aborted: 기존 레코드 조회 실패처럼 다음 실행에서 성공할 수 있는 중단. 완료로 기록하면
+    //    원본이 UserDefaults에 남아 있는데도 레거시 데이터가 영영 이전되지 않는다.
+    private struct Outcome {
+        var decodeFailed = false
+        var aborted = false
+
+        mutating func merge(_ other: Outcome) {
+            decodeFailed = decodeFailed || other.decodeFailed
+            aborted = aborted || other.aborted
+        }
+    }
+
     static func runIfNeeded(container: ModelContainer) {
         let defaults = UserDefaults.standard
         let current = legacyFingerprint(defaults)
@@ -41,31 +56,34 @@ enum LegacyMigration {
         let context = ModelContext(container)
 
         do {
-            var decodeFailed = false
-            decodeFailed = migrateFinList(key: Keys.finList, isRevenue: false, into: context, defaults: defaults) || decodeFailed
-            decodeFailed = migrateFinList(key: Keys.rFinList, isRevenue: true, into: context, defaults: defaults) || decodeFailed
-            decodeFailed = migrateFixedExpenditures(into: context, defaults: defaults) || decodeFailed
-            // 프로필/정산기간은 재시도 대상에서 뺀다. 이 둘의 디코딩 실패로 fingerprint 기록을 막으면
-            // 매 실행마다 지출 목록 전체가 재이전되는데, 삭제 tombstone이 없어 "사용자가 지운 지출"과
-            // "아직 이전되지 않은 지출"을 구분할 수 없다 → 지운 내역이 계속 되살아난다.
+            var outcome = Outcome()
+            outcome.merge(migrateFinList(key: Keys.finList, isRevenue: false, into: context, defaults: defaults))
+            outcome.merge(migrateFinList(key: Keys.rFinList, isRevenue: true, into: context, defaults: defaults))
+            outcome.merge(migrateFixedExpenditures(into: context, defaults: defaults))
+            // 프로필/정산기간의 디코딩 실패는 재시도 대상에서 뺀다. 이 둘 때문에 fingerprint 기록을
+            // 막으면 매 실행마다 지출 목록 전체가 재이전되는데, 삭제 tombstone이 없어 "사용자가 지운
+            // 지출"과 "아직 이전되지 않은 지출"을 구분할 수 없다 → 지운 내역이 계속 되살아난다.
             // 프로필·급여일은 온보딩/프로필 수정으로 언제든 복구되지만 지출 부활은 되돌릴 수 없다.
-            _ = migrateProfile(into: context, defaults: defaults)
-            _ = migrateSalaryPeriod(into: context, defaults: defaults)
+            // (단 조회 실패로 인한 중단은 아래 aborted로 따로 전달된다)
+            outcome.aborted = migrateProfile(into: context, defaults: defaults).aborted || outcome.aborted
+            outcome.aborted = migrateSalaryPeriod(into: context, defaults: defaults).aborted || outcome.aborted
 
             try context.save()
 
             // fingerprint를 기록하면 다음 실행부터 guard에 걸려 재시도하지 않는다.
-            // 기록하지 않는 경우는 하나뿐이다:
-            //  - isEphemeralFallback: 스토어를 못 열어 in-memory로 동작 중 → 이전 결과가 앱 종료와 함께
-            //    사라지는데 완료로 기록하면 원본이 UserDefaults에 남아 있어도 영영 이전되지 않는다
+            // 따라서 "다시 시도하면 결과가 달라질 수 있는" 실패에서는 기록하지 않는다:
+            //  - aborted: 기존 레코드 조회 실패 등 일시적 오류로 이번 이전을 건너뛴 경우.
+            //    기록해버리면 레거시 지출이 원본은 남아 있는데도 영영 이전되지 않는다.
+            //  - isEphemeralFallback: 스토어를 못 열어 in-memory로 동작 중 → 이전 결과가 앱 종료와
+            //    함께 사라지는데 완료로 기록하면 마찬가지로 영영 이전되지 않는다.
             //
-            // 디코딩 실패(decodeFailed)는 기록을 막지 않는다. 막으면 매 실행 전량 재이전이 돌고,
-            // 삭제 tombstone이 없어 사용자가 지운 지출이 실행마다 되살아난다. 깨진 blob은 같은 코드로
-            // 다시 읽어도 결과가 같으므로, 재시도는 디코더를 고친 버전에서 logicVersion을 올려 수행한다.
-            if PersistenceController.isEphemeralFallback {
-                print("[LegacyMigration] in-memory 폴백 실행 — fingerprint 미기록(다음 정상 실행에서 재시도)")
+            // 반면 디코딩 실패(decodeFailed)는 기록을 막지 않는다. 막으면 매 실행 전량 재이전이 돌고
+            // 사용자가 지운 지출이 실행마다 되살아난다. 깨진 blob은 같은 코드로 다시 읽어도 결과가
+            // 같으므로, 재시도는 디코더를 고친 버전에서 logicVersion을 올려 수행한다.
+            if outcome.aborted || PersistenceController.isEphemeralFallback {
+                print("[LegacyMigration] 이번 이전을 완료로 확정하지 않음(aborted=\(outcome.aborted), ephemeral=\(PersistenceController.isEphemeralFallback)) — 다음 실행에서 재시도")
             } else {
-                if decodeFailed {
+                if outcome.decodeFailed {
                     print("[LegacyMigration] 일부 blob 디코딩 실패 — 완료로 기록(재시도는 logicVersion 상향 시)")
                 }
                 defaults.set(current, forKey: Keys.fingerprint)
@@ -210,10 +228,10 @@ enum LegacyMigration {
     }
 
     // 반환값: 최상위 디코딩 실패 여부 (true면 이번 이전을 "완료"로 확정하면 안 됨)
-    private static func migrateFinList(key: String, isRevenue: Bool, into context: ModelContext, defaults: UserDefaults) -> Bool {
-        guard let data = defaults.data(forKey: key) else { return false }
+    private static func migrateFinList(key: String, isRevenue: Bool, into context: ModelContext, defaults: UserDefaults) -> Outcome {
+        guard let data = defaults.data(forKey: key) else { return Outcome() }
         let decoded = decodeList(LegacyFin.self, from: data)
-        if decoded.failed { return true }
+        if decoded.failed { return Outcome(decodeFailed: true, aborted: false) }
 
         // 기존 레코드를 한 번만 읽어 메모리에서 대조한다. 과거엔 레코드마다 fetch를 돌렸는데,
         // externalID에 인덱스가 없고(CloudKit 제약) predicate가 OR 복합이라 사실상 매번 전체
@@ -226,7 +244,7 @@ enum LegacyMigration {
             predicate: #Predicate { $0.isRevenue == isRevenue }
         )) else {
             print("[LegacyMigration] 기존 \(isRevenue ? "수입" : "지출") 조회 실패 — 이번 이전 건너뜀")
-            return true
+            return Outcome(decodeFailed: false, aborted: true)
         }
 
         var idIndex: [String: [Int]] = [:]
@@ -283,17 +301,22 @@ enum LegacyMigration {
                 externalID: uniqueID(from: extID)
             ))
         }
-        return false
+        return Outcome()
     }
 
-    private static func migrateFixedExpenditures(into context: ModelContext, defaults: UserDefaults) -> Bool {
-        guard let data = defaults.data(forKey: Keys.fixedFinList) else { return false }
+    private static func migrateFixedExpenditures(into context: ModelContext, defaults: UserDefaults) -> Outcome {
+        guard let data = defaults.data(forKey: Keys.fixedFinList) else { return Outcome() }
         let decoded = decodeList(LegacyFixed.self, from: data)
-        if decoded.failed { return true }
+        if decoded.failed { return Outcome(decodeFailed: true, aborted: false) }
 
-        // 지출 목록과 같은 이유로 기존 레코드는 한 번만 읽는다
-        let existingIDs = Set(((try? context.fetch(FetchDescriptor<FixedExpenditureEntity>())) ?? [])
-            .map(\.externalID))
+        // 지출 목록과 같은 이유로 기존 레코드는 한 번만 읽는다.
+        // 조회 실패를 빈 결과로 삼키면 dedup 근거를 잃고 고정지출 전량이 같은 externalID로
+        // 다시 삽입되므로, 실패하면 이번 이전을 건너뛰고 다음 실행에서 재시도한다.
+        guard let existingFixed = try? context.fetch(FetchDescriptor<FixedExpenditureEntity>()) else {
+            print("[LegacyMigration] 기존 고정지출 조회 실패 — 이번 이전 건너뜀")
+            return Outcome(decodeFailed: false, aborted: true)
+        }
+        let existingIDs = Set(existingFixed.map(\.externalID))
 
         var insertedIDs = Set<String>()
         for item in decoded.values {
@@ -308,27 +331,27 @@ enum LegacyMigration {
                 how: item.how
             ))
         }
-        return false
+        return Outcome()
     }
 
     // 반환값: 최상위 디코딩 실패 여부 (migrateFinList와 동일 — true면 fingerprint를 기록하지 않아
     // 다음 버전에서 다시 시도할 수 있다. 프로필 blob만 손상된 사용자가 목표 지출액·급여일을
     // 영영 되찾지 못하는 것을 막는다)
-    private static func migrateProfile(into context: ModelContext, defaults: UserDefaults) -> Bool {
+    private static func migrateProfile(into context: ModelContext, defaults: UserDefaults) -> Outcome {
         // 기존 ProfileEntity가 이미 있으면 skip
         var descriptor = FetchDescriptor<ProfileEntity>()
         descriptor.fetchLimit = 1
-        if (try? context.fetch(descriptor))?.first != nil { return false }
+        if (try? context.fetch(descriptor))?.first != nil { return Outcome() }
 
         // 레거시 프로필이 없으면 아무것도 만들지 않는다.
         // 과거엔 기본값(“User”/0원/“1일”) 프로필을 무조건 삽입했는데, 그 결과
         //  (a) 신규 설치에서도 프로필이 존재해 온보딩 표시 판정이 망가지고
         //  (b) 기기 교체 시 CloudKit에서 내려올 진짜 프로필과 중복되어, 정렬 없는 .first가
         //      더미를 골라 사용자의 목표 지출액·급여일이 사라진 것처럼 보였다.
-        guard let data = defaults.data(forKey: Keys.profile) else { return false }
+        guard let data = defaults.data(forKey: Keys.profile) else { return Outcome() }
         guard let legacy = try? PropertyListDecoder().decode(LegacyProfile.self, from: data) else {
             print("[LegacyMigration] 프로필 디코딩 실패 (\(data.count) bytes)")
-            return true
+            return Outcome(decodeFailed: true, aborted: false)
         }
 
         context.insert(ProfileEntity(
@@ -336,29 +359,29 @@ enum LegacyMigration {
             outLay: legacy.outLay,
             period: legacy.period
         ))
-        return false
+        return Outcome()
     }
 
-    private static func migrateSalaryPeriod(into context: ModelContext, defaults: UserDefaults) -> Bool {
+    private static func migrateSalaryPeriod(into context: ModelContext, defaults: UserDefaults) -> Outcome {
         var descriptor = FetchDescriptor<SalaryPeriodEntity>()
         descriptor.fetchLimit = 1
-        if (try? context.fetch(descriptor))?.first != nil { return false }
+        if (try? context.fetch(descriptor))?.first != nil { return Outcome() }
 
         // 프로필과 같은 이유로, 레거시 기간 정보가 없으면 만들지 않는다.
         // (기본 슬롯을 넣으면 start=end=삽입 시각이라 곧바로 rollover가 발동해
         //  더미 프로필의 “1일” 기준으로 정산 기간이 덮어써졌다)
         // 엔티티가 없을 때의 표시는 각 화면의 SalaryDate() 폴백이 담당하고,
         // 실제 생성은 온보딩 완료 시 MainView.handleProfileInput이 한다.
-        guard let data = defaults.data(forKey: Keys.salaryData) else { return false }
+        guard let data = defaults.data(forKey: Keys.salaryData) else { return Outcome() }
         guard let decoded = try? PropertyListDecoder().decode(LegacySalary.self, from: data) else {
             print("[LegacyMigration] 정산 기간 디코딩 실패 (\(data.count) bytes)")
-            return true
+            return Outcome(decodeFailed: true, aborted: false)
         }
 
         context.insert(SalaryPeriodEntity(
             startDate: decoded.startDate,
             endDate: decoded.endDate
         ))
-        return false
+        return Outcome()
     }
 }
