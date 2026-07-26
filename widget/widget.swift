@@ -24,6 +24,13 @@ struct CostEntry: TimelineEntry {
     // 수치를 단정할 수 없는 상태 — 금액·비율·게이지·이모지를 모두 중립으로 둔다
     var isNeutral: Bool { state != .normal }
 
+    // 예산이 0이면 "몇 % 남았는가"라는 개념이 성립하지 않는다. percent가 0으로 떨어지는 바람에
+    // 이모지 😱와 빨간 게이지가 뜨는데 문구는 "남았어요"라 서로 반대를 말하게 된다.
+    var hasNoBudget: Bool { outLay <= 0 }
+
+    // 비율 기반 표현(색·이모지·비율 텍스트)을 쓸 수 없는 상태
+    var ratioUnknown: Bool { isNeutral || hasNoBudget }
+
     // 0~100 사이의 잔여 비율 (정수, %)
     var percent: Int {
         guard outLay > 0 else { return 0 }
@@ -53,6 +60,14 @@ struct Provider: TimelineProvider {
         ) ?? now.addingTimeInterval(60 * 60 * 24)
 
         let entry = loadEntry(date: now)
+
+        // 데이터를 못 읽은 실행은 "잠시 후 다시 볼게요"라고 안내하므로 실제로도 곧 재시도해야 한다.
+        // .atEnd로 두면 몇 초짜리 일시 오류였어도 다음 자정까지 그 화면이 굳는다.
+        guard entry.state != .unavailable else {
+            completion(Timeline(entries: [entry], policy: .after(now.addingTimeInterval(15 * 60))))
+            return
+        }
+
         let nextEntry = loadEntry(date: nextMidnight)
         completion(Timeline(entries: [entry, nextEntry], policy: .atEnd))
     }
@@ -103,8 +118,11 @@ struct Provider: TimelineProvider {
             // 예산 0원 사용자도 지출이 있으면 초과가 맞다. outLay > 0 가드만 두면
             // 잔액이 음수인데 문구는 영원히 "남았어요"가 되어 이모지·게이지와 반대를 말한다.
             isOver: total > 0 && total >= profile.outLay,
-            // 조회 실패를 우선 판정한다 — 프로필까지 못 읽었다면 "설정 안내"가 아니라 "판단 불가"다
-            state: expenses == nil ? .unavailable
+            // 조회 실패를 우선 판정한다 — 프로필까지 못 읽었다면 "설정 안내"가 아니라 "판단 불가"다.
+            // isEphemeralFallback: 스토어를 못 열어 in-memory로 폴백하면 fetch는 성공하면서
+            // 빈 결과를 준다. 이걸 "프로필 없음"으로 읽으면 예산을 설정해둔 사용자에게
+            // "예산을 설정해주세요"가 떠서 프로필이 사라진 줄 알고 재입력하게 된다.
+            state: (expenses == nil || PersistenceController.isEphemeralFallback) ? .unavailable
                  : (profileEntity == nil ? .needsSetup : .normal)
         )
     }
@@ -118,14 +136,14 @@ struct CostItWidgetEntryView: View {
         let percent = entry.percent
         // 예산 미설정 상태에서는 게이지·이모지도 중립으로 둔다. percent가 0이라는 이유로
         // 빨간 게이지와 😱를 쓰면, 데이터가 멀쩡한데 최악 상태인 것처럼 보인다.
-        let color: Color = entry.isNeutral
+        let color: Color = entry.ratioUnknown
             ? Color(#colorLiteral(red: 0.6862745285, green: 0.6862745285, blue: 0.6862745285, alpha: 1))
             : (percent > 50
                 ? Color(#colorLiteral(red: 0.3518846035, green: 0.6747873425, blue: 0.622913003, alpha: 1))
                 : (percent > 20
                     ? Color(#colorLiteral(red: 0.9529411793, green: 0.6862745285, blue: 0.1333333403, alpha: 1))
                     : Color(#colorLiteral(red: 0.9464814067, green: 0.240496546, blue: 0.2090002298, alpha: 1))))
-        let emoji: String = entry.isNeutral ? "🙂"
+        let emoji: String = entry.ratioUnknown ? "🙂"
             : percent >= 80 ? "🤑"
             : percent >= 60 ? "😊"
             : percent >= 40 ? "🙂"
@@ -158,7 +176,7 @@ struct CostItWidgetEntryView: View {
                 HStack(alignment: .bottom, spacing: 0) {
                     // 미설정 상태에서 "0%"를 띄우면 예산을 다 쓴 것처럼 읽힌다
                     // (금액을 "-"로 가려놓고 비율만 0으로 단정하는 자기모순이기도 하다)
-                    Text(verbatim: entry.isNeutral ? "-" : "\(percent)%")
+                    Text(verbatim: entry.ratioUnknown ? "-" : "\(percent)%")
                         .font(.system(size: 28, weight: .semibold))
                         .frame(width: geometry.size.width * 0.45, alignment: .leading)
                         .opacity(0.84)
@@ -181,7 +199,7 @@ struct CostItWidgetEntryView: View {
                 color
                     // 판단 불가 상태에서 percent(= remaining/outLay)는 조회 실패로 100이 될 수 있다.
                     // 금액·비율을 "-"로 가려놓고 게이지만 만수위로 그리면 자기모순이 된다.
-                    .frame(width: entry.isNeutral ? 0 : geometry.size.width * CGFloat(percent) / 100,
+                    .frame(width: entry.ratioUnknown ? 0 : geometry.size.width * CGFloat(percent) / 100,
                            height: geometry.size.height * 0.08)
             }
             .frame(width: geometry.size.width,
