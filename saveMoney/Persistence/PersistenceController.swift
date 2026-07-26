@@ -108,12 +108,15 @@ extension PersistenceController {
     // externalID로 받는 이유: 삭제 확인 알럿이 떠 있는 동안 다른 기기의 삭제가 동기화되면
     // 붙들고 있던 @Model 인스턴스는 무효화되어 속성 접근만으로 크래시한다(AddFinView.EditTarget과 같은 이유).
     // 알럿에는 식별자만 넘기고 확인 시점에 다시 찾는다 — 이미 사라졌으면 할 일이 없다.
-    static func deleteFin(externalID: String, in context: ModelContext) {
+    @discardableResult
+    static func deleteFin(externalID: String, in context: ModelContext) -> Bool {
         let descriptor = FetchDescriptor<FinDataEntity>(
             predicate: #Predicate { $0.externalID == externalID }
         )
-        guard let item = (try? context.fetch(descriptor))?.first, !item.isDeleted else { return }
+        // 이미 사라진 항목이면 "삭제됨"과 결과가 같으므로 성공으로 본다
+        guard let item = (try? context.fetch(descriptor))?.first, !item.isDeleted else { return true }
         context.delete(item)
-        saveAndRefreshWidgets(context)
+        // 저장 실패를 호출부에 전달한다 — 화면에서만 사라지고 다음 실행에 되살아나는 것을 알릴 수 있게
+        return saveAndRefreshWidgets(context)
     }
 }

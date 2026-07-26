@@ -453,10 +453,29 @@ struct MainView: View {
         // 다만 구버전이 저장한 "start가 말일 23:59:59" 같은 값은 급여일을 몰라도 틀린 게 확실하므로
         // 그 날 00:00으로 내려 급여일 당일 지출이 필터에서 빠지는 것만은 막는다(정상 값은 건드리지 않음).
         guard profiles.canonical != nil else {
-            guard let entity = salaryPeriods.canonical,
-                  entity.startDate != entity.startDate.startOfDay else { return }
-            entity.startDate = entity.startDate.startOfDay
-            PersistenceController.saveAndRefreshWidgets(modelContext)
+            guard let entity = salaryPeriods.canonical else { return }
+            var changed = false
+
+            if entity.startDate != entity.startDate.startOfDay {
+                entity.startDate = entity.startDate.startOfDay
+                changed = true
+            }
+
+            // 프로필이 없다고 만료된 기간을 그대로 두면 정산 기간이 영구 동결되어,
+            // 그 뒤에 저장한 지출이 메인 화면과 위젯 양쪽에서 사라진다(캘린더에만 보임).
+            // 급여일을 모르므로 저장된 start의 '일'을 급여일로 간주해 다음 기간으로 굴린다 —
+            // 그 값 자체가 과거에 급여일로 계산된 결과다.
+            if Date() > entity.endDate {
+                let day = Calendar(identifier: .gregorian).component(.day, from: entity.startDate)
+                let next = SalaryDate.period(forSalaryDay: SalaryDay.day(day))
+                entity.startDate = next.startDate
+                entity.endDate = next.endDate
+                changed = true
+            }
+
+            if changed {
+                PersistenceController.saveAndRefreshWidgets(modelContext)
+            }
             return
         }
 

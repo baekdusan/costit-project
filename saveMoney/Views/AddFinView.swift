@@ -246,6 +246,8 @@ struct AddFinView: View {
         // (되돌리지 않으면 pending insert가 컨텍스트에 남아, 사용자가 알럿을 닫고 다시
         //  저장을 누를 때 두 번째 엔티티가 또 insert되어 같은 지출이 두 건이 된다)
         var insertedEntity: FinDataEntity?
+        var editedEntity: FinDataEntity?
+        var previousValues: (when: Date, towhat: String, how: Int)?
 
         // 모든 present 경로가 .modelContainer(PersistenceController.shared)를 주입하므로
         // 다른 화면들과 동일하게 environment context를 사용한다.
@@ -273,16 +275,27 @@ struct AddFinView: View {
                 saveFailureMessage = "다른 기기에서 삭제된 내역이라 수정할 수 없어요."
                 return
             }
+            // 저장이 실패하면 되돌리기 위해 원래 값을 기억해둔다 (pending 변경이 남으면
+            // "저장 실패" 알럿과 달리 autosave가 뒤늦게 커밋해 결과가 모순된다)
+            editedEntity = entity
+            previousValues = (entity.when, entity.towhat, entity.how)
+
             entity.when = when.truncatingSubseconds
             entity.towhat = trimmedTowhat
             entity.how = howInt
         }
 
         // 저장 실패 시 화면을 닫으면 사용자가 입력한 내역이 그대로 사라진다 → 열어둔 채 알림.
-        // 이번에 insert한 엔티티는 되돌려 재시도 때 중복이 쌓이지 않게 한다.
+        // 이번 변경(insert / 속성 수정)은 되돌려 재시도 때 중복이 쌓이거나
+        // 화면과 실제 저장 결과가 어긋나지 않게 한다.
         guard PersistenceController.saveAndRefreshWidgets(modelContext) else {
             if let insertedEntity {
                 modelContext.delete(insertedEntity)
+            }
+            if let editedEntity, let previousValues {
+                editedEntity.when = previousValues.when
+                editedEntity.towhat = previousValues.towhat
+                editedEntity.how = previousValues.how
             }
             isSaving = false
             saveFailureMessage = "저장에 실패했어요. 잠시 후 다시 시도해주세요."

@@ -24,6 +24,14 @@ enum LegacyMigration {
         static let fingerprint = "migration.userdefaults_to_swiftdata.fingerprint"
     }
 
+    // 이전 로직의 버전. fingerprint에 함께 섞으므로, 이 값을 올리면 모든 기기가 한 번 더 이전한다.
+    // 디코더나 dedup 규칙을 고쳐서 "예전에 못 옮긴 데이터를 다시 시도해야 할 때"만 올린다.
+    //
+    // 디코딩이 실패했다고 매 실행 재시도하지 않는 이유: 삭제 tombstone이 없어 "사용자가 지운 지출"과
+    // "아직 이전되지 않은 지출"을 구분할 수 없다. 재이전이 반복되면 사용자가 지운 내역이 계속
+    // 되살아난다 — 깨진 blob은 어차피 같은 코드로는 못 읽으므로 재시도해도 결과가 같다.
+    private static let logicVersion = "v1"
+
     static func runIfNeeded(container: ModelContainer) {
         let defaults = UserDefaults.standard
         let current = legacyFingerprint(defaults)
@@ -46,14 +54,20 @@ enum LegacyMigration {
 
             try context.save()
 
-            // fingerprint를 기록하면 다음 실행부터 guard에 걸려 재시도조차 하지 않는다.
-            // 따라서 "이전이 영속적으로 완료됐다"고 확신할 때만 기록한다.
-            //  - decodeFailed: 데이터가 있는데 통째로 디코딩 실패 → 다음 버전에서 재시도할 여지를 남긴다
+            // fingerprint를 기록하면 다음 실행부터 guard에 걸려 재시도하지 않는다.
+            // 기록하지 않는 경우는 하나뿐이다:
             //  - isEphemeralFallback: 스토어를 못 열어 in-memory로 동작 중 → 이전 결과가 앱 종료와 함께
             //    사라지는데 완료로 기록하면 원본이 UserDefaults에 남아 있어도 영영 이전되지 않는다
-            if decodeFailed || PersistenceController.isEphemeralFallback {
-                print("[LegacyMigration] 이전이 영속되지 않음(decodeFailed=\(decodeFailed), ephemeral=\(PersistenceController.isEphemeralFallback)) — fingerprint 미기록")
+            //
+            // 디코딩 실패(decodeFailed)는 기록을 막지 않는다. 막으면 매 실행 전량 재이전이 돌고,
+            // 삭제 tombstone이 없어 사용자가 지운 지출이 실행마다 되살아난다. 깨진 blob은 같은 코드로
+            // 다시 읽어도 결과가 같으므로, 재시도는 디코더를 고친 버전에서 logicVersion을 올려 수행한다.
+            if PersistenceController.isEphemeralFallback {
+                print("[LegacyMigration] in-memory 폴백 실행 — fingerprint 미기록(다음 정상 실행에서 재시도)")
             } else {
+                if decodeFailed {
+                    print("[LegacyMigration] 일부 blob 디코딩 실패 — 완료로 기록(재시도는 logicVersion 상향 시)")
+                }
                 defaults.set(current, forKey: Keys.fingerprint)
             }
 
@@ -68,6 +82,9 @@ enum LegacyMigration {
     // 레거시 UserDefaults 데이터 전체의 SHA256. 어떤 키든 내용이 바뀌면 값이 달라진다.
     private static func legacyFingerprint(_ defaults: UserDefaults) -> String {
         var hasher = SHA256()
+        // 로직 버전을 함께 섞는다 — 이 값을 올리면 레거시 데이터가 그대로여도 fingerprint가 달라져
+        // 모든 기기가 한 번 더 이전을 시도한다(디코더·dedup 규칙을 고쳤을 때의 재시도 경로)
+        hasher.update(data: Data("logic:\(logicVersion);".utf8))
         for key in [Keys.finList, Keys.rFinList, Keys.fixedFinList, Keys.profile, Keys.salaryData] {
             let data = defaults.data(forKey: key) ?? Data()
             // 키 이름 + 길이를 prefix로 넣어 blob 경계 모호성 제거
@@ -202,9 +219,15 @@ enum LegacyMigration {
         // externalID에 인덱스가 없고(CloudKit 제약) predicate가 OR 복합이라 사실상 매번 전체
         // 스캔이었다 — 수천 건을 가진 사용자는 첫 실행이 didFinishLaunching에서 수 초간
         // 블로킹되어 런치 워치독에 걸릴 수 있었다.
-        let existing = (try? context.fetch(FetchDescriptor<FinDataEntity>(
+        // fetch 실패를 빈 배열로 삼키면 안 된다 — 인덱스와 usedIDs가 비어 dedup 근거를 잃고,
+        // 이미 이전된 레코드 전량이 같은 externalID로 다시 삽입된다(중복 + 식별키 충돌).
+        // 읽지 못했으면 이번 실행을 완료로 확정하지 않고 다음 실행에서 재시도한다.
+        guard let existing = try? context.fetch(FetchDescriptor<FinDataEntity>(
             predicate: #Predicate { $0.isRevenue == isRevenue }
-        ))) ?? []
+        )) else {
+            print("[LegacyMigration] 기존 \(isRevenue ? "수입" : "지출") 조회 실패 — 이번 이전 건너뜀")
+            return true
+        }
 
         var idIndex: [String: [Int]] = [:]
         var contentIndex: [String: [Int]] = [:]

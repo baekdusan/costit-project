@@ -25,7 +25,9 @@ struct FirstOpenView: View {
         self.isFirstOpen = false
         self.onConfirm = onConfirm
         _nickname = State(initialValue: profile.nickName)
-        _outLayText = State(initialValue: profile.outLay > 0 ? profile.outLay.toDecimal() : "")
+        // 0원도 그대로 채운다 — 빈칸으로 두면 isAllFilled가 false라 "완료"가 영구 비활성이 되어
+        // 목표액이 0으로 저장된 프로필은 닉네임·급여일조차 고칠 수 없다
+        _outLayText = State(initialValue: profile.outLay.toDecimal())
         _period = State(initialValue: profile.period.isEmpty ? SalaryDay.firstDay : profile.period)
     }
 
