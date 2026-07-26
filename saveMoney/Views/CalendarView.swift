@@ -33,38 +33,40 @@ struct CalendarView: View {
 
     // MARK: - 파생 데이터
 
-    private var expenses: [FinDataEntity] { allFin.filter { !$0.isRevenue } }
-    private var revenues: [FinDataEntity] { allFin.filter { $0.isRevenue } }
-
-    // 날짜(그 날 00:00)별 그룹핑 — 모든 일 단위 파생의 단일 소스 (MainView.sections와 동일 규칙).
-    // 파생 프로퍼티들이 각자 재계산하지 않도록 body에서 1회만 계산해 파라미터로 내려보낸다.
-    private var itemsByDay: [Date: [FinDataEntity]] {
-        Dictionary(grouping: allFin) { $0.when.startOfDay }
+    // 화면에 필요한 모든 파생값을 전건 1회 순회로 한 번에 만든다.
+    //
+    // 과거엔 expenses/revenues/itemsByDay/expenseTotalsByDay/revenueDays/기간합계가 각각
+    // 독립 computed였고, body 한 번에 전건을 다섯 번 넘게 훑으면서 startOfDay도 항목 수만큼
+    // 다시 계산했다. 이 body는 날짜 셀 탭과 월 스와이프마다 재평가되므로 수년치 데이터에서는
+    // 탭 반응이 눈에 띄게 늦어진다.
+    private struct DayAggregates {
+        var itemsByDay: [Date: [FinDataEntity]] = [:]
+        // 지출 항목이 없는 날은 엔트리 자체가 없어야 한다 (수입만 있는 날에 지출 점이 찍히면 안 됨)
+        var expenseTotalsByDay: [Date: Int] = [:]
+        var revenueDays: Set<Date> = []
+        var periodExpenseTotal: Int = 0
+        var periodRevenueTotal: Int = 0
     }
 
-    // 날짜별 지출 총액 — 달력 점 색상 계산용.
-    // 지출 항목이 없는 날은 엔트리 자체가 없어야 함 (수입만 있는 날에 지출 점이 찍히면 안 됨)
-    private func expenseTotalsByDay(from itemsByDay: [Date: [FinDataEntity]]) -> [Date: Int] {
-        itemsByDay.compactMapValues { items in
-            let dayExpenses = items.filter { !$0.isRevenue }
-            return dayExpenses.isEmpty ? nil : dayExpenses.reduce(0) { $0 + $1.how }
+    private func makeAggregates() -> DayAggregates {
+        // end(23:59:59)에 `<=`를 쓰면 소수초를 가진 레코드가 기간 사이로 빠진다 → 반열린 구간 (다른 화면과 동일)
+        let upperBound = end.addingTimeInterval(1)
+        var result = DayAggregates()
+
+        for item in allFin {
+            let day = item.when.startOfDay
+            result.itemsByDay[day, default: []].append(item)
+
+            let inPeriod = item.when >= start && item.when < upperBound
+            if item.isRevenue {
+                result.revenueDays.insert(day)
+                if inPeriod { result.periodRevenueTotal += item.how }
+            } else {
+                result.expenseTotalsByDay[day, default: 0] += item.how
+                if inPeriod { result.periodExpenseTotal += item.how }
+            }
         }
-    }
-
-    private func revenueDays(from itemsByDay: [Date: [FinDataEntity]]) -> Set<Date> {
-        Set(itemsByDay.filter { $0.value.contains { $0.isRevenue } }.keys)
-    }
-
-    // 기간 내 수입/지출 총액.
-    // end(23:59:59)에 `<=`를 쓰면 소수초를 가진 레코드가 기간 사이로 빠진다 → 반열린 구간 (다른 화면과 동일)
-    private var periodUpperBound: Date { end.addingTimeInterval(1) }
-
-    private var periodRevenueTotal: Int {
-        revenues.filter { $0.when >= start && $0.when < periodUpperBound }.reduce(0) { $0 + $1.how }
-    }
-
-    private var periodExpenseTotal: Int {
-        expenses.filter { $0.when >= start && $0.when < periodUpperBound }.reduce(0) { $0 + $1.how }
+        return result
     }
 
     private var fixedTotal: Int {
@@ -91,17 +93,17 @@ struct CalendarView: View {
                 // 초기 레이아웃 패스에서 proxy.size.width가 0이면 음수가 되어
                 // .frame(width:)에 "Invalid frame dimension" 경고가 발생하므로 방어
                 let calendarWidth = max(0, proxy.size.width - 60)
-                // 일 단위 그룹핑은 body 평가당 1회만 (선택 날짜 내역도 여기서 유도)
-                let byDay = itemsByDay
-                let selectedItems = byDay[selectedDate.startOfDay] ?? []
+                // 전건 순회는 body 평가당 한 번만 (선택 날짜 내역도 여기서 유도)
+                let aggregates = makeAggregates()
+                let selectedItems = aggregates.itemsByDay[selectedDate.startOfDay] ?? []
 
                 ScrollView(showsIndicators: false) {
                     VStack(spacing: 0) {
-                        totalsBar
+                        totalsBar(aggregates: aggregates)
                             .padding(.top, 30)
                             .padding(.horizontal, 10)
 
-                        calendarBlock(width: calendarWidth, itemsByDay: byDay)
+                        calendarBlock(width: calendarWidth, aggregates: aggregates)
                             .padding(.top, 50)
 
                         dailyCard(items: selectedItems)
@@ -161,11 +163,11 @@ struct CalendarView: View {
 
     // MARK: - 수입 / 지출 / 고정 지출 총액 바
 
-    private var totalsBar: some View {
+    private func totalsBar(aggregates: DayAggregates) -> some View {
         VStack(spacing: 0) {
             HStack(spacing: 0) {
-                totalColumn(title: "수입 💰", value: periodRevenueTotal)
-                totalColumn(title: "지출 💸", value: periodExpenseTotal)
+                totalColumn(title: "수입 💰", value: aggregates.periodRevenueTotal)
+                totalColumn(title: "지출 💸", value: aggregates.periodExpenseTotal)
                 totalColumn(title: "고정 지출 📌", value: fixedTotal)
             }
 
@@ -190,7 +192,7 @@ struct CalendarView: View {
 
     // MARK: - 달력 블록 (테이프 이미지 + 배경 매트 + 월 그리드)
 
-    private func calendarBlock(width: CGFloat, itemsByDay: [Date: [FinDataEntity]]) -> some View {
+    private func calendarBlock(width: CGFloat, aggregates: DayAggregates) -> some View {
         ZStack(alignment: .top) {
             VStack(spacing: 0) {
                 // 테이프 이미지가 매트 위로 겹치는 영역
@@ -203,8 +205,8 @@ struct CalendarView: View {
                     selectedDate: $selectedDate,
                     periodStart: start,
                     periodEnd: end,
-                    expenseTotalsByDay: expenseTotalsByDay(from: itemsByDay),
-                    revenueDays: revenueDays(from: itemsByDay),
+                    expenseTotalsByDay: aggregates.expenseTotalsByDay,
+                    revenueDays: aggregates.revenueDays,
                     dailyBudget: dailyBudget
                 )
                 .frame(width: width)
