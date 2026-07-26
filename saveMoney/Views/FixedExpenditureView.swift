@@ -102,6 +102,11 @@ struct FixedExpenditureView: View {
         .onChange(of: notificationAuthorized) { _, authorized in
             if authorized { rescheduleAllNotifications() }
         }
+        // CloudKit 동기화가 늦어 화면 진입 시점에 목록이 비어 있으면 아래 가드에 걸려 알림이
+        // 하나도 등록되지 않는다. 목록이 채워지는 순간 다시 등록한다.
+        .onChange(of: fixedItems.count) { _, _ in
+            if notificationAuthorized { rescheduleAllNotifications() }
+        }
     }
 
     // MARK: - 네비게이션 바 (xmark | 총액 | plus)
@@ -304,7 +309,12 @@ struct FixedExpenditureView: View {
         let descriptor = FetchDescriptor<FixedExpenditureEntity>(
             predicate: #Predicate { $0.externalID == externalID }
         )
-        guard let item = (try? modelContext.fetch(descriptor))?.first, !item.isDeleted else { return }
+        guard let item = (try? modelContext.fetch(descriptor))?.first, !item.isDeleted else {
+            // 이미 원격에서 지워진 항목이어도 이 기기의 반복 알림은 남아 있을 수 있다 →
+            // 그냥 돌아가면 매월 유령 알림이 발화하므로 해제만이라도 수행한다
+            notificationCenter.removePendingNotificationRequests(withIdentifiers: [externalID])
+            return
+        }
 
         // 알림을 먼저 해제한다. 저장 실패 시 삭제가 pending으로 남아 autosave가 뒤늦게 커밋할 수
         // 있는데, 그때는 이 함수가 끝난 뒤라 해제할 기회가 없어 매월 유령 알림이 남는다.
