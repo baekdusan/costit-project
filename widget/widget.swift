@@ -9,10 +9,20 @@ struct CostEntry: TimelineEntry {
     let remaining: Int
     let outLay: Int
     let isOver: Bool
-    // 표시할 데이터를 아직 확보하지 못한 상태(프로필 없음 / 지출 조회 실패).
-    // outLay == 0만으로 판단하면, 목표액을 0원으로 저장한 정상 사용자까지 미설정으로 오인해
-    // 앱 화면(잔액을 정상 표시)과 위젯이 서로 다른 내용을 보여준다.
-    let isUnset: Bool
+    let state: State
+
+    // 표시 상태. "프로필이 없다"와 "데이터를 못 읽었다"를 합치면 안내 문구가 틀린다 —
+    // 예산을 설정해둔 사용자가 일시적 조회 실패 때 "예산을 설정해주세요"를 보면
+    // 프로필이 사라진 줄 알고 다시 입력하게 되고, 그때 급여일이 바뀌면 이전 기간 지출이
+    // 화면에서 사라지는 후속 혼란까지 이어진다.
+    enum State {
+        case normal         // 정상 표시
+        case needsSetup     // 프로필이 아직 없다 → 설정 안내
+        case unavailable    // 데이터를 읽지 못했다 → 판단 불가(중립)
+    }
+
+    // 수치를 단정할 수 없는 상태 — 금액·비율·게이지·이모지를 모두 중립으로 둔다
+    var isNeutral: Bool { state != .normal }
 
     // 0~100 사이의 잔여 비율 (정수, %)
     var percent: Int {
@@ -24,7 +34,7 @@ struct CostEntry: TimelineEntry {
 
 struct Provider: TimelineProvider {
     func placeholder(in context: Context) -> CostEntry {
-        CostEntry(date: Date(), nickname: "User", remaining: 0, outLay: 0, isOver: false, isUnset: true)
+        CostEntry(date: Date(), nickname: "User", remaining: 0, outLay: 0, isOver: false, state: .needsSetup)
     }
 
     func getSnapshot(in context: Context, completion: @escaping (CostEntry) -> ()) {
@@ -90,10 +100,12 @@ struct Provider: TimelineProvider {
             // 예산이 0이면 "초과"가 아니라 "아직 설정 전"이다. total(0) >= outLay(0)로 판정하면
             // 앱을 아직 열지 않아 데이터를 못 읽은 상태(레거시 이전 전 / CloudKit 동기화 전)에도
             // "망했어요 · 😱 · 빨간 게이지"가 떠서, 실제 데이터가 멀쩡한데 초과한 것처럼 보인다.
-            isOver: profile.outLay > 0 && total >= profile.outLay,
-            // "프로필 자체가 없다" 또는 "지출을 못 읽었다"일 때만 미설정으로 본다.
-            // 목표액을 0원으로 저장한 사용자는 정상 사용자이므로 앱과 동일하게 잔액을 표시한다.
-            isUnset: profileEntity == nil || expenses == nil
+            // 예산 0원 사용자도 지출이 있으면 초과가 맞다. outLay > 0 가드만 두면
+            // 잔액이 음수인데 문구는 영원히 "남았어요"가 되어 이모지·게이지와 반대를 말한다.
+            isOver: total > 0 && total >= profile.outLay,
+            // 조회 실패를 우선 판정한다 — 프로필까지 못 읽었다면 "설정 안내"가 아니라 "판단 불가"다
+            state: expenses == nil ? .unavailable
+                 : (profileEntity == nil ? .needsSetup : .normal)
         )
     }
 }
@@ -106,14 +118,14 @@ struct CostItWidgetEntryView: View {
         let percent = entry.percent
         // 예산 미설정 상태에서는 게이지·이모지도 중립으로 둔다. percent가 0이라는 이유로
         // 빨간 게이지와 😱를 쓰면, 데이터가 멀쩡한데 최악 상태인 것처럼 보인다.
-        let color: Color = entry.isUnset
+        let color: Color = entry.isNeutral
             ? Color(#colorLiteral(red: 0.6862745285, green: 0.6862745285, blue: 0.6862745285, alpha: 1))
             : (percent > 50
                 ? Color(#colorLiteral(red: 0.3518846035, green: 0.6747873425, blue: 0.622913003, alpha: 1))
                 : (percent > 20
                     ? Color(#colorLiteral(red: 0.9529411793, green: 0.6862745285, blue: 0.1333333403, alpha: 1))
                     : Color(#colorLiteral(red: 0.9464814067, green: 0.240496546, blue: 0.2090002298, alpha: 1))))
-        let emoji: String = entry.isUnset ? "🙂"
+        let emoji: String = entry.isNeutral ? "🙂"
             : percent >= 80 ? "🤑"
             : percent >= 60 ? "😊"
             : percent >= 40 ? "🙂"
@@ -130,13 +142,15 @@ struct CostItWidgetEntryView: View {
                 // 비한국 로케일에서 앱과 구분자가 달라진다
                 // 예산 미설정이면 "남은 금액"이라는 개념 자체가 없다.
                 // 그대로 두면 지출만 동기화된 순간 "-50,000원 남았어요" 같은 모순이 표시된다.
-                Text(verbatim: entry.isUnset ? "-" : "\(entry.remaining.toDecimal())원")
+                Text(verbatim: entry.isNeutral ? "-" : "\(entry.remaining.toDecimal())원")
                     .font(.system(size: 24, weight: .bold))
                     .frame(height: geometry.size.height * 0.2)
                     .opacity(0.84)
                     .minimumScaleFactor(0.72)
 
-                Text(entry.isUnset ? "예산을 설정해주세요" : (entry.isOver ? "망했어요" : "남았어요"))
+                Text(entry.state == .needsSetup ? "예산을 설정해주세요"
+                     : entry.state == .unavailable ? "잠시 후 다시 볼게요"
+                     : (entry.isOver ? "망했어요" : "남았어요"))
                     .font(.system(size: 12, weight: .bold))
                     .frame(height: geometry.size.height * 0.1)
                     .opacity(0.72)
@@ -144,7 +158,7 @@ struct CostItWidgetEntryView: View {
                 HStack(alignment: .bottom, spacing: 0) {
                     // 미설정 상태에서 "0%"를 띄우면 예산을 다 쓴 것처럼 읽힌다
                     // (금액을 "-"로 가려놓고 비율만 0으로 단정하는 자기모순이기도 하다)
-                    Text(verbatim: entry.isUnset ? "-" : "\(percent)%")
+                    Text(verbatim: entry.isNeutral ? "-" : "\(percent)%")
                         .font(.system(size: 28, weight: .semibold))
                         .frame(width: geometry.size.width * 0.45, alignment: .leading)
                         .opacity(0.84)
@@ -165,7 +179,9 @@ struct CostItWidgetEntryView: View {
                 Color(.widgetStatusBarBackground)
                     .frame(width: geometry.size.width, height: geometry.size.height * 0.08)
                 color
-                    .frame(width: geometry.size.width * CGFloat(percent) / 100,
+                    // 판단 불가 상태에서 percent(= remaining/outLay)는 조회 실패로 100이 될 수 있다.
+                    // 금액·비율을 "-"로 가려놓고 게이지만 만수위로 그리면 자기모순이 된다.
+                    .frame(width: entry.isNeutral ? 0 : geometry.size.width * CGFloat(percent) / 100,
                            height: geometry.size.height * 0.08)
             }
             .frame(width: geometry.size.width,
@@ -201,6 +217,6 @@ struct CostItWidget: Widget {
         remaining: 130_000,
         outLay: 260_000,
         isOver: false,
-        isUnset: false
+        state: .normal
     )
 }
