@@ -9,10 +9,10 @@ struct CostEntry: TimelineEntry {
     let remaining: Int
     let outLay: Int
     let isOver: Bool
-
-    // 예산이 아직 없는 상태 — "다 썼다"가 아니라 "판단할 수 없다"이다.
-    // (온보딩 전, 레거시 이전 전, CloudKit 첫 동기화 전 모두 여기 해당한다)
-    var isUnset: Bool { outLay <= 0 }
+    // 표시할 데이터를 아직 확보하지 못한 상태(프로필 없음 / 지출 조회 실패).
+    // outLay == 0만으로 판단하면, 목표액을 0원으로 저장한 정상 사용자까지 미설정으로 오인해
+    // 앱 화면(잔액을 정상 표시)과 위젯이 서로 다른 내용을 보여준다.
+    let isUnset: Bool
 
     // 0~100 사이의 잔여 비율 (정수, %)
     var percent: Int {
@@ -24,7 +24,7 @@ struct CostEntry: TimelineEntry {
 
 struct Provider: TimelineProvider {
     func placeholder(in context: Context) -> CostEntry {
-        CostEntry(date: Date(), nickname: "User", remaining: 0, outLay: 0, isOver: false)
+        CostEntry(date: Date(), nickname: "User", remaining: 0, outLay: 0, isOver: false, isUnset: true)
     }
 
     func getSnapshot(in context: Context, completion: @escaping (CostEntry) -> ()) {
@@ -77,8 +77,10 @@ struct Provider: TimelineProvider {
         let predicate = #Predicate<FinDataEntity> {
             $0.isRevenue == false && $0.when >= start && $0.when < upperBound
         }
-        let expenses = (try? context.fetch(FetchDescriptor<FinDataEntity>(predicate: predicate))) ?? []
-        let total = expenses.reduce(0) { $0 + $1.how }
+        // 지출 조회 실패를 "0건"으로 삼키면 예산을 다 쓴 사용자에게 "100% 남았어요 🤑"를 확신 있게
+        // 보여주게 된다 → 실패는 "판단 불가"로 처리한다(프로필 미확보와 같은 중립 표시)
+        let expenses = try? context.fetch(FetchDescriptor<FinDataEntity>(predicate: predicate))
+        let total = (expenses ?? []).reduce(0) { $0 + $1.how }
 
         return CostEntry(
             date: date,
@@ -88,7 +90,10 @@ struct Provider: TimelineProvider {
             // 예산이 0이면 "초과"가 아니라 "아직 설정 전"이다. total(0) >= outLay(0)로 판정하면
             // 앱을 아직 열지 않아 데이터를 못 읽은 상태(레거시 이전 전 / CloudKit 동기화 전)에도
             // "망했어요 · 😱 · 빨간 게이지"가 떠서, 실제 데이터가 멀쩡한데 초과한 것처럼 보인다.
-            isOver: profile.outLay > 0 && total >= profile.outLay
+            isOver: profile.outLay > 0 && total >= profile.outLay,
+            // "프로필 자체가 없다" 또는 "지출을 못 읽었다"일 때만 미설정으로 본다.
+            // 목표액을 0원으로 저장한 사용자는 정상 사용자이므로 앱과 동일하게 잔액을 표시한다.
+            isUnset: profileEntity == nil || expenses == nil
         )
     }
 }
@@ -137,7 +142,9 @@ struct CostItWidgetEntryView: View {
                     .opacity(0.72)
 
                 HStack(alignment: .bottom, spacing: 0) {
-                    Text(verbatim: "\(percent)%")
+                    // 미설정 상태에서 "0%"를 띄우면 예산을 다 쓴 것처럼 읽힌다
+                    // (금액을 "-"로 가려놓고 비율만 0으로 단정하는 자기모순이기도 하다)
+                    Text(verbatim: entry.isUnset ? "-" : "\(percent)%")
                         .font(.system(size: 28, weight: .semibold))
                         .frame(width: geometry.size.width * 0.45, alignment: .leading)
                         .opacity(0.84)
@@ -193,6 +200,7 @@ struct CostItWidget: Widget {
         nickname: "User",
         remaining: 130_000,
         outLay: 260_000,
-        isOver: false
+        isOver: false,
+        isUnset: false
     )
 }

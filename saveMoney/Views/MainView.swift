@@ -382,6 +382,9 @@ struct MainView: View {
         // 이 함수는 삭제 확인 알럿의 "확인" 액션에서 호출되므로, 그 알럿이 닫히는 도중에
         // 곧바로 다음 알럿을 띄우면 표시 요청이 통째로 무시된다 → 닫힌 뒤로 미룬다.
         if !PersistenceController.deleteFin(externalID: externalID, in: modelContext) {
+            // 이전 표시 요청이 무시돼 값이 non-nil로 굳어 있으면, 같은 문자열을 다시 넣어도
+            // isPresented 전이가 없어 알럿이 영영 뜨지 않는다 → 먼저 비운 뒤 다시 채운다
+            deleteFailureMessage = nil
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.4) {
                 deleteFailureMessage = "삭제를 저장하지 못했어요. 잠시 후 다시 시도해주세요."
             }

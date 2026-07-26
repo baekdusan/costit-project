@@ -68,20 +68,29 @@ enum LegacyMigration {
             outcome.aborted = migrateProfile(into: context, defaults: defaults).aborted || outcome.aborted
             outcome.aborted = migrateSalaryPeriod(into: context, defaults: defaults).aborted || outcome.aborted
 
+            // aborted면 커밋하지 않는다. 커밋해버리면 "부분 이전이 저장된 채 fingerprint는 미기록"
+            // 상태가 되어, 다음 실행이 전량 재이전을 돌면서 그 사이 사용자가 지운 지출을 되살린다
+            // (삭제 tombstone이 없어 "지운 것"과 "아직 안 옮긴 것"을 구분할 수 없다).
+            // 다른 재시도 경로(save 실패, in-memory 폴백)는 모두 "재시도 ⇒ 커밋된 것 없음"을
+            // 만족하는데, aborted만 이 불변식을 깨고 있었다.
+            guard !outcome.aborted else {
+                context.rollback()
+                print("[LegacyMigration] 조회 실패로 중단 — 이번 이전 내용을 되돌리고 다음 실행에서 재시도")
+                return
+            }
+
             try context.save()
 
             // fingerprint를 기록하면 다음 실행부터 guard에 걸려 재시도하지 않는다.
-            // 따라서 "다시 시도하면 결과가 달라질 수 있는" 실패에서는 기록하지 않는다:
-            //  - aborted: 기존 레코드 조회 실패 등 일시적 오류로 이번 이전을 건너뛴 경우.
-            //    기록해버리면 레거시 지출이 원본은 남아 있는데도 영영 이전되지 않는다.
+            // (aborted는 위에서 이미 rollback + return으로 걸러졌다)
             //  - isEphemeralFallback: 스토어를 못 열어 in-memory로 동작 중 → 이전 결과가 앱 종료와
-            //    함께 사라지는데 완료로 기록하면 마찬가지로 영영 이전되지 않는다.
+            //    함께 사라지는데 완료로 기록하면 원본이 남아 있어도 영영 이전되지 않는다.
             //
             // 반면 디코딩 실패(decodeFailed)는 기록을 막지 않는다. 막으면 매 실행 전량 재이전이 돌고
             // 사용자가 지운 지출이 실행마다 되살아난다. 깨진 blob은 같은 코드로 다시 읽어도 결과가
             // 같으므로, 재시도는 디코더를 고친 버전에서 logicVersion을 올려 수행한다.
-            if outcome.aborted || PersistenceController.isEphemeralFallback {
-                print("[LegacyMigration] 이번 이전을 완료로 확정하지 않음(aborted=\(outcome.aborted), ephemeral=\(PersistenceController.isEphemeralFallback)) — 다음 실행에서 재시도")
+            if PersistenceController.isEphemeralFallback {
+                print("[LegacyMigration] in-memory 폴백 실행 — fingerprint 미기록(다음 정상 실행에서 재시도)")
             } else {
                 if outcome.decodeFailed {
                     print("[LegacyMigration] 일부 blob 디코딩 실패 — 완료로 기록(재시도는 logicVersion 상향 시)")

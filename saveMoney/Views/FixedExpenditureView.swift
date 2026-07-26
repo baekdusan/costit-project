@@ -309,7 +309,16 @@ struct FixedExpenditureView: View {
         let descriptor = FetchDescriptor<FixedExpenditureEntity>(
             predicate: #Predicate { $0.externalID == externalID }
         )
-        guard let item = (try? modelContext.fetch(descriptor))?.first, !item.isDeleted else {
+        // 조회 실패(throw)와 "이미 없음"을 구분한다. 뭉개면 삭제가 조용히 실패한 채
+        // 살아 있는 항목의 알림만 해제되어, 다음 달부터 알림이 오지 않는다.
+        guard let found = try? modelContext.fetch(descriptor) else {
+            PersistenceController.logger.error("고정 지출 삭제 대상 조회 실패: \(externalID, privacy: .public)")
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.4) {
+                addFailureMessage = "삭제에 실패했어요. 잠시 후 다시 시도해주세요."
+            }
+            return
+        }
+        guard let item = found.first, !item.isDeleted else {
             // 이미 원격에서 지워진 항목이어도 이 기기의 반복 알림은 남아 있을 수 있다 →
             // 그냥 돌아가면 매월 유령 알림이 발화하므로 해제만이라도 수행한다
             notificationCenter.removePendingNotificationRequests(withIdentifiers: [externalID])

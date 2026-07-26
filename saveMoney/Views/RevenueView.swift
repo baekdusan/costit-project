@@ -258,6 +258,8 @@ struct RevenueView: View {
         // 저장에 실패하면 화면에서만 사라지고 다음 실행에 되살아난다 → 사실을 알린다.
         // 삭제 확인 알럿이 닫히는 도중에 띄우면 표시 요청이 무시되므로 닫힌 뒤로 미룬다.
         if !PersistenceController.deleteFin(externalID: externalID, in: modelContext) {
+            // 값이 non-nil로 굳으면 재대입에 전이가 없어 알럿이 다시 뜨지 않는다 → 먼저 비운다
+            deleteFailureMessage = nil
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.4) {
                 deleteFailureMessage = "삭제를 저장하지 못했어요. 잠시 후 다시 시도해주세요."
             }
