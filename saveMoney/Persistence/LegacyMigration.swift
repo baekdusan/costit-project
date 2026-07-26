@@ -37,8 +37,12 @@ enum LegacyMigration {
             decodeFailed = migrateFinList(key: Keys.finList, isRevenue: false, into: context, defaults: defaults) || decodeFailed
             decodeFailed = migrateFinList(key: Keys.rFinList, isRevenue: true, into: context, defaults: defaults) || decodeFailed
             decodeFailed = migrateFixedExpenditures(into: context, defaults: defaults) || decodeFailed
-            migrateProfile(into: context, defaults: defaults)
-            migrateSalaryPeriod(into: context, defaults: defaults)
+            // 프로필/정산기간은 재시도 대상에서 뺀다. 이 둘의 디코딩 실패로 fingerprint 기록을 막으면
+            // 매 실행마다 지출 목록 전체가 재이전되는데, 삭제 tombstone이 없어 "사용자가 지운 지출"과
+            // "아직 이전되지 않은 지출"을 구분할 수 없다 → 지운 내역이 계속 되살아난다.
+            // 프로필·급여일은 온보딩/프로필 수정으로 언제든 복구되지만 지출 부활은 되돌릴 수 없다.
+            _ = migrateProfile(into: context, defaults: defaults)
+            _ = migrateSalaryPeriod(into: context, defaults: defaults)
 
             try context.save()
 
@@ -134,15 +138,43 @@ enum LegacyMigration {
         enum CodingKeys: String, CodingKey { case id, day, towhat, how }
     }
 
+    // 합성 Decodable은 키가 하나만 없어도 통째로 throw한다(프로퍼티 기본값을 쓰지 않음).
+    // 구버전이 period 없이 저장한 blob 하나 때문에 목표 지출액·급여일이 통째로 유실되므로
+    // LegacyFin/LegacyFixed와 동일하게 decodeIfPresent 기반으로 관대하게 읽는다.
     private struct LegacyProfile: Codable {
         var nickName: String = "User"
         var outLay: Int = 0
-        var period: String = "1일"
+        var period: String = SalaryDay.firstDay
+
+        init(from decoder: Decoder) throws {
+            let c = try decoder.container(keyedBy: CodingKeys.self)
+            nickName = try c.decodeIfPresent(String.self, forKey: .nickName) ?? "User"
+            outLay = try c.decodeIfPresent(Int.self, forKey: .outLay) ?? 0
+            period = try c.decodeIfPresent(String.self, forKey: .period) ?? SalaryDay.firstDay
+        }
+
+        enum CodingKeys: String, CodingKey { case nickName, outLay, period }
     }
 
+    // 한쪽 날짜만 읽혀도 기간 정보를 버리지 않는다 — 빠진 쪽은 rollover가 곧 교정한다.
     private struct LegacySalary: Codable {
         var startDate: Date
         var endDate: Date
+
+        init(from decoder: Decoder) throws {
+            let c = try decoder.container(keyedBy: CodingKeys.self)
+            let start = try c.decodeIfPresent(Date.self, forKey: .startDate)
+            let end = try c.decodeIfPresent(Date.self, forKey: .endDate)
+            guard start != nil || end != nil else {
+                throw DecodingError.dataCorrupted(
+                    .init(codingPath: decoder.codingPath, debugDescription: "startDate/endDate 모두 없음")
+                )
+            }
+            startDate = start ?? Date().startOfThisMonth
+            endDate = end ?? Date().endOfThisMonth
+        }
+
+        enum CodingKeys: String, CodingKey { case startDate, endDate }
     }
 
     // MARK: - Migration steps
@@ -153,33 +185,79 @@ enum LegacyMigration {
         "legacy:\(isRevenue ? "r" : "e"):\(Int(item.when.timeIntervalSince1970)):\(item.how):\(item.towhat)"
     }
 
+    // 내용 기반 매칭 키. 소수초를 버린 시각을 쓰는 이유는 legacyID가 초 단위이기 때문 —
+    // 소수초를 포함한 채 이전된 구버전 레코드와 절삭해서 저장하는 현재 레코드가
+    // 서로 다른 키가 되면 재실행 때 같은 지출이 두 건으로 늘어난다.
+    private static func contentKey(when: Date, towhat: String, how: Int) -> String {
+        "\(Int(when.timeIntervalSince1970)):\(how):\(towhat)"
+    }
+
     // 반환값: 최상위 디코딩 실패 여부 (true면 이번 이전을 "완료"로 확정하면 안 됨)
     private static func migrateFinList(key: String, isRevenue: Bool, into context: ModelContext, defaults: UserDefaults) -> Bool {
         guard let data = defaults.data(forKey: key) else { return false }
         let decoded = decodeList(LegacyFin.self, from: data)
         if decoded.failed { return true }
 
+        // 기존 레코드를 한 번만 읽어 메모리에서 대조한다. 과거엔 레코드마다 fetch를 돌렸는데,
+        // externalID에 인덱스가 없고(CloudKit 제약) predicate가 OR 복합이라 사실상 매번 전체
+        // 스캔이었다 — 수천 건을 가진 사용자는 첫 실행이 didFinishLaunching에서 수 초간
+        // 블로킹되어 런치 워치독에 걸릴 수 있었다.
+        let existing = (try? context.fetch(FetchDescriptor<FinDataEntity>(
+            predicate: #Predicate { $0.isRevenue == isRevenue }
+        ))) ?? []
+
+        var idIndex: [String: [Int]] = [:]
+        var contentIndex: [String: [Int]] = [:]
+        for (offset, entity) in existing.enumerated() {
+            idIndex[entity.externalID, default: []].append(offset)
+            contentIndex[contentKey(when: entity.when, towhat: entity.towhat, how: entity.how), default: []].append(offset)
+        }
+
+        // 이미 이전된 레코드는 "하나씩 소진"한다. 단순히 존재 여부만 보면 같은 날 같은 금액으로
+        // 두 번 적은 지출("커피 4500" ×2)이 한 건으로 합쳐져 유실된다.
+        var consumed = Set<Int>()
+        func claim(_ candidates: [Int]?) -> Bool {
+            guard let candidates else { return false }
+            for offset in candidates where !consumed.contains(offset) {
+                consumed.insert(offset)
+                return true
+            }
+            return false
+        }
+
+        // externalID는 앱 전체가 "레코드 하나를 가리키는 키"로 쓴다 —
+        // AddFinView의 편집(externalID로 fetch)과 PersistenceController.deleteFin이 모두 .first를 집는다.
+        // legacyID는 내용에서 파생되므로, 같은 내용의 레거시 레코드를 claim()으로 둘 다 살리면
+        // externalID가 겹쳐 "A를 수정했는데 B가 바뀌고, B를 지웠는데 A가 지워지는" 상태가 된다.
+        // → 이미 쓰인 ID면 순번을 붙여 유일성을 지킨다. (첫 건은 기존 legacyID 그대로라 호환)
+        var usedIDs = Set(existing.map(\.externalID))
+        func uniqueID(from base: String) -> String {
+            guard usedIDs.contains(base) else {
+                usedIDs.insert(base)
+                return base
+            }
+            var seq = 2
+            while usedIDs.contains("\(base)#\(seq)") { seq += 1 }
+            let id = "\(base)#\(seq)"
+            usedIDs.insert(id)
+            return id
+        }
+
         for item in decoded.values {
             let extID = legacyID(for: item, isRevenue: isRevenue)
-            // externalID 외에 내용(when/towhat/how)도 비교 — 과거 dual-write 기간(FinRepository)에
-            // UUID externalID로 저장된 동일 레코드가 재이전 시 중복 생성되지 않도록.
-            let when = item.when
-            let towhat = item.towhat
-            let how = item.how
-            let predicate = #Predicate<FinDataEntity> {
-                $0.externalID == extID ||
-                ($0.isRevenue == isRevenue && $0.when == when && $0.towhat == towhat && $0.how == how)
-            }
-            var descriptor = FetchDescriptor<FinDataEntity>(predicate: predicate)
-            descriptor.fetchLimit = 1
-            if (try? context.fetch(descriptor))?.first != nil { continue }
+            // externalID 매칭이 먼저 — 이전 후 사용자가 앱에서 수정한 레코드가 원본으로 되살아나지 않게.
+            // 내용 매칭은 과거 dual-write 기간(FinRepository)에 UUID externalID로 저장된 동일 레코드용.
+            if claim(idIndex[extID]) { continue }
+            if claim(contentIndex[contentKey(when: item.when, towhat: item.towhat, how: item.how)]) { continue }
 
+            // 기간 경계(23:59:59)와 소수초 때문에 어느 정산 기간에도 속하지 않는 레코드가
+            // 생기지 않도록, 저장 경로(AddFinView)와 동일하게 소수초를 버린다
             context.insert(FinDataEntity(
-                when: item.when,
+                when: item.when.truncatingSubseconds,
                 towhat: item.towhat,
                 how: item.how,
                 isRevenue: isRevenue,
-                externalID: extID
+                externalID: uniqueID(from: extID)
             ))
         }
         return false
@@ -190,12 +268,15 @@ enum LegacyMigration {
         let decoded = decodeList(LegacyFixed.self, from: data)
         if decoded.failed { return true }
 
+        // 지출 목록과 같은 이유로 기존 레코드는 한 번만 읽는다
+        let existingIDs = Set(((try? context.fetch(FetchDescriptor<FixedExpenditureEntity>())) ?? [])
+            .map(\.externalID))
+
+        var insertedIDs = Set<String>()
         for item in decoded.values {
             let extID = item.id
-            let predicate = #Predicate<FixedExpenditureEntity> { $0.externalID == extID }
-            var descriptor = FetchDescriptor<FixedExpenditureEntity>(predicate: predicate)
-            descriptor.fetchLimit = 1
-            if (try? context.fetch(descriptor))?.first != nil { continue }
+            if existingIDs.contains(extID) || insertedIDs.contains(extID) { continue }
+            insertedIDs.insert(extID)
 
             context.insert(FixedExpenditureEntity(
                 externalID: item.id,
@@ -207,20 +288,24 @@ enum LegacyMigration {
         return false
     }
 
-    private static func migrateProfile(into context: ModelContext, defaults: UserDefaults) {
+    // 반환값: 최상위 디코딩 실패 여부 (migrateFinList와 동일 — true면 fingerprint를 기록하지 않아
+    // 다음 버전에서 다시 시도할 수 있다. 프로필 blob만 손상된 사용자가 목표 지출액·급여일을
+    // 영영 되찾지 못하는 것을 막는다)
+    private static func migrateProfile(into context: ModelContext, defaults: UserDefaults) -> Bool {
         // 기존 ProfileEntity가 이미 있으면 skip
         var descriptor = FetchDescriptor<ProfileEntity>()
         descriptor.fetchLimit = 1
-        if (try? context.fetch(descriptor))?.first != nil { return }
+        if (try? context.fetch(descriptor))?.first != nil { return false }
 
         // 레거시 프로필이 없으면 아무것도 만들지 않는다.
         // 과거엔 기본값(“User”/0원/“1일”) 프로필을 무조건 삽입했는데, 그 결과
         //  (a) 신규 설치에서도 프로필이 존재해 온보딩 표시 판정이 망가지고
         //  (b) 기기 교체 시 CloudKit에서 내려올 진짜 프로필과 중복되어, 정렬 없는 .first가
         //      더미를 골라 사용자의 목표 지출액·급여일이 사라진 것처럼 보였다.
-        guard let data = defaults.data(forKey: Keys.profile),
-              let legacy = try? PropertyListDecoder().decode(LegacyProfile.self, from: data) else {
-            return
+        guard let data = defaults.data(forKey: Keys.profile) else { return false }
+        guard let legacy = try? PropertyListDecoder().decode(LegacyProfile.self, from: data) else {
+            print("[LegacyMigration] 프로필 디코딩 실패 (\(data.count) bytes)")
+            return true
         }
 
         context.insert(ProfileEntity(
@@ -228,26 +313,29 @@ enum LegacyMigration {
             outLay: legacy.outLay,
             period: legacy.period
         ))
+        return false
     }
 
-    private static func migrateSalaryPeriod(into context: ModelContext, defaults: UserDefaults) {
+    private static func migrateSalaryPeriod(into context: ModelContext, defaults: UserDefaults) -> Bool {
         var descriptor = FetchDescriptor<SalaryPeriodEntity>()
         descriptor.fetchLimit = 1
-        if (try? context.fetch(descriptor))?.first != nil { return }
+        if (try? context.fetch(descriptor))?.first != nil { return false }
 
         // 프로필과 같은 이유로, 레거시 기간 정보가 없으면 만들지 않는다.
         // (기본 슬롯을 넣으면 start=end=삽입 시각이라 곧바로 rollover가 발동해
         //  더미 프로필의 “1일” 기준으로 정산 기간이 덮어써졌다)
         // 엔티티가 없을 때의 표시는 각 화면의 SalaryDate() 폴백이 담당하고,
         // 실제 생성은 온보딩 완료 시 MainView.handleProfileInput이 한다.
-        guard let data = defaults.data(forKey: Keys.salaryData),
-              let decoded = try? PropertyListDecoder().decode(LegacySalary.self, from: data) else {
-            return
+        guard let data = defaults.data(forKey: Keys.salaryData) else { return false }
+        guard let decoded = try? PropertyListDecoder().decode(LegacySalary.self, from: data) else {
+            print("[LegacyMigration] 정산 기간 디코딩 실패 (\(data.count) bytes)")
+            return true
         }
 
         context.insert(SalaryPeriodEntity(
             startDate: decoded.startDate,
             endDate: decoded.endDate
         ))
+        return false
     }
 }

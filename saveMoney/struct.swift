@@ -77,8 +77,9 @@ enum AppDateFormatters {
     static let shortDate = make("yy. MM. dd")     // SearchView 셀
     static let editDate = make("yy. M. d.")       // AddFinView 날짜 버튼
     // (급여 기간 계산은 문자열 파싱 대신 Calendar 산술을 쓰도록 바뀌어 "dd" 포매터는 제거됨 —
-    //  캐시된 DateFormatter는 생성 시점의 타임존을 붙들고 있어 기기 타임존 변경 후
-    //  급여일이 하루 어긋날 수 있었다)
+    //  날짜 산술을 문자열 왕복으로 하던 것 자체가 문제였다. 참고: timeZone을 대입하지 않은
+    //  DateFormatter는 캐시해도 시스템 타임존 변경을 따라가므로 캐시 자체는 안전하다.
+    //  타임존 스냅샷 문제가 있는 쪽은 Calendar다 — Date 확장의 gregorian이 computed인 이유)
 
     private static func make(_ format: String) -> DateFormatter {
         let formatter = DateFormatter()
@@ -167,9 +168,8 @@ struct FixedExpenditureItem {
 // MARK: - 숫자/문자열 변환
 
 extension String {
-    // 파싱 실패(비숫자·Int 범위 초과) 시 0 폴백. 입력 필드의 currencyInputFormatted
-    // 자릿수 가드가 대부분의 경로를 막지만, keepAsIs 정책의 비파싱 입력
-    // (전각 숫자 붙여넣기 등)은 여전히 이 폴백에 도달할 수 있음 (기존 동작 유지)
+    // 파싱 실패(비숫자·Int 범위 초과) 시 0 폴백. 입력 필드는 currencyInputFormatted가
+    // ASCII 숫자만 남기고 자릿수도 제한하므로 화면 입력 경로에서는 실패하지 않는다 — 방어용 폴백.
     func toInt() -> Int {
         if self.contains(",") {
             return Int(self.split(separator: ",").joined()) ?? 0
@@ -229,10 +229,13 @@ extension UNUserNotificationCenter {
         })
     }
 
-    // 지출일의 전날. 1일 지출의 "전날"은 달마다 28~31일로 달라져 매월 반복 트리거 하나로는
-    // 표현할 수 없으므로, 모든 달에 존재하는 28일로 맞춘다 (2월은 정확히 전날).
+    // 지출일의 전날. 단 29일을 넘는 날짜는 모든 달에 존재하지 않아 그대로 쓸 수 없다:
+    //  - 1일의 "전날"은 달마다 28~31일로 달라져 매월 반복 트리거 하나로 표현 불가
+    //  - 30일 지출 → 29일 발화: 평년 2월엔 그 달 알림이 아예 오지 않음
+    //  - 31일 지출 → 30일 발화: 2월엔 오지 않음
+    // 모든 달에 존재하는 28일로 맞춘다 (본문이 실제 지출일을 알려주므로 며칠 앞서도 안내는 정확).
     private static func notificationDay(forExpenditureDay day: Int) -> Int {
         let clamped = min(max(day, 1), 31)
-        return clamped == 1 ? 28 : clamped - 1
+        return clamped == 1 ? 28 : min(clamped - 1, 28)
     }
 }

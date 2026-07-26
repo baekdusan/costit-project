@@ -97,3 +97,24 @@ extension SalaryPeriodEntity {
         SalaryDate(startDate: startDate, endDate: endDate)
     }
 }
+
+// MARK: - 싱글턴 엔티티의 결정적 선택
+// ProfileEntity/SalaryPeriodEntity는 논리적으로 1개지만, CloudKit 동기화가 끝나기 전에
+// 다른 기기가 각자 생성하면 여러 벌이 될 수 있다(@Attribute(.unique)는 CloudKit에서 사용 불가).
+// 이때 무정렬 .first를 쓰면 실행마다 다른 행이 뽑혀 목표 지출액·급여일이 뒤바뀌고,
+// 급여일이 튈 때마다 이전 기간 지출이 화면에서 사라진 것처럼 보인다.
+
+extension Collection where Element == ProfileEntity {
+    // 사용자가 실제로 입력한 프로필(예산 > 0)을 우선하고, 그 안에서도 항상 같은 행을 고른다.
+    // 마이그레이션이 남긴 기본값 프로필("User"/0원)이 섞여 있어도 진짜 프로필이 선택된다.
+    var canonical: ProfileEntity? {
+        self.max { ($0.outLay, $0.nickName) < ($1.outLay, $1.nickName) }
+    }
+}
+
+extension Collection where Element == SalaryPeriodEntity {
+    // 같은 이유로 결정적 선택 — 가장 최근에 시작한 기간을 쓴다.
+    var canonical: SalaryPeriodEntity? {
+        self.max { ($0.startDate, $0.endDate) < ($1.startDate, $1.endDate) }
+    }
+}

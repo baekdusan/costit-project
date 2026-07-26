@@ -19,6 +19,9 @@ struct MonthCalendarGrid: View {
 
     private static let headerFormatter: DateFormatter = {
         let f = DateFormatter()
+        // 그리드 숫자는 gregorian 산술로 만들므로 헤더도 같은 캘린더로 고정한다 —
+        // 미지정이면 불교력 기기에서 헤더만 "2569년 7월"로 나온다
+        f.calendar = Calendar(identifier: .gregorian)
         f.dateFormat = "yyyy년 M월"
         f.locale = Locale(identifier: "ko_KR")
         return f

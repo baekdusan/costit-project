@@ -47,6 +47,14 @@ struct AddFinView: View {
 
     enum Field: Hashable { case towhat, how }
 
+    // 날짜 휠에서 고를 수 있는 범위 (MonthSelectorSheet의 연도 목록 클램프와 같은 구간)
+    private static var selectableDateRange: ClosedRange<Date> {
+        let calendar = Calendar(identifier: .gregorian)
+        let lower = calendar.date(from: DateComponents(year: 1900, month: 1, day: 1)) ?? .distantPast
+        let upper = calendar.date(from: DateComponents(year: 2200, month: 12, day: 31)) ?? .distantFuture
+        return lower...upper
+    }
+
     private var howInt: Int {
         howText.toInt()   // toInt()가 콤마 처리 포함
     }
@@ -184,7 +192,9 @@ struct AddFinView: View {
         .onAppear(perform: prefill)
         .sheet(isPresented: $showDatePicker) {
             NavigationStack {
-                DatePicker("날짜", selection: $when, displayedComponents: .date)
+                // 연도 범위를 열어두면 휠을 0001년까지 돌려 저장할 수 있고, 그 내역은
+                // 월 선택 시트(MonthSelectorSheet)의 연도 목록을 수천 개로 불어나게 한다
+                DatePicker("날짜", selection: $when, in: Self.selectableDateRange, displayedComponents: .date)
                     .datePickerStyle(.wheel)
                     .labelsHidden()
                     .environment(\.locale, Locale(identifier: "ko_KR"))

@@ -15,7 +15,7 @@ struct RevenueView: View {
     @State private var start: Date
     @State private var end: Date
     @State private var customTitle: String?   // 월 선택 시 라벨 (nil이면 기본 기간 표시)
-    @State private var deleteTarget: FinDataEntity?   // 삭제 확인 알럿 대상 (MainView와 동일 패턴)
+    @State private var deleteTarget: String?   // 삭제 확인 알럿 대상의 externalID (MainView와 동일 패턴)
 
     // @State + onAppear 초기화 패턴은 UIHostingController로 직접 present될 때
     // onAppear가 발화하지 않아 빈 타이틀이 되는 문제가 있어 computed로 유지한다.
@@ -31,7 +31,9 @@ struct RevenueView: View {
     }
 
     private var filtered: [FinDataEntity] {
-        allRevenues.filter { $0.when >= start && $0.when <= end }
+        // end(23:59:59)에 `<=`를 쓰면 소수초를 가진 레코드가 기간 사이로 빠진다 → 반열린 구간
+        let upperBound = end.addingTimeInterval(1)
+        return allRevenues.filter { $0.when >= start && $0.when < upperBound }
     }
 
     private var totalAmount: Int {
@@ -203,7 +205,7 @@ struct RevenueView: View {
     private func itemCell(item: FinDataEntity, cardWidth: CGFloat) -> some View {
         HStack(spacing: 0) {
             Button {
-                deleteTarget = item
+                deleteTarget = item.externalID
             } label: {
                 Image(systemName: "xmark")
                     .font(.system(size: 12))
@@ -243,8 +245,8 @@ struct RevenueView: View {
 
     // MARK: - 데이터 조작
 
-    private func deleteItem(_ item: FinDataEntity) {
-        PersistenceController.delete(item, in: modelContext)
+    private func deleteItem(_ externalID: String) {
+        PersistenceController.deleteFin(externalID: externalID, in: modelContext)
     }
 }
 
@@ -255,8 +257,9 @@ struct MonthSelectorSheet: View {
     let onReset: () -> Void
 
     // 실제로 저장된 내역의 연도 범위를 함께 보여준다 — 목록에 없는 연도는 조회 자체가 불가능해
-    // "저장은 됐는데 어디서도 볼 수 없는" 데이터가 생긴다 (입력 화면의 DatePicker에는 연도 제한이 없다)
-    @Query(sort: \FinDataEntity.when) private var allFin: [FinDataEntity]
+    // "저장은 됐는데 어디서도 볼 수 없는" 데이터가 생긴다 (입력 화면의 DatePicker에는 연도 제한이 없다).
+    // 필요한 건 최초/최종 1건뿐이라 @Query로 전 내역을 메모리에 올리지 않고 fetchLimit 1로 양 끝만 읽는다.
+    @Environment(\.modelContext) private var modelContext
 
     // 날짜 산술은 프로젝트 전체가 gregorian 고정 — 여기만 Calendar.current를 쓰면
     // 비양력 기기(불교력 등)에서 선택한 연도가 전혀 다른 절대 날짜로 해석되어
@@ -271,10 +274,19 @@ struct MonthSelectorSheet: View {
     private var years: [Int] {
         let calendar = Self.gregorian
         let current = calendar.component(.year, from: Date())
-        let stored = allFin.map { calendar.component(.year, from: $0.when) }
-        // 디바이스 시계가 2021 이전으로 설정돼 있어도 빈 Range 크래시가 나지 않도록 가드
-        let lower = min(2021, stored.min() ?? 2021)
-        let upper = max(current, stored.max() ?? current)
+
+        var oldest = FetchDescriptor<FinDataEntity>(sortBy: [SortDescriptor(\.when)])
+        oldest.fetchLimit = 1
+        var newest = FetchDescriptor<FinDataEntity>(sortBy: [SortDescriptor(\.when, order: .reverse)])
+        newest.fetchLimit = 1
+        let storedMin = (try? modelContext.fetch(oldest))?.first.map { calendar.component(.year, from: $0.when) }
+        let storedMax = (try? modelContext.fetch(newest))?.first.map { calendar.component(.year, from: $0.when) }
+
+        // 디바이스 시계가 2021 이전으로 설정돼 있어도 빈 Range 크래시가 나지 않도록 가드.
+        // 상·하한을 두는 이유: 입력 화면 DatePicker에 연도 제한이 없어 실수로 0001년 내역이
+        // 하나라도 저장되면 wheel Picker 항목이 수천 개로 불어난다.
+        let lower = max(1900, min(2021, storedMin ?? 2021))
+        let upper = min(2200, max(current, storedMax ?? current))
         return Array(lower...max(lower, upper))
     }
 

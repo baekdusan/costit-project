@@ -104,10 +104,15 @@ extension PersistenceController {
 
     // 지출/수입 삭제 공통 경로 (MainView/RevenueView 동일 구현 통합).
     // FinDataEntity 전용 — 고정 지출 삭제는 알림 해제가 필요하고 위젯 리로드가 불필요하므로 별도 경로.
-    static func delete(_ item: FinDataEntity, in context: ModelContext) {
-        // 삭제 확인 알럿이 떠 있는 사이 다른 기기의 삭제가 동기화되면 이미 무효화된
-        // 인스턴스일 수 있다 — 그대로 접근하면 크래시하므로 조용히 무시한다
-        guard !item.isDeleted else { return }
+    //
+    // externalID로 받는 이유: 삭제 확인 알럿이 떠 있는 동안 다른 기기의 삭제가 동기화되면
+    // 붙들고 있던 @Model 인스턴스는 무효화되어 속성 접근만으로 크래시한다(AddFinView.EditTarget과 같은 이유).
+    // 알럿에는 식별자만 넘기고 확인 시점에 다시 찾는다 — 이미 사라졌으면 할 일이 없다.
+    static func deleteFin(externalID: String, in context: ModelContext) {
+        let descriptor = FetchDescriptor<FinDataEntity>(
+            predicate: #Predicate { $0.externalID == externalID }
+        )
+        guard let item = (try? context.fetch(descriptor))?.first, !item.isDeleted else { return }
         context.delete(item)
         saveAndRefreshWidgets(context)
     }

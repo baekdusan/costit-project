@@ -34,18 +34,29 @@ struct MainView: View {
     @State private var showMonthSelector = false
     @State private var showCalendar = false
     @State private var profileRoute: ProfileRoute?
-    @State private var deleteTarget: FinDataEntity?
+    // 삭제 대상은 @Model이 아니라 externalID로 들고 있는다 (원격 삭제 동기화 시 무효화 크래시 회피)
+    @State private var deleteTarget: String?
     @State private var showStorageWarning = false
-    @State private var showProfileSaveFailure = false
+    @State private var didWarnStorage = false          // onAppear는 cover를 닫을 때마다 다시 돌아 경고가 반복된다
+    @State private var showProfileSaveFailure = false   // 알럿 표시용 (닫으면 false로 돌아감)
+    // 저장 실패 "이력" — 알럿을 닫아도 유지된다. 이걸 따로 두지 않으면 알럿을 닫는 순간
+    // 가드가 풀려, 아직 저장되지 않은(pending) 프로필을 보고 firstOpen을 켜버려
+    // 재입력 기회를 남기려던 의도가 무력화된다.
+    @State private var didFailProfileSave = false
 
     // MARK: - 파생 데이터
 
     private var userProfile: Profile {
-        profiles.first?.asProfile ?? Profile()
+        profiles.canonical?.asProfile ?? Profile()
     }
 
     private var salaryData: SalaryDate {
-        salaryPeriods.first?.asSalaryDate ?? SalaryDate()
+        if let stored = salaryPeriods.canonical { return stored.asSalaryDate }
+        // 기간 엔티티가 아직 없을 때(레거시 salarydata 키 없음 / CloudKit이 프로필만 먼저 내려줌)
+        // 달력월로 떨어지면 급여일 기준으로 계산하는 위젯과 서로 다른 잔액을 표시한다.
+        // 위젯과 같은 계산식을 쓴다 — rolloverSalaryPeriodIfNeeded가 곧 엔티티도 만든다.
+        guard let profile = profiles.canonical else { return SalaryDate() }
+        return SalaryDate.period(forSalaryDay: profile.period)
     }
 
     private var currentRange: (start: Date, end: Date) {
@@ -59,7 +70,10 @@ struct MainView: View {
 
     private var filteredExpenses: [FinDataEntity] {
         let (start, end) = currentRange
-        return expenses.filter { $0.when >= start && $0.when <= end }
+        // end는 기간 마지막 날 23:59:59(정각)라 `<= end`로 비교하면 소수초를 가진 레코드가
+        // 다음 기간 시작(00:00)보다도 이르러 어느 기간에도 속하지 않는다 → 반열린 구간으로 비교
+        let upperBound = end.addingTimeInterval(1)
+        return expenses.filter { $0.when >= start && $0.when < upperBound }
     }
 
     // 날짜별 섹션 (최신 날짜 먼저)
@@ -67,6 +81,12 @@ struct MainView: View {
         Dictionary(grouping: filteredExpenses) { $0.when.startOfDay }
             .sorted { $0.key > $1.key }
             .map { (date: $0.key, items: $0.value) }
+    }
+
+    // 사용자가 실제로 입력한 프로필이 있는가 (마이그레이션이 만든 기본값 프로필과 구분)
+    private var hasUserEnteredProfile: Bool {
+        guard let profile = profiles.canonical else { return false }
+        return profile.outLay > 0 || profile.nickName != Profile().nickName
     }
 
     private var rangeTotal: Int {
@@ -240,9 +260,19 @@ struct MainView: View {
                 rolloverSalaryPeriodIfNeeded()
                 presentOnboardingIfNeeded()
                 // 스토어를 못 열어 in-memory로 폴백한 실행이면 즉시 알린다 (입력 유실 예방)
-                if PersistenceController.isEphemeralFallback {
+                if PersistenceController.isEphemeralFallback && !didWarnStorage {
+                    didWarnStorage = true
                     showStorageWarning = true
                 }
+            }
+            .onChange(of: hasUserEnteredProfile) { _, entered in
+                // 온보딩 중에 CloudKit이 기존 프로필을 뒤늦게 내려주는 경우(기기 교체·재설치).
+                // 그대로 두면 사용자가 다시 입력한 값이 기존 프로필과 정산 기간을 덮어써
+                // 급여일이 바뀌고 이전 기간 지출이 화면에서 사라진다 → 온보딩을 접는다.
+                guard entered, profileRoute == .onboarding, !didFailProfileSave else { return }
+                profileRoute = nil
+                markOnboardingCompleted()
+                rolloverSalaryPeriodIfNeeded()
             }
             .onChange(of: scenePhase) { _, newPhase in
                 // 앱이 백그라운드에 있다가 정산 기간이 끝난 뒤 foreground로 복귀할 때도
@@ -284,7 +314,7 @@ struct MainView: View {
                     Spacer()
 
                     Button {
-                        deleteTarget = item
+                        deleteTarget = item.externalID
                     } label: {
                         Image(systemName: "xmark")
                             .font(.system(size: 13, weight: .semibold))
@@ -331,8 +361,17 @@ struct MainView: View {
 
     // MARK: - 데이터 조작
 
-    private func deleteExpense(_ item: FinDataEntity) {
-        PersistenceController.delete(item, in: modelContext)
+    private func deleteExpense(_ externalID: String) {
+        PersistenceController.deleteFin(externalID: externalID, in: modelContext)
+    }
+
+    // firstOpen 플래그 기록 공통 경로.
+    // in-memory 폴백 실행에서는 기록하지 않는다 — 플래그는 UserDefaults(영속)에 남는데
+    // 프로필은 컨테이너와 함께 사라지므로, 다음 정상 실행에서 프로필이 없는데도 온보딩이
+    // 뜨지 않아 예산 0원·닉네임 "User"로 굳는다.
+    private func markOnboardingCompleted() {
+        guard !PersistenceController.isEphemeralFallback else { return }
+        UserDefaults.standard.setValue(true, forKey: AppKeys.firstOpen)
     }
 
     // 첫 실행 감지 → 온보딩
@@ -345,12 +384,16 @@ struct MainView: View {
     private func presentOnboardingIfNeeded() {
         guard UserDefaults.standard.bool(forKey: AppKeys.firstOpen) == false else { return }
 
+        // 방금 저장에 실패한 프로필은 컨텍스트에 pending으로만 남아 있다. 그걸 "입력 완료"로 보고
+        // 플래그를 켜면 handleProfileInput이 일부러 미룬 기록을 여기서 대신 해버려,
+        // 저장이 끝내 실패했을 때 재입력 기회가 사라진다.
+        guard !didFailProfileSave else { return }
+
         // "프로필 엔티티가 존재하는가"가 아니라 "사용자가 실제로 입력했는가"로 판정한다.
         // 구버전 마이그레이션이 기본값 프로필(닉네임 "User", 예산 0원)을 만들어둔 기기가 있어서,
         // 단순 존재 여부로 보면 그 사용자는 온보딩을 영영 받지 못하고 예산 0원으로 굳는다.
-        if let profile = profiles.first,
-           profile.outLay > 0 || profile.nickName != Profile().nickName {
-            UserDefaults.standard.setValue(true, forKey: AppKeys.firstOpen)
+        if hasUserEnteredProfile {
+            markOnboardingCompleted()
             return
         }
 
@@ -362,7 +405,7 @@ struct MainView: View {
     // 프로필 입력 처리 (온보딩 / 프로필 수정 공통 — 기존 handleProfileInput과 동일)
     private func handleProfileInput(nickname: String, outLay: Int, period: String) {
         // 프로필 upsert
-        let profileEntity = profiles.first ?? {
+        let profileEntity = profiles.canonical ?? {
             let entity = ProfileEntity()
             modelContext.insert(entity)
             return entity
@@ -373,7 +416,7 @@ struct MainView: View {
 
         // 급여일 기준으로 정산 기간 재설정
         let newPeriod = SalaryDate.period(forSalaryDay: period)
-        let periodEntity = salaryPeriods.first ?? {
+        let periodEntity = salaryPeriods.canonical ?? {
             let entity = SalaryPeriodEntity()
             modelContext.insert(entity)
             return entity
@@ -386,9 +429,11 @@ struct MainView: View {
         // 플래그는 저장이 성공한 뒤에 기록한다 — 먼저 켜두면 저장이 실패했을 때
         // 다음 실행에서 온보딩을 건너뛰어 사용자가 입력한 프로필이 사라진 채로 시작한다
         if PersistenceController.saveAndRefreshWidgets(modelContext) {
-            UserDefaults.standard.setValue(true, forKey: AppKeys.firstOpen)
+            didFailProfileSave = false
+            markOnboardingCompleted()
         } else {
             // 화면은 이미 닫히는 중이므로 최소한 사실은 알린다 (조용한 유실 방지)
+            didFailProfileSave = true
             showProfileSaveFailure = true
         }
     }
@@ -403,11 +448,26 @@ struct MainView: View {
     // 이 엔티티는 항상 "급여일로 계산한 현재 기간"만 담는다(사용자가 고른 년/월 범위는 displayRange가
     // 따로 들고 있다). 따라서 계산 결과와 다르면 무조건 저장값이 틀린 것이다.
     private func rolloverSalaryPeriodIfNeeded() {
-        // 프로필이 아직 없으면(온보딩 전 / CloudKit 동기화 대기) 급여일을 알 수 없으므로 손대지 않는다 —
-        // 기본값 "1일"로 계산해 덮어쓰면 기존 사용자의 기간이 달력월로 바뀐다
-        guard let entity = salaryPeriods.first, profiles.first != nil else { return }
+        // 프로필이 아직 없으면(온보딩 전 / CloudKit 동기화 대기) 급여일을 알 수 없으므로
+        // 기간을 재계산하지 않는다 — 기본값 "1일"로 덮어쓰면 기존 사용자의 기간이 달력월로 바뀐다.
+        // 다만 구버전이 저장한 "start가 말일 23:59:59" 같은 값은 급여일을 몰라도 틀린 게 확실하므로
+        // 그 날 00:00으로 내려 급여일 당일 지출이 필터에서 빠지는 것만은 막는다(정상 값은 건드리지 않음).
+        guard profiles.canonical != nil else {
+            guard let entity = salaryPeriods.canonical,
+                  entity.startDate != entity.startDate.startOfDay else { return }
+            entity.startDate = entity.startDate.startOfDay
+            PersistenceController.saveAndRefreshWidgets(modelContext)
+            return
+        }
 
         let expected = SalaryDate.period(forSalaryDay: userProfile.period)
+
+        // 엔티티가 없어도 여기서 만들지 않는다. CloudKit이 프로필만 먼저 내려준 순간에 생성하면
+        // 뒤늦게 도착하는 기존 SalaryPeriodEntity와 중복 행이 되고, 무정렬 선택 문제가 다시 생긴다.
+        // 엔티티가 없는 동안에는 salaryData 폴백이 위젯과 같은 계산식을 쓰므로 표시는 정확하고,
+        // 실제 생성은 온보딩/프로필 수정(handleProfileInput)이 담당한다.
+        guard let entity = salaryPeriods.canonical else { return }
+
         guard entity.startDate != expected.startDate || entity.endDate != expected.endDate else { return }
 
         entity.startDate = expected.startDate

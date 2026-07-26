@@ -37,7 +37,7 @@ enum PreviewSampleData {
         try? context.delete(model: FinDataEntity.self)
         try? context.delete(model: FixedExpenditureEntity.self)
 
-        let cal = Calendar.current
+        let cal = Calendar(identifier: .gregorian)   // 프로젝트 규약: 날짜 산술은 gregorian 고정
         func day(_ d: Int) -> Date {
             cal.date(byAdding: .day, value: d - 1, to: Date().startOfThisMonth) ?? Date()
         }
