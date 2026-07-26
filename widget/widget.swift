@@ -50,13 +50,17 @@ struct Provider: TimelineProvider {
         salaryDescriptor.fetchLimit = 1
 
         // 엔티티 없을 때 기본값은 앱과 동일하게 Profile()/SalaryDate()를 단일 소스로 사용
-        let profile = (try? context.fetch(profileDescriptor))?.first?.asProfile ?? Profile()
+        let profileEntity = (try? context.fetch(profileDescriptor))?.first
+        let profile = profileEntity?.asProfile ?? Profile()
         let salary = (try? context.fetch(salaryDescriptor))?.first?.asSalaryDate ?? SalaryDate()
 
-        // 정산 기간 갱신(rollover)은 앱의 MainView에서만 일어난다. 앱을 켜지 않은 채 급여일이
-        // 지나면 위젯이 지난 기간 잔액을 계속 표시하므로, 만료된 경우 프로필의 급여일로
-        // 현재 기간을 계산해 쓴다. (표시 전용 — 위젯은 저장하지 않는다)
-        let period = date > salary.endDate
+        // 정산 기간 갱신(rollover)은 앱의 MainView에서만 일어난다. 저장된 SalaryPeriodEntity는
+        //  - 앱을 켜지 않은 채 급여일이 지나면 만료된 기간이고
+        //  - 구버전 로직이 계산해 넣은 잘못된 값일 수도 있다.
+        // 프로필이 있으면 앱과 같은 계산식으로 현재 기간을 직접 구해 항상 일치시킨다.
+        // 프로필이 없으면 급여일을 알 수 없으므로 저장값(또는 기본값)을 그대로 쓴다.
+        // (표시 전용 — 위젯은 저장하지 않는다)
+        let period = profileEntity != nil
             ? SalaryDate.period(forSalaryDay: profile.period, now: date)
             : salary
 

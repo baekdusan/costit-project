@@ -260,11 +260,13 @@ struct MonthSelectorSheet: View {
 
     // 날짜 산술은 프로젝트 전체가 gregorian 고정 — 여기만 Calendar.current를 쓰면
     // 비양력 기기(불교력 등)에서 선택한 연도가 전혀 다른 절대 날짜로 해석되어
-    // 해당 기간 내역이 통째로 사라진다
-    private static let gregorian = Calendar(identifier: .gregorian)
+    // 해당 기간 내역이 통째로 사라진다.
+    // static let이 아닌 computed인 이유는 Date 확장과 동일: Calendar는 생성 시점의 타임존을
+    // 스냅샷하므로, 캐시해두면 기기 타임존이 바뀐 뒤 라벨과 실제 필터 기간이 어긋난다.
+    private static var gregorian: Calendar { Calendar(identifier: .gregorian) }
 
-    @State private var selectedYear: Int = MonthSelectorSheet.gregorian.component(.year, from: Date())
-    @State private var selectedMonth: Int = MonthSelectorSheet.gregorian.component(.month, from: Date())
+    @State private var selectedYear: Int = Calendar(identifier: .gregorian).component(.year, from: Date())
+    @State private var selectedMonth: Int = Calendar(identifier: .gregorian).component(.month, from: Date())
 
     private var years: [Int] {
         let calendar = Self.gregorian

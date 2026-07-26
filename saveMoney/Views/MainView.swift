@@ -22,13 +22,21 @@ struct MainView: View {
         case custom(start: Date, end: Date, label: String)
     }
 
+    // 온보딩과 프로필 편집은 같은 FirstOpenView를 다른 모드로 띄운다.
+    // 각각 별도의 navigationDestination(isPresented:)를 달면 같은 컨테이너에 두 개가 붙어
+    // 뒤쪽이 앞쪽을 덮어써 온보딩 push가 발화하지 않는다 → 단일 목적지로 통합한다.
+    enum ProfileRoute: Hashable {
+        case onboarding     // 첫 실행 (빈 입력 + 뒤로가기 없음)
+        case editor         // 프로필 수정 (기존 값 채움)
+    }
+
     @State private var displayRange: DisplayRange = .salaryPeriod
     @State private var showMonthSelector = false
     @State private var showCalendar = false
-    @State private var showOnboarding = false
-    @State private var showProfileEditor = false
+    @State private var profileRoute: ProfileRoute?
     @State private var deleteTarget: FinDataEntity?
     @State private var showStorageWarning = false
+    @State private var showProfileSaveFailure = false
 
     // MARK: - 파생 데이터
 
@@ -157,7 +165,7 @@ struct MainView: View {
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) {
                     Button {
-                        showProfileEditor = true
+                        profileRoute = .editor
                     } label: {
                         Image(systemName: "person.fill")
                             .foregroundStyle(Color(.customLabel))
@@ -184,17 +192,19 @@ struct MainView: View {
                     }
                 }
             }
-            .navigationDestination(isPresented: $showOnboarding) {
-                FirstOpenView { nickname, outLay, period in
-                    handleProfileInput(nickname: nickname, outLay: outLay, period: period)
-                    showOnboarding = false
-                }
-                .navigationBarBackButtonHidden(true)
-            }
-            .navigationDestination(isPresented: $showProfileEditor) {
-                FirstOpenView(editing: userProfile) { nickname, outLay, period in
-                    handleProfileInput(nickname: nickname, outLay: outLay, period: period)
-                    showProfileEditor = false
+            .navigationDestination(item: $profileRoute) { route in
+                switch route {
+                case .onboarding:
+                    FirstOpenView { nickname, outLay, period in
+                        handleProfileInput(nickname: nickname, outLay: outLay, period: period)
+                        profileRoute = nil
+                    }
+                    .navigationBarBackButtonHidden(true)
+                case .editor:
+                    FirstOpenView(editing: userProfile) { nickname, outLay, period in
+                        handleProfileInput(nickname: nickname, outLay: outLay, period: period)
+                        profileRoute = nil
+                    }
                 }
             }
             .fullScreenCover(isPresented: $showCalendar) {
@@ -215,6 +225,11 @@ struct MainView: View {
             }
             .deleteConfirmationAlert(item: $deleteTarget, message: "해당 지출 내역을 삭제해요.") {
                 deleteExpense($0)
+            }
+            .alert("프로필 저장 실패", isPresented: $showProfileSaveFailure) {
+                Button("확인", role: .cancel) { }
+            } message: {
+                Text("입력한 프로필을 저장하지 못했어요. 사람 아이콘을 눌러 다시 시도해주세요.")
             }
             .alert("저장할 수 없는 상태예요", isPresented: $showStorageWarning) {
                 Button("확인", role: .cancel) { }
@@ -330,14 +345,17 @@ struct MainView: View {
     private func presentOnboardingIfNeeded() {
         guard UserDefaults.standard.bool(forKey: AppKeys.firstOpen) == false else { return }
 
-        // 이미 프로필이 있으면(= 기존 사용자) 온보딩 없이 플래그만 맞춰준다
-        if profiles.isEmpty == false {
+        // "프로필 엔티티가 존재하는가"가 아니라 "사용자가 실제로 입력했는가"로 판정한다.
+        // 구버전 마이그레이션이 기본값 프로필(닉네임 "User", 예산 0원)을 만들어둔 기기가 있어서,
+        // 단순 존재 여부로 보면 그 사용자는 온보딩을 영영 받지 못하고 예산 0원으로 굳는다.
+        if let profile = profiles.first,
+           profile.outLay > 0 || profile.nickName != Profile().nickName {
             UserDefaults.standard.setValue(true, forKey: AppKeys.firstOpen)
             return
         }
 
         DispatchQueue.main.async {
-            showOnboarding = true
+            profileRoute = .onboarding
         }
     }
 
@@ -369,31 +387,32 @@ struct MainView: View {
         // 다음 실행에서 온보딩을 건너뛰어 사용자가 입력한 프로필이 사라진 채로 시작한다
         if PersistenceController.saveAndRefreshWidgets(modelContext) {
             UserDefaults.standard.setValue(true, forKey: AppKeys.firstOpen)
+        } else {
+            // 화면은 이미 닫히는 중이므로 최소한 사실은 알린다 (조용한 유실 방지)
+            showProfileSaveFailure = true
         }
     }
 
-    // 오늘이 정산 기간을 넘어가면 프로필 급여일에 맞춰 기간 갱신 (기존 viewDidLoad 로직)
+    // 저장된 정산 기간을 프로필 급여일 기준의 "지금 맞는 기간"과 대조해 어긋나면 교정한다.
+    //
+    // 과거엔 (a) start가 00:00이 아닐 때와 (b) 기간이 만료됐을 때만 갱신했다. 그러면 구버전 로직이
+    // 계산해 이미 저장해둔 잘못된 기간(예: 급여일 30일 → [3/2~3/29])은 만료 전까지 그대로 쓰여,
+    // 2/28·3/1 지출이 계속 화면에서 사라진 채로 남았다. 만료되면 다음 기간으로 건너뛰므로
+    // 그 지출들은 영영 어떤 기간에도 나타나지 않는다.
+    //
+    // 이 엔티티는 항상 "급여일로 계산한 현재 기간"만 담는다(사용자가 고른 년/월 범위는 displayRange가
+    // 따로 들고 있다). 따라서 계산 결과와 다르면 무조건 저장값이 틀린 것이다.
     private func rolloverSalaryPeriodIfNeeded() {
-        guard let entity = salaryPeriods.first else { return }
-        var changed = false
+        // 프로필이 아직 없으면(온보딩 전 / CloudKit 동기화 대기) 급여일을 알 수 없으므로 손대지 않는다 —
+        // 기본값 "1일"로 계산해 덮어쓰면 기존 사용자의 기간이 달력월로 바뀐다
+        guard let entity = salaryPeriods.first, profiles.first != nil else { return }
 
-        // 구버전 '마지막 날' 로직이 저장한 start(말일 23:59:59)를 즉시 교정 — 정상 기간의
-        // start는 항상 그 날 00:00이므로 정당한 값은 건드리지 않음 (endDate 불변이라 rollover 무영향)
-        if entity.startDate != entity.startDate.startOfDay {
-            entity.startDate = entity.startDate.startOfDay
-            changed = true
-        }
+        let expected = SalaryDate.period(forSalaryDay: userProfile.period)
+        guard entity.startDate != expected.startDate || entity.endDate != expected.endDate else { return }
 
-        if Date() > entity.endDate {
-            let newPeriod = SalaryDate.period(forSalaryDay: userProfile.period)
-            entity.startDate = newPeriod.startDate
-            entity.endDate = newPeriod.endDate
-            changed = true
-        }
-
-        if changed {
-            PersistenceController.saveAndRefreshWidgets(modelContext)   // 기간이 바뀌었으니 위젯도 갱신
-        }
+        entity.startDate = expected.startDate
+        entity.endDate = expected.endDate
+        PersistenceController.saveAndRefreshWidgets(modelContext)   // 기간이 바뀌었으니 위젯도 갱신
     }
 }
 

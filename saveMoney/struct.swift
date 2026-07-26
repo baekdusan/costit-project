@@ -201,7 +201,10 @@ extension UNUserNotificationCenter {
     func addNotificationRequest(to name: String, by alert: FixedExpenditureItem) {
         let content = UNMutableNotificationContent()
 
-        let alertMessage = "\(name)님, 내일 \(alert.how.toDecimal())원이 나가요."
+        // "내일"이라고 못 박지 않는다 — 매월 반복 트리거는 (일, 시)만 지정할 수 있어
+        // 1일 지출의 알림은 28일에 오고, 30·31일 지출도 달에 따라 하루 이상 앞설 수 있다.
+        // 지출일을 그대로 알려주면 어느 날 발화하든 안내가 정확하다.
+        let alertMessage = "\(name)님, \(alert.day)일에 \(alert.how.toDecimal())원이 나가요."
 
         content.title = alert.towhat
         content.body = alertMessage

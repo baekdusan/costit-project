@@ -232,6 +232,11 @@ struct AddFinView: View {
         guard canSave, !isSaving else { return }
         isSaving = true
 
+        // 저장 실패 시 되돌리기 위해 이번에 새로 insert한 엔티티를 기억해둔다.
+        // (되돌리지 않으면 pending insert가 컨텍스트에 남아, 사용자가 알럿을 닫고 다시
+        //  저장을 누를 때 두 번째 엔티티가 또 insert되어 같은 지출이 두 건이 된다)
+        var insertedEntity: FinDataEntity?
+
         // 모든 present 경로가 .modelContainer(PersistenceController.shared)를 주입하므로
         // 다른 화면들과 동일하게 environment context를 사용한다.
         switch mode {
@@ -243,6 +248,7 @@ struct AddFinView: View {
                 isRevenue: source == .revenue
             )
             modelContext.insert(entity)
+            insertedEntity = entity
         case .edit(let target):
             // edit 대상은 다른 context에서 fetch된 인스턴스일 수 있으므로 externalID로 다시 찾음
             let externalID = target.externalID
@@ -262,8 +268,12 @@ struct AddFinView: View {
             entity.how = howInt
         }
 
-        // 저장 실패 시 화면을 닫으면 사용자가 입력한 내역이 그대로 사라진다 → 열어둔 채 알림
+        // 저장 실패 시 화면을 닫으면 사용자가 입력한 내역이 그대로 사라진다 → 열어둔 채 알림.
+        // 이번에 insert한 엔티티는 되돌려 재시도 때 중복이 쌓이지 않게 한다.
         guard PersistenceController.saveAndRefreshWidgets(modelContext) else {
+            if let insertedEntity {
+                modelContext.delete(insertedEntity)
+            }
             isSaving = false
             saveFailureMessage = "저장에 실패했어요. 잠시 후 다시 시도해주세요."
             return

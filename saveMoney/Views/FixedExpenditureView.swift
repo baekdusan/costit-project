@@ -290,10 +290,21 @@ struct FixedExpenditureView: View {
     private func deleteItem(_ item: FixedExpenditureEntity) {
         // 알럿이 떠 있는 사이 다른 기기의 삭제가 동기화됐다면 이미 무효화된 인스턴스다
         guard !item.isDeleted else { return }
-        notificationCenter.removePendingNotificationRequests(withIdentifiers: [item.externalID])
+
+        let externalID = item.externalID
         modelContext.delete(item)
-        // 위젯이 FixedExpenditureEntity를 표시하지 않으므로 타임라인 리로드는 생략 (일반 save)
-        try? modelContext.save()
+
+        // 위젯이 FixedExpenditureEntity를 표시하지 않으므로 타임라인 리로드는 생략 (일반 save).
+        // 알림 해제는 삭제가 실제로 저장된 뒤에 한다 — 순서가 반대면 저장이 실패해 항목이
+        // 되살아났을 때 알림만 영구히 사라진다.
+        do {
+            try modelContext.save()
+        } catch {
+            PersistenceController.logger.error("고정 지출 삭제 저장 실패: \(String(describing: error), privacy: .public)")
+            return
+        }
+
+        notificationCenter.removePendingNotificationRequests(withIdentifiers: [externalID])
     }
 
     // MARK: - 알림
@@ -312,8 +323,12 @@ struct FixedExpenditureView: View {
 
     // 화면 진입시 등록된 고정 지출 전체 알림 재등록 (기존 fixedExpenditureVC.viewDidLoad와 동일)
     private func rescheduleAllNotifications() {
-        // 목록이 비어 있어도 removeAll을 수행한다 — 다른 기기에서 마지막 항목을 지운 뒤
-        // 그 삭제가 동기화된 경우, 빈 목록이라고 일찍 빠져나가면 이 기기의 알림만 계속 발화한다
+        // 목록이 비어 있으면 아무것도 하지 않는다.
+        // CloudKit 동기화 전에는 @Query가 잠시 비어 보일 수 있는데, 그 상태에서 removeAll을 하면
+        // 정상 등록돼 있던 알림이 전부 사라지고 재등록되지 않는다.
+        // (원격에서 "마지막" 항목이 지워진 경우의 알림 잔존은 감수한다 — 항목이 하나라도 남아
+        //  있으면 아래 removeAll + 재등록 과정에서 정리된다)
+        guard !fixedItems.isEmpty else { return }
         notificationCenter.removeAllPendingNotificationRequests()
         for item in fixedItems {
             notificationCenter.addNotificationRequest(

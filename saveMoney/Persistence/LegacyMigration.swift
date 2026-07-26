@@ -42,11 +42,13 @@ enum LegacyMigration {
 
             try context.save()
 
-            // 데이터가 있는데 통째로 디코딩에 실패했다면 fingerprint를 기록하지 않는다.
-            // 기록해버리면 다음 실행부터 guard에 걸려 재시도조차 하지 않아, 원본이 UserDefaults에
-            // 남아 있는데도 기존 지출이 영영 앱에 나타나지 않는다.
-            if decodeFailed {
-                print("[LegacyMigration] 일부 레거시 blob 디코딩 실패 — fingerprint 미기록(다음 실행에서 재시도)")
+            // fingerprint를 기록하면 다음 실행부터 guard에 걸려 재시도조차 하지 않는다.
+            // 따라서 "이전이 영속적으로 완료됐다"고 확신할 때만 기록한다.
+            //  - decodeFailed: 데이터가 있는데 통째로 디코딩 실패 → 다음 버전에서 재시도할 여지를 남긴다
+            //  - isEphemeralFallback: 스토어를 못 열어 in-memory로 동작 중 → 이전 결과가 앱 종료와 함께
+            //    사라지는데 완료로 기록하면 원본이 UserDefaults에 남아 있어도 영영 이전되지 않는다
+            if decodeFailed || PersistenceController.isEphemeralFallback {
+                print("[LegacyMigration] 이전이 영속되지 않음(decodeFailed=\(decodeFailed), ephemeral=\(PersistenceController.isEphemeralFallback)) — fingerprint 미기록")
             } else {
                 defaults.set(current, forKey: Keys.fingerprint)
             }
@@ -211,12 +213,14 @@ enum LegacyMigration {
         descriptor.fetchLimit = 1
         if (try? context.fetch(descriptor))?.first != nil { return }
 
-        let legacy: LegacyProfile
-        if let data = defaults.data(forKey: Keys.profile),
-           let decoded = try? PropertyListDecoder().decode(LegacyProfile.self, from: data) {
-            legacy = decoded
-        } else {
-            legacy = LegacyProfile()
+        // 레거시 프로필이 없으면 아무것도 만들지 않는다.
+        // 과거엔 기본값(“User”/0원/“1일”) 프로필을 무조건 삽입했는데, 그 결과
+        //  (a) 신규 설치에서도 프로필이 존재해 온보딩 표시 판정이 망가지고
+        //  (b) 기기 교체 시 CloudKit에서 내려올 진짜 프로필과 중복되어, 정렬 없는 .first가
+        //      더미를 골라 사용자의 목표 지출액·급여일이 사라진 것처럼 보였다.
+        guard let data = defaults.data(forKey: Keys.profile),
+              let legacy = try? PropertyListDecoder().decode(LegacyProfile.self, from: data) else {
+            return
         }
 
         context.insert(ProfileEntity(
@@ -231,10 +235,13 @@ enum LegacyMigration {
         descriptor.fetchLimit = 1
         if (try? context.fetch(descriptor))?.first != nil { return }
 
+        // 프로필과 같은 이유로, 레거시 기간 정보가 없으면 만들지 않는다.
+        // (기본 슬롯을 넣으면 start=end=삽입 시각이라 곧바로 rollover가 발동해
+        //  더미 프로필의 “1일” 기준으로 정산 기간이 덮어써졌다)
+        // 엔티티가 없을 때의 표시는 각 화면의 SalaryDate() 폴백이 담당하고,
+        // 실제 생성은 온보딩 완료 시 MainView.handleProfileInput이 한다.
         guard let data = defaults.data(forKey: Keys.salaryData),
               let decoded = try? PropertyListDecoder().decode(LegacySalary.self, from: data) else {
-            // 없으면 default 슬롯 1개만 만들어둠 (앱 첫 실행이거나 정보 없을 때)
-            context.insert(SalaryPeriodEntity())
             return
         }
 
