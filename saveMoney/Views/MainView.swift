@@ -430,30 +430,10 @@ struct MainView: View {
 
     // 프로필 입력 처리 (온보딩 / 프로필 수정 공통 — 기존 handleProfileInput과 동일)
     private func handleProfileInput(nickname: String, outLay: Int, period: String) {
-        // 프로필 upsert — 사본이 여럿이면 "전부" 같은 값으로 맞춘다.
-        // CloudKit 경합으로 생긴 중복은 지우지 않는다(삭제는 되돌릴 수 없다). 대신 값을 동기화하면
-        // 어느 사본이 canonical로 뽑히든 사용자가 방금 입력한 값을 보게 되고,
-        // 기기마다 다른 급여일을 쓰는 상태도 사라진다.
-        if profiles.isEmpty {
-            modelContext.insert(ProfileEntity(nickName: nickname, outLay: outLay, period: period))
-        } else {
-            for entity in profiles {
-                entity.nickName = nickname
-                entity.outLay = outLay
-                entity.period = period
-            }
-        }
+        applyProfileToAllEntities(nickname: nickname, outLay: outLay, period: period)
 
         // 급여일 기준으로 정산 기간 재설정 (같은 이유로 사본 전체를 갱신)
-        let newPeriod = SalaryDate.period(forSalaryDay: period)
-        if salaryPeriods.isEmpty {
-            modelContext.insert(SalaryPeriodEntity(startDate: newPeriod.startDate, endDate: newPeriod.endDate))
-        } else {
-            for entity in salaryPeriods {
-                entity.startDate = newPeriod.startDate
-                entity.endDate = newPeriod.endDate
-            }
-        }
+        applyPeriodToAllEntities(SalaryDate.period(forSalaryDay: period), save: false)
 
         displayRange = .salaryPeriod
 
@@ -516,14 +496,40 @@ struct MainView: View {
         applyPeriodToAllEntities(expected)
     }
 
-    // 기간 사본이 여럿이면 전부 같은 값으로 맞춘다 — 삭제 없이 불일치를 없애는 방식.
-    // (어느 사본이 canonical로 뽑히든, 앱과 위젯이 각각 다른 사본을 읽든 결과가 같아진다)
-    private func applyPeriodToAllEntities(_ period: SalaryDate) {
-        for entity in salaryPeriods {
-            entity.startDate = period.startDate
-            entity.endDate = period.endDate
+    // MARK: - 싱글턴 엔티티 쓰기 (반드시 이 두 함수를 거칠 것)
+    //
+    // CloudKit은 @Attribute(.unique)를 지원하지 않아 프로필·정산기간 사본이 여러 벌 생길 수 있다.
+    // 삭제로 정리하지 않고(삭제는 되돌릴 수 없다) "쓸 때 사본 전체를 같은 값으로 맞추는" 방식을 쓴다.
+    // 그래야 canonical이 어느 사본을 고르든, 앱과 위젯이 각각 다른 사본을 읽든 값이 같다.
+    //
+    // ⚠️ 사본 하나만 고치면(profiles.first?.outLay = …) 즉시 이 불변식이 깨져
+    //    사용자가 방금 입력한 값이 되돌아간다. 프로필·기간을 바꾸는 코드는 전부 여기로 모은다.
+
+    private func applyProfileToAllEntities(nickname: String, outLay: Int, period: String) {
+        guard !profiles.isEmpty else {
+            modelContext.insert(ProfileEntity(nickName: nickname, outLay: outLay, period: period))
+            return
         }
-        PersistenceController.saveAndRefreshWidgets(modelContext)   // 기간이 바뀌었으니 위젯도 갱신
+        for entity in profiles {
+            entity.nickName = nickname
+            entity.outLay = outLay
+            entity.period = period
+        }
+    }
+
+    // save: false면 호출부가 저장을 책임진다(여러 엔티티를 한 번에 바꾸고 한 번만 저장하는 경우)
+    private func applyPeriodToAllEntities(_ period: SalaryDate, save: Bool = true) {
+        if salaryPeriods.isEmpty {
+            modelContext.insert(SalaryPeriodEntity(startDate: period.startDate, endDate: period.endDate))
+        } else {
+            for entity in salaryPeriods {
+                entity.startDate = period.startDate
+                entity.endDate = period.endDate
+            }
+        }
+        if save {
+            PersistenceController.saveAndRefreshWidgets(modelContext)   // 기간이 바뀌었으니 위젯도 갱신
+        }
     }
 }
 
