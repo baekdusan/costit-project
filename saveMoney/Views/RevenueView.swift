@@ -149,7 +149,12 @@ struct RevenueView: View {
                 customTitle = nil
                 dismissSheet()
             }
-        ).dynamicTypeSize(.large))
+        )
+        // MonthSelectorSheet는 @Query로 저장된 내역의 연도 범위를 읽는다.
+        // 새 UIHostingController는 environment를 상속하지 않으므로 컨테이너를 직접 주입해야 한다
+        // (없으면 @Query가 활성 컨테이너를 찾지 못해 크래시).
+        .modelContainer(PersistenceController.shared)
+        .dynamicTypeSize(.large))
         if let sheet = host.sheetPresentationController {
             sheet.detents = [.custom { $0.maximumDetentValue * 0.45 }]
             sheet.prefersGrabberVisible = false
@@ -232,7 +237,7 @@ struct RevenueView: View {
         .frame(width: cardWidth, height: 72)
         .contentShape(Rectangle())
         .onLongPressGesture {
-            presentAddFin(source: .revenue, mode: .edit(item))
+            presentAddFin(source: .revenue, mode: .edit(.init(item)))
         }
     }
 
@@ -249,13 +254,26 @@ struct MonthSelectorSheet: View {
     let onSelect: (Date, Date, String) -> Void
     let onReset: () -> Void
 
-    @State private var selectedYear: Int = Calendar.current.component(.year, from: Date())
-    @State private var selectedMonth: Int = Calendar.current.component(.month, from: Date())
+    // 실제로 저장된 내역의 연도 범위를 함께 보여준다 — 목록에 없는 연도는 조회 자체가 불가능해
+    // "저장은 됐는데 어디서도 볼 수 없는" 데이터가 생긴다 (입력 화면의 DatePicker에는 연도 제한이 없다)
+    @Query(sort: \FinDataEntity.when) private var allFin: [FinDataEntity]
+
+    // 날짜 산술은 프로젝트 전체가 gregorian 고정 — 여기만 Calendar.current를 쓰면
+    // 비양력 기기(불교력 등)에서 선택한 연도가 전혀 다른 절대 날짜로 해석되어
+    // 해당 기간 내역이 통째로 사라진다
+    private static let gregorian = Calendar(identifier: .gregorian)
+
+    @State private var selectedYear: Int = MonthSelectorSheet.gregorian.component(.year, from: Date())
+    @State private var selectedMonth: Int = MonthSelectorSheet.gregorian.component(.month, from: Date())
 
     private var years: [Int] {
+        let calendar = Self.gregorian
+        let current = calendar.component(.year, from: Date())
+        let stored = allFin.map { calendar.component(.year, from: $0.when) }
         // 디바이스 시계가 2021 이전으로 설정돼 있어도 빈 Range 크래시가 나지 않도록 가드
-        let current = Calendar.current.component(.year, from: Date())
-        return Array(2021...max(2021, current))
+        let lower = min(2021, stored.min() ?? 2021)
+        let upper = max(current, stored.max() ?? current)
+        return Array(lower...max(lower, upper))
     }
 
     var body: some View {
@@ -267,7 +285,7 @@ struct MonthSelectorSheet: View {
                 Spacer()
                 Button("설정") {
                     let comps = DateComponents(year: selectedYear, month: selectedMonth)
-                    guard let date = Calendar.current.date(from: comps) else { return }
+                    guard let date = Self.gregorian.date(from: comps) else { return }
                     let label = "🗓 \(selectedYear)년 \(selectedMonth)월"
                     onSelect(date.startOfThisMonth, date.endOfThisMonth, label)
                 }

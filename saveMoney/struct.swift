@@ -15,6 +15,14 @@ extension Date {
         return gregorian.startOfDay(for: self)
     }
 
+    // 소수점 이하 초를 버린 시각.
+    // 정산 기간의 end는 정확히 23:59:59.000인데 Date()는 소수초를 갖고 있어,
+    // 기간 마지막 1초 안에 저장한 지출이 `when <= end` 필터에서 빠지고
+    // 다음 기간 시작(다음날 00:00)보다는 이르러 어느 기간에도 속하지 않게 된다.
+    var truncatingSubseconds: Date {
+        Date(timeIntervalSinceReferenceDate: timeIntervalSinceReferenceDate.rounded(.down))
+    }
+
     // 이번 달의 시작
     var startOfThisMonth: Date {
         let calendar = gregorian
@@ -30,60 +38,21 @@ extension Date {
         return gregorian.date(byAdding: components, to: startOfThisMonth) ?? self
     }
 
-    // 다음 달의 끝 전 날
-    var yesterdayOfEndOfNextMonth: Date {
-        var components = DateComponents()
-        components.month = 2
-        components.day = -1
-        components.second = -1
-        return gregorian.date(byAdding: components, to: startOfThisMonth) ?? self
-    }
-
-    // 이번 달의 끝 전 날
-    var yesterdayOfEndOfThisMonth: Date {
-        var components = DateComponents()
-        components.month = 1
-        components.second = -1
-        components.day = -1
-        return gregorian.date(byAdding: components, to: startOfThisMonth) ?? self
-    }
-
-    // 지난 달 마지막 날의 시작 (00:00) — 이름이 "끝"처럼 보이지만 시각은 하루의 시작임에 주의
-    var startOfLastDayOfLastMonth: Date {
-        var components = DateComponents()
-        components.day = -1
-        return gregorian.date(byAdding: components, to: startOfThisMonth) ?? self
-    }
-
-    // 지난 어느 날의 시작
-    func startOfLastSomeDay(_ day: Int) -> Date {
-        var components = DateComponents()
-        components.month = -1
-        components.day = day - 1
-        return gregorian.date(byAdding: components, to: startOfThisMonth) ?? self
-    }
-
-    // 지난 어느 날의 끝
-    func endOfLastSomeDay(_ day: Int) -> Date {
-        var components = DateComponents()
-        components.day = day - 1
-        components.second = -1
-        return gregorian.date(byAdding: components, to: startOfThisMonth) ?? self
-    }
-
-    // 이번 어느 날의 시작
-    func startOfSomeDay(_ day: Int) -> Date {
-        var components = DateComponents()
-        components.day = day - 1
-        return gregorian.date(byAdding: components, to: startOfThisMonth) ?? self
-    }
-
-    // 다음 어느 날의 끝
-    func endOfSomeDay(_ day: Int) -> Date {
-        var components = DateComponents()
-        components.month = 1
-        components.second = -1
-        return gregorian.date(byAdding: components, to: startOfSomeDay(day)) ?? self
+    // 이 날짜가 속한 달에서 monthOffset개월 이동한 달의 "day일 00:00".
+    // 그 달에 day일이 없으면(2월의 30일 등) 그 달의 마지막 날로 클램프한다.
+    //
+    // 과거 구현은 "그 달 1일 + (day-1)일"이라 없는 날짜가 다음 달로 넘쳤다.
+    // 예) 급여일 30일 + 3월 1일 기준 → 지난 급여일이 3월 2일로 계산되어
+    // 정산 기간이 [3/2 ~ 3/29]가 되고, 2월 28일·3월 1일 지출이 어느 기간에도
+    // 속하지 않아 화면에서 사라졌다. 클램프하면 기간이 빈틈없이 이어진다.
+    func salaryDayStart(_ day: Int, monthOffset: Int = 0) -> Date {
+        let calendar = gregorian
+        guard let monthStart = calendar.date(byAdding: .month, value: monthOffset, to: startOfThisMonth),
+              let daysInMonth = calendar.range(of: .day, in: .month, for: monthStart)?.count else {
+            return startOfDay
+        }
+        let clampedDay = min(max(day, 1), daysInMonth)
+        return calendar.date(byAdding: .day, value: clampedDay - 1, to: monthStart) ?? monthStart
     }
 
     // 날짜를 문자열로 변경 ("MM. dd.")
@@ -107,7 +76,9 @@ enum AppDateFormatters {
     static let dayOnly = make("d")                // Date.onlydate
     static let shortDate = make("yy. MM. dd")     // SearchView 셀
     static let editDate = make("yy. M. d.")       // AddFinView 날짜 버튼
-    static let salaryDay = make("dd")             // 급여 기간 계산
+    // (급여 기간 계산은 문자열 파싱 대신 Calendar 산술을 쓰도록 바뀌어 "dd" 포매터는 제거됨 —
+    //  캐시된 DateFormatter는 생성 시점의 타임존을 붙들고 있어 기기 타임존 변경 후
+    //  급여일이 하루 어긋날 수 있었다)
 
     private static func make(_ format: String) -> DateFormatter {
         let formatter = DateFormatter()
@@ -148,35 +119,33 @@ struct SalaryDate {
 
 extension SalaryDate {
     // 급여일 문자열("1일", "29일", "마지막 날")로 한 달 정산 기간 계산 (기존 mainVC.setSalaryDate)
-    // 불변식: 기간 start는 그 날 00:00, end는 마지막 날 23:59:59 — start가 하루의 끝이면
-    // 그 날의 지출이 기간 필터($0.when >= start)에서 통째로 빠진다.
+    // 불변식 1: start는 급여일 00:00, end는 다음 급여일 직전(-1초).
+    //          start가 하루의 끝이면 그 날 지출이 기간 필터($0.when >= start)에서 통째로 빠진다.
+    // 불변식 2: 연속한 두 기간 사이에 빈틈이 없다 — 어떤 지출도 "어느 기간에도 없는" 상태가 되지 않는다.
     static func period(forSalaryDay salary: String, now: Date = Date()) -> SalaryDate {
-        // 비양력 디바이스 캘린더(불교력 등)에서도 양력 기준 일자를 얻도록 gregorian 고정 캐시 사용
-        let today = Int(AppDateFormatters.salaryDay.string(from: now)) ?? 1
+        let day = salaryDayNumber(from: salary)
+        let thisPeriodStart = now.salaryDayStart(day)
 
-        if salary == SalaryDay.lastDay {
-            let endOfMonthDay = Int(AppDateFormatters.salaryDay.string(from: now.endOfThisMonth)) ?? 28
-            if today == endOfMonthDay {
-                // 월급날(말일) 당일: 과거엔 start가 endOfThisMonth(23:59:59)여서
-                // 월급날 당일 지출이 정산 기간에서 누락되는 버그가 있었음 → 당일 00:00으로 시작
-                return SalaryDate(startDate: now.startOfDay, endDate: now.yesterdayOfEndOfNextMonth)
-            }
-            return SalaryDate(startDate: now.startOfLastDayOfLastMonth, endDate: now.yesterdayOfEndOfThisMonth)
+        // 일(day) 숫자가 아니라 시각으로 비교한다 — 급여일이 없는 달(2월의 30일 등)은
+        // salaryDayStart가 말일로 클램프하므로, 숫자 비교(today >= 30)로는 이번 달 급여일이
+        // 지났는데도 영영 "아직 안 됨"으로 판정되어 기간이 어긋난다.
+        if now >= thisPeriodStart {
+            return SalaryDate(startDate: thisPeriodStart,
+                              endDate: now.salaryDayStart(day, monthOffset: 1).addingTimeInterval(-1))
         }
+        return SalaryDate(startDate: now.salaryDayStart(day, monthOffset: -1),
+                          endDate: thisPeriodStart.addingTimeInterval(-1))
+    }
 
-        if salary == SalaryDay.firstDay {
-            return SalaryDate(startDate: now.startOfThisMonth, endDate: now.endOfThisMonth)
-        }
-
-        // "29일" → 29 추출
-        let digits = salary.filter { $0.isNumber }
-        let salaryDay = Int(digits) ?? 1
-
-        if today >= salaryDay {
-            return SalaryDate(startDate: now.startOfSomeDay(salaryDay), endDate: now.endOfSomeDay(salaryDay))
-        } else {
-            return SalaryDate(startDate: now.startOfLastSomeDay(salaryDay), endDate: now.endOfLastSomeDay(salaryDay))
-        }
+    // "1일"→1, "29일"→29, "마지막 날"→31(salaryDayStart가 각 달 말일로 클램프).
+    // 구버전이 남겼을 수 있는 "마지막날"(공백 없음) 같은 변형도 말일로 해석한다 —
+    // 숫자가 없다는 이유로 1일로 떨어지면 기존 사용자의 정산 기간이 통째로 어긋나
+    // 이전 기간 지출이 화면에서 사라진다.
+    private static func salaryDayNumber(from salary: String) -> Int {
+        if salary.contains("마지막") { return 31 }
+        let digits = salary.filter { $0.isASCII && $0.isNumber }
+        guard let day = Int(digits), day >= 1 else { return 1 }
+        return min(day, 31)
     }
 }
 
@@ -211,9 +180,13 @@ extension String {
 }
 
 extension Int {
+    // locale을 고정하는 이유: toDecimal()의 출력이 화면 표시로만 끝나지 않고
+    // 입력 필드 prefill(AddFinView/FirstOpenView) → currencyInputFormatted → toInt()로
+    // 되돌아온다. 그룹 구분자가 "."인 로케일(독일 등)에서는 이 왕복에서 금액이 훼손된다.
     private static let decimalFormatter: NumberFormatter = {
         let nf = NumberFormatter()
         nf.numberStyle = .decimal
+        nf.locale = Locale(identifier: "ko_KR")
         return nf
     }()
 
@@ -235,22 +208,28 @@ extension UNUserNotificationCenter {
         content.sound = .default
         content.badge = 1
 
-        // 고정 지출일 전날 18시(당일 00:00 - 6시간)에 매월 반복 알림
-        let date = Date().startOfSomeDay(alert.day)
-
+        // 고정 지출일 전날 18시에 매월 반복 알림.
+        // 과거 구현은 "등록한 달의 지출일 00:00 - 6시간"에서 (day, hour)를 뽑았기 때문에
+        // 등록 시점의 달에 따라 발화일이 달라졌다. 예) 2월에 31일 항목을 등록하면
+        // 2/1 + 30일 = 3/3 → 전날 3/2 → 이후 매월 2일 18시에 발화.
+        // 등록 달과 무관하게 결정적으로 계산한다.
         var components = DateComponents()
-        components.hour = -6
+        components.day = Self.notificationDay(forExpenditureDay: alert.day)
+        components.hour = 18
 
-        let gregorian = Calendar(identifier: .gregorian)
-        let alertTime = gregorian.date(byAdding: components, to: date) ?? date
-
-        let component = gregorian.dateComponents([.day, .hour], from: alertTime)
-        let trigger = UNCalendarNotificationTrigger(dateMatching: component, repeats: true)
+        let trigger = UNCalendarNotificationTrigger(dateMatching: components, repeats: true)
 
         let request = UNNotificationRequest(identifier: alert.id, content: content, trigger: trigger)
 
         self.add(request, withCompletionHandler: { _ in
 
         })
+    }
+
+    // 지출일의 전날. 1일 지출의 "전날"은 달마다 28~31일로 달라져 매월 반복 트리거 하나로는
+    // 표현할 수 없으므로, 모든 달에 존재하는 28일로 맞춘다 (2월은 정확히 전날).
+    private static func notificationDay(forExpenditureDay day: Int) -> Int {
+        let clamped = min(max(day, 1), 31)
+        return clamped == 1 ? 28 : clamped - 1
     }
 }

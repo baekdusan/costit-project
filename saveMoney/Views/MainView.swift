@@ -28,6 +28,7 @@ struct MainView: View {
     @State private var showOnboarding = false
     @State private var showProfileEditor = false
     @State private var deleteTarget: FinDataEntity?
+    @State private var showStorageWarning = false
 
     // MARK: - 파생 데이터
 
@@ -215,15 +216,17 @@ struct MainView: View {
             .deleteConfirmationAlert(item: $deleteTarget, message: "해당 지출 내역을 삭제해요.") {
                 deleteExpense($0)
             }
+            .alert("저장할 수 없는 상태예요", isPresented: $showStorageWarning) {
+                Button("확인", role: .cancel) { }
+            } message: {
+                Text("기기 저장소를 열지 못했어요. 지금 입력하는 내역은 앱을 종료하면 사라집니다.\n저장 공간을 확보하거나 기기를 재시작한 뒤 다시 실행해주세요. 기존에 저장된 내역은 그대로 남아 있어요.")
+            }
             .onAppear {
                 rolloverSalaryPeriodIfNeeded()
-
-                // 첫 실행 감지 → 온보딩
-                // (NavigationStack 설치가 끝나기 전에 isPresented를 켜면 push가 무시될 수 있어 한 틱 지연)
-                if UserDefaults.standard.bool(forKey: AppKeys.firstOpen) == false {
-                    DispatchQueue.main.async {
-                        showOnboarding = true
-                    }
+                presentOnboardingIfNeeded()
+                // 스토어를 못 열어 in-memory로 폴백한 실행이면 즉시 알린다 (입력 유실 예방)
+                if PersistenceController.isEphemeralFallback {
+                    showStorageWarning = true
                 }
             }
             .onChange(of: scenePhase) { _, newPhase in
@@ -295,7 +298,7 @@ struct MainView: View {
         .frame(width: size, height: size)
         .paperShadow(y: 6)
         .onLongPressGesture {
-            presentAddFin(source: .expense, mode: .edit(item))
+            presentAddFin(source: .expense, mode: .edit(.init(item)))
         }
     }
 
@@ -317,10 +320,29 @@ struct MainView: View {
         PersistenceController.delete(item, in: modelContext)
     }
 
+    // 첫 실행 감지 → 온보딩
+    // (NavigationStack 설치가 끝나기 전에 isPresented를 켜면 push가 무시될 수 있어 한 틱 지연)
+    //
+    // 로컬 플래그만 보고 판단하면 안 된다: 기기를 바꾸거나 앱을 재설치하면 UserDefaults는
+    // 비어 있지만 프로필은 CloudKit에 남아 있다. 그 상태로 온보딩을 강제하면 사용자가 다시
+    // 입력한 값이 기존 프로필과 정산 기간을 덮어써(급여일이 바뀌면 이전 기간 지출이 화면에서
+    // 사라진다), 동기화 전에 완료하면 프로필 엔티티가 중복 생성된다.
+    private func presentOnboardingIfNeeded() {
+        guard UserDefaults.standard.bool(forKey: AppKeys.firstOpen) == false else { return }
+
+        // 이미 프로필이 있으면(= 기존 사용자) 온보딩 없이 플래그만 맞춰준다
+        if profiles.isEmpty == false {
+            UserDefaults.standard.setValue(true, forKey: AppKeys.firstOpen)
+            return
+        }
+
+        DispatchQueue.main.async {
+            showOnboarding = true
+        }
+    }
+
     // 프로필 입력 처리 (온보딩 / 프로필 수정 공통 — 기존 handleProfileInput과 동일)
     private func handleProfileInput(nickname: String, outLay: Int, period: String) {
-        UserDefaults.standard.setValue(true, forKey: AppKeys.firstOpen)
-
         // 프로필 upsert
         let profileEntity = profiles.first ?? {
             let entity = ProfileEntity()
@@ -342,7 +364,12 @@ struct MainView: View {
         periodEntity.endDate = newPeriod.endDate
 
         displayRange = .salaryPeriod
-        PersistenceController.saveAndRefreshWidgets(modelContext)
+
+        // 플래그는 저장이 성공한 뒤에 기록한다 — 먼저 켜두면 저장이 실패했을 때
+        // 다음 실행에서 온보딩을 건너뛰어 사용자가 입력한 프로필이 사라진 채로 시작한다
+        if PersistenceController.saveAndRefreshWidgets(modelContext) {
+            UserDefaults.standard.setValue(true, forKey: AppKeys.firstOpen)
+        }
     }
 
     // 오늘이 정산 기간을 넘어가면 프로필 급여일에 맞춰 기간 갱신 (기존 viewDidLoad 로직)

@@ -20,6 +20,7 @@ struct FixedExpenditureView: View {
     @State private var howText: String = ""
     @State private var showDayPicker: Bool = false
     @State private var deleteTarget: FixedExpenditureEntity?
+    @State private var addFailureMessage: String?   // 저장 실패/잘못된 금액을 알림 (입력은 보존)
     @FocusState private var focused: Field?
 
     enum Field: Hashable { case towhat, how }
@@ -41,8 +42,12 @@ struct FixedExpenditureView: View {
             .map { (day: $0.key, items: $0.value) }
     }
 
+    private var trimmedTowhat: String {
+        towhat.trimmingCharacters(in: .whitespacesAndNewlines)
+    }
+
     private var canAdd: Bool {
-        selectedDay != nil && !towhat.isEmpty && !howText.isEmpty
+        selectedDay != nil && !trimmedTowhat.isEmpty && !howText.isEmpty
     }
 
     var body: some View {
@@ -63,6 +68,14 @@ struct FixedExpenditureView: View {
         }
         .deleteConfirmationAlert(item: $deleteTarget, message: "해당 고정 지출 내역을 삭제해요.") {
             deleteItem($0)
+        }
+        .alert("알림", isPresented: Binding(
+            get: { addFailureMessage != nil },
+            set: { if !$0 { addFailureMessage = nil } }
+        )) {
+            Button("확인") { addFailureMessage = nil }
+        } message: {
+            Text(addFailureMessage ?? "")
         }
         .sheet(isPresented: $showDayPicker) {
             // 초기값만 넘기고 확정("설정") 시에만 부모 상태 갱신 — 시트를 스와이프로 닫으면
@@ -152,9 +165,8 @@ struct FixedExpenditureView: View {
                     .focused($focused, equals: .how)
                     .onChange(of: howText) { _, new in
                         // 실시간 반점 + 11자(반점 포함) 제한
-                        if let formatted = new.currencyInputFormatted(limit: .formattedChars(11), onParseFailure: .keepAsIs) {
-                            howText = formatted
-                        }
+                        let formatted = new.currencyInputFormatted(limit: .formattedChars(11))
+                        if formatted != new { howText = formatted }
                     }
             }
             .frame(height: 50)
@@ -234,14 +246,32 @@ struct FixedExpenditureView: View {
     private func addItem() {
         guard let day = selectedDay, canAdd else { return }
 
+        // 금액이 0이면 저장하지 않는다 — 과거엔 파싱 실패("₩123", 전각 숫자 등)가 toInt()의
+        // 0 폴백을 타고 0원 항목 + "0원이 나가요" 알림으로 남았다.
+        // (입력 포맷터가 숫자만 남기도록 고쳐졌지만, 저장 직전에도 한 번 더 막는다)
+        let amount = howText.toInt()
+        guard amount > 0 else {
+            addFailureMessage = "금액을 다시 확인해주세요."
+            return
+        }
+
         let entity = FixedExpenditureEntity(
             day: day,
-            towhat: towhat,
-            how: howText.toInt()
+            towhat: trimmedTowhat,
+            how: amount
         )
         modelContext.insert(entity)
-        // 위젯이 FixedExpenditureEntity를 표시하지 않으므로 타임라인 리로드는 생략 (일반 save)
-        try? modelContext.save()
+
+        // 위젯이 FixedExpenditureEntity를 표시하지 않으므로 타임라인 리로드는 생략 (일반 save).
+        // 저장 실패 시 입력을 비우면 사용자가 처음부터 다시 쳐야 하므로, 되돌리고 알린다.
+        do {
+            try modelContext.save()
+        } catch {
+            modelContext.delete(entity)
+            PersistenceController.logger.error("고정 지출 저장 실패: \(String(describing: error), privacy: .public)")
+            addFailureMessage = "저장에 실패했어요. 잠시 후 다시 시도해주세요."
+            return
+        }
 
         // 푸시 알림 등록 (externalID를 식별자로 사용)
         notificationCenter.addNotificationRequest(
@@ -258,6 +288,8 @@ struct FixedExpenditureView: View {
     }
 
     private func deleteItem(_ item: FixedExpenditureEntity) {
+        // 알럿이 떠 있는 사이 다른 기기의 삭제가 동기화됐다면 이미 무효화된 인스턴스다
+        guard !item.isDeleted else { return }
         notificationCenter.removePendingNotificationRequests(withIdentifiers: [item.externalID])
         modelContext.delete(item)
         // 위젯이 FixedExpenditureEntity를 표시하지 않으므로 타임라인 리로드는 생략 (일반 save)
@@ -280,7 +312,8 @@ struct FixedExpenditureView: View {
 
     // 화면 진입시 등록된 고정 지출 전체 알림 재등록 (기존 fixedExpenditureVC.viewDidLoad와 동일)
     private func rescheduleAllNotifications() {
-        guard !fixedItems.isEmpty else { return }
+        // 목록이 비어 있어도 removeAll을 수행한다 — 다른 기기에서 마지막 항목을 지운 뒤
+        // 그 삭제가 동기화된 경우, 빈 목록이라고 일찍 빠져나가면 이 기기의 알림만 계속 발화한다
         notificationCenter.removeAllPendingNotificationRequests()
         for item in fixedItems {
             notificationCenter.addNotificationRequest(

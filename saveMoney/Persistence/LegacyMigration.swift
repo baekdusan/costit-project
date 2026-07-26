@@ -1,6 +1,7 @@
 import Foundation
 import SwiftData
 import CryptoKit
+import WidgetKit
 
 // UserDefaults(PropertyListEncoder 기반)에 저장되어 있던 기존 데이터를
 // SwiftData로 이전한다. 멱등(idempotent)하게 동작:
@@ -32,14 +33,26 @@ enum LegacyMigration {
         let context = ModelContext(container)
 
         do {
-            migrateFinList(key: Keys.finList, isRevenue: false, into: context, defaults: defaults)
-            migrateFinList(key: Keys.rFinList, isRevenue: true, into: context, defaults: defaults)
-            migrateFixedExpenditures(into: context, defaults: defaults)
+            var decodeFailed = false
+            decodeFailed = migrateFinList(key: Keys.finList, isRevenue: false, into: context, defaults: defaults) || decodeFailed
+            decodeFailed = migrateFinList(key: Keys.rFinList, isRevenue: true, into: context, defaults: defaults) || decodeFailed
+            decodeFailed = migrateFixedExpenditures(into: context, defaults: defaults) || decodeFailed
             migrateProfile(into: context, defaults: defaults)
             migrateSalaryPeriod(into: context, defaults: defaults)
 
             try context.save()
-            defaults.set(current, forKey: Keys.fingerprint)
+
+            // 데이터가 있는데 통째로 디코딩에 실패했다면 fingerprint를 기록하지 않는다.
+            // 기록해버리면 다음 실행부터 guard에 걸려 재시도조차 하지 않아, 원본이 UserDefaults에
+            // 남아 있는데도 기존 지출이 영영 앱에 나타나지 않는다.
+            if decodeFailed {
+                print("[LegacyMigration] 일부 레거시 blob 디코딩 실패 — fingerprint 미기록(다음 실행에서 재시도)")
+            } else {
+                defaults.set(current, forKey: Keys.fingerprint)
+            }
+
+            // 위젯이 표시하는 지출·프로필·정산 기간이 방금 채워졌으므로 타임라인을 갱신한다
+            WidgetCenter.shared.reloadAllTimelines()
         } catch {
             // 실패 시 컨텍스트만 폐기. UserDefaults는 그대로 → 다음 실행에서 재시도.
             print("[LegacyMigration] 실패: \(error)")
@@ -68,13 +81,19 @@ enum LegacyMigration {
         }
     }
 
-    private static func decodeList<T: Decodable>(_ type: T.Type, from data: Data) -> [T] {
-        let wrapped = (try? PropertyListDecoder().decode([Failable<T>].self, from: data)) ?? []
+    // 최상위 blob 디코딩 실패와 개별 항목 손상을 구분해서 알린다.
+    // 전자는 포맷 불일치처럼 "다음 버전에서 고쳐 다시 시도할 수 있는" 실패라 재시도 여지를 남겨야 하고,
+    // 후자는 재시도해도 같은 결과라 건너뛴다.
+    private static func decodeList<T: Decodable>(_ type: T.Type, from data: Data) -> (values: [T], failed: Bool) {
+        guard let wrapped = try? PropertyListDecoder().decode([Failable<T>].self, from: data) else {
+            print("[LegacyMigration] \(T.self) 목록 전체 디코딩 실패 (\(data.count) bytes)")
+            return ([], true)
+        }
         let values = wrapped.compactMap(\.value)
         if values.count < wrapped.count {
             print("[LegacyMigration] 손상된 항목 \(wrapped.count - values.count)건 건너뜀 (\(T.self))")
         }
-        return values
+        return (values, false)
     }
 
     // MARK: - Decoders for legacy types
@@ -132,9 +151,13 @@ enum LegacyMigration {
         "legacy:\(isRevenue ? "r" : "e"):\(Int(item.when.timeIntervalSince1970)):\(item.how):\(item.towhat)"
     }
 
-    private static func migrateFinList(key: String, isRevenue: Bool, into context: ModelContext, defaults: UserDefaults) {
-        guard let data = defaults.data(forKey: key) else { return }
-        for item in decodeList(LegacyFin.self, from: data) {
+    // 반환값: 최상위 디코딩 실패 여부 (true면 이번 이전을 "완료"로 확정하면 안 됨)
+    private static func migrateFinList(key: String, isRevenue: Bool, into context: ModelContext, defaults: UserDefaults) -> Bool {
+        guard let data = defaults.data(forKey: key) else { return false }
+        let decoded = decodeList(LegacyFin.self, from: data)
+        if decoded.failed { return true }
+
+        for item in decoded.values {
             let extID = legacyID(for: item, isRevenue: isRevenue)
             // externalID 외에 내용(when/towhat/how)도 비교 — 과거 dual-write 기간(FinRepository)에
             // UUID externalID로 저장된 동일 레코드가 재이전 시 중복 생성되지 않도록.
@@ -157,11 +180,15 @@ enum LegacyMigration {
                 externalID: extID
             ))
         }
+        return false
     }
 
-    private static func migrateFixedExpenditures(into context: ModelContext, defaults: UserDefaults) {
-        guard let data = defaults.data(forKey: Keys.fixedFinList) else { return }
-        for item in decodeList(LegacyFixed.self, from: data) {
+    private static func migrateFixedExpenditures(into context: ModelContext, defaults: UserDefaults) -> Bool {
+        guard let data = defaults.data(forKey: Keys.fixedFinList) else { return false }
+        let decoded = decodeList(LegacyFixed.self, from: data)
+        if decoded.failed { return true }
+
+        for item in decoded.values {
             let extID = item.id
             let predicate = #Predicate<FixedExpenditureEntity> { $0.externalID == extID }
             var descriptor = FetchDescriptor<FixedExpenditureEntity>(predicate: predicate)
@@ -175,6 +202,7 @@ enum LegacyMigration {
                 how: item.how
             ))
         }
+        return false
     }
 
     private static func migrateProfile(into context: ModelContext, defaults: UserDefaults) {

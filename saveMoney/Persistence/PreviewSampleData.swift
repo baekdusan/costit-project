@@ -23,7 +23,15 @@ enum PreviewSampleData {
     }()
 
     // 데모 데이터 주입 (멱등 — 기존 지출/수입/고정 지출은 지우고 다시 채움)
+    //
+    // ⚠️ 이 함수는 컨테이너의 수입·지출·고정지출을 전부 삭제한다. SceneDelegate가
+    // SEED_DEMO_DATA=1일 때 실제(App Group) 컨테이너에 적용하므로, DEBUG 빌드를 꽂은
+    // 실기기에서 환경변수가 걸리면 사용자 데이터가 통째로 날아간다.
+    // → 시뮬레이터 밖에서는 아예 컴파일되지 않도록 막는다 (Preview도 시뮬레이터 환경).
     static func seed(into context: ModelContext) {
+        #if !targetEnvironment(simulator)
+        _ = context
+        #else
         try? context.delete(model: FinDataEntity.self)
         try? context.delete(model: FixedExpenditureEntity.self)
 
@@ -80,5 +88,6 @@ enum PreviewSampleData {
 
         // 첫 실행 온보딩을 건너뛰고 메인 그리드가 바로 보이게
         UserDefaults.standard.setValue(true, forKey: AppKeys.firstOpen)
+        #endif
     }
 }

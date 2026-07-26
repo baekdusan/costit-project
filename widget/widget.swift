@@ -53,8 +53,15 @@ struct Provider: TimelineProvider {
         let profile = (try? context.fetch(profileDescriptor))?.first?.asProfile ?? Profile()
         let salary = (try? context.fetch(salaryDescriptor))?.first?.asSalaryDate ?? SalaryDate()
 
-        let start = salary.startDate
-        let end = salary.endDate
+        // 정산 기간 갱신(rollover)은 앱의 MainView에서만 일어난다. 앱을 켜지 않은 채 급여일이
+        // 지나면 위젯이 지난 기간 잔액을 계속 표시하므로, 만료된 경우 프로필의 급여일로
+        // 현재 기간을 계산해 쓴다. (표시 전용 — 위젯은 저장하지 않는다)
+        let period = date > salary.endDate
+            ? SalaryDate.period(forSalaryDay: profile.period, now: date)
+            : salary
+
+        let start = period.startDate
+        let end = period.endDate
 
         let predicate = #Predicate<FinDataEntity> {
             $0.isRevenue == false && $0.when >= start && $0.when <= end
