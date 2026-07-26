@@ -51,12 +51,19 @@ struct MainView: View {
     }
 
     private var salaryData: SalaryDate {
-        if let stored = salaryPeriods.canonical { return stored.asSalaryDate }
-        // 기간 엔티티가 아직 없을 때(레거시 salarydata 키 없음 / CloudKit이 프로필만 먼저 내려줌)
-        // 달력월로 떨어지면 급여일 기준으로 계산하는 위젯과 서로 다른 잔액을 표시한다.
-        // 위젯과 같은 계산식을 쓴다 — rolloverSalaryPeriodIfNeeded가 곧 엔티티도 만든다.
-        guard let profile = profiles.canonical else { return SalaryDate() }
-        return SalaryDate.period(forSalaryDay: profile.period)
+        // 프로필이 있으면 급여일로 "지금 맞는 기간"을 계산해 쓴다 — 위젯(widget.swift)과 동일한 규칙.
+        //
+        // 저장된 SalaryPeriodEntity를 우선하면 두 가지가 어긋난다:
+        //  (1) 앱을 켜지 않은 채 급여일 자정을 넘기면 위젯은 새 기간, 앱은 rollover 전이라 옛 기간을
+        //      표시해 같은 시점에 서로 다른 잔액이 보인다.
+        //  (2) CloudKit 중복으로 프로필과 기간 엔티티가 각각 다른 행에서 선택되면,
+        //      화면의 급여일과 실제 필터 기간이 서로 다른 세대의 값이 된다.
+        // 저장 엔티티는 프로필을 아직 모르는 경우의 폴백으로만 쓰고,
+        // 값 자체의 갱신은 rolloverSalaryPeriodIfNeeded가 계속 담당한다.
+        if let profile = profiles.canonical {
+            return SalaryDate.period(forSalaryDay: profile.period)
+        }
+        return salaryPeriods.canonical?.asSalaryDate ?? SalaryDate()
     }
 
     private var currentRange: (start: Date, end: Date) {
