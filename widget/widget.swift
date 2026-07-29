@@ -77,7 +77,12 @@ struct Provider: TimelineProvider {
 
         // fetchLimit 1로 아무 행이나 집으면, CloudKit 경합으로 프로필이 여러 벌일 때
         // 앱과 위젯이 서로 다른 예산·급여일을 표시한다 → 앱과 같은 canonical 선택 규칙을 쓴다
-        let profileEntity = (try? context.fetch(FetchDescriptor<ProfileEntity>()))?.canonical
+        //
+        // 조회 실패(throw)와 "프로필이 아직 없음"을 구분해서 들고 간다. 뭉쳐서 nil로 만들면
+        // 예산을 설정해둔 사용자가 일시적 조회 실패 때 "예산을 설정해주세요"를 보게 되고,
+        // 그 화면은 .atEnd 정책이라 다음 자정까지 굳는다(재시도 정책은 unavailable에만 적용).
+        let profileFetch = try? context.fetch(FetchDescriptor<ProfileEntity>())
+        let profileEntity = profileFetch?.canonical
 
         // 엔티티 없을 때 기본값은 앱과 동일하게 Profile()/SalaryDate()를 단일 소스로 사용
         let profile = profileEntity?.asProfile ?? Profile()
@@ -122,7 +127,8 @@ struct Provider: TimelineProvider {
             // isEphemeralFallback: 스토어를 못 열어 in-memory로 폴백하면 fetch는 성공하면서
             // 빈 결과를 준다. 이걸 "프로필 없음"으로 읽으면 예산을 설정해둔 사용자에게
             // "예산을 설정해주세요"가 떠서 프로필이 사라진 줄 알고 재입력하게 된다.
-            state: (expenses == nil || PersistenceController.isEphemeralFallback) ? .unavailable
+            // profileFetch == nil은 "프로필이 없다"가 아니라 "읽지 못했다"다.
+            state: (expenses == nil || profileFetch == nil || PersistenceController.isEphemeralFallback) ? .unavailable
                  : (profileEntity == nil ? .needsSetup : .normal)
         )
     }
@@ -134,16 +140,24 @@ struct CostItWidgetEntryView: View {
     @ViewBuilder
     var body: some View {
         let percent = entry.percent
+        // 예산이 0원이라 "몇 % 남았는가"를 못 구해도, 지출이 있으면 초과인 것은 확실하다.
+        // 그 경우까지 중립으로 두면 문구는 "망했어요"인데 이모지는 🙂, 게이지는 회색이라
+        // 한 화면 안에서 서로 반대를 말하게 된다.
+        // (예산이 있는 초과 사용자는 percent가 0이라 아래 비율 분기에서 이미 같은 결과가 나온다)
+        let isDefinitelyOver = entry.state == .normal && entry.isOver
         // 예산 미설정 상태에서는 게이지·이모지도 중립으로 둔다. percent가 0이라는 이유로
         // 빨간 게이지와 😱를 쓰면, 데이터가 멀쩡한데 최악 상태인 것처럼 보인다.
-        let color: Color = entry.ratioUnknown
-            ? Color(#colorLiteral(red: 0.6862745285, green: 0.6862745285, blue: 0.6862745285, alpha: 1))
-            : (percent > 50
-                ? Color(#colorLiteral(red: 0.3518846035, green: 0.6747873425, blue: 0.622913003, alpha: 1))
-                : (percent > 20
-                    ? Color(#colorLiteral(red: 0.9529411793, green: 0.6862745285, blue: 0.1333333403, alpha: 1))
-                    : Color(#colorLiteral(red: 0.9464814067, green: 0.240496546, blue: 0.2090002298, alpha: 1))))
-        let emoji: String = entry.ratioUnknown ? "🙂"
+        let color: Color = isDefinitelyOver
+            ? Color(#colorLiteral(red: 0.9464814067, green: 0.240496546, blue: 0.2090002298, alpha: 1))
+            : (entry.ratioUnknown
+                ? Color(#colorLiteral(red: 0.6862745285, green: 0.6862745285, blue: 0.6862745285, alpha: 1))
+                : (percent > 50
+                    ? Color(#colorLiteral(red: 0.3518846035, green: 0.6747873425, blue: 0.622913003, alpha: 1))
+                    : (percent > 20
+                        ? Color(#colorLiteral(red: 0.9529411793, green: 0.6862745285, blue: 0.1333333403, alpha: 1))
+                        : Color(#colorLiteral(red: 0.9464814067, green: 0.240496546, blue: 0.2090002298, alpha: 1)))))
+        let emoji: String = isDefinitelyOver ? "😱"
+            : entry.ratioUnknown ? "🙂"
             : percent >= 80 ? "🤑"
             : percent >= 60 ? "😊"
             : percent >= 40 ? "🙂"

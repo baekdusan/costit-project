@@ -77,7 +77,13 @@ struct CalendarView: View {
     private var ddayTitle: String {
         // [.month, .day]로 요청하면 day에 월을 뺀 나머지만 담겨 30일 이상 스팬에서 오표시 → [.day]만 사용
         // 날짜 산술은 프로젝트 전체가 gregorian 고정
-        let dday = max(0, Calendar(identifier: .gregorian).dateComponents([.day], from: Date(), to: end).day ?? 0)
+        //
+        // 양끝을 그 날 00:00으로 내려 "며칠 남았는가"를 달력 날짜 차이로 센다.
+        // 시각을 그대로 넣으면 dateComponents가 24시간 단위 몫을 주기 때문에,
+        // 마지막 날 하루가 24시간이 아닌 날(서머타임 도입일 23시간)에는 남은 날짜가
+        // 하루 적게 나와 아직 하루 남았는데도 "오늘이 마지막이에요!"가 뜬다.
+        let calendar = Calendar(identifier: .gregorian)
+        let dday = max(0, calendar.dateComponents([.day], from: Date().startOfDay, to: end.startOfDay).day ?? 0)
         switch dday {
         case 0: return "오늘이 마지막이에요!"
         case 1: return "하루 남았어요"

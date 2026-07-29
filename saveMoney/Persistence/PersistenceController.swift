@@ -120,8 +120,15 @@ extension PersistenceController {
             return false
         }
         // 이미 사라진 항목이면 "삭제됨"과 결과가 같으므로 성공으로 본다
-        guard let item = found.first, !item.isDeleted else { return true }
-        context.delete(item)
+        let targets = found.filter { !$0.isDeleted }
+        guard !targets.isEmpty else { return true }
+        // 사본을 전부 지운다. CloudKit은 @Attribute(.unique)를 지원하지 않아 같은 externalID를
+        // 가진 행이 여러 벌 생길 수 있는데(두 기기가 각자 마이그레이션한 경우 등), .first만 지우면
+        // 남은 사본이 그대로 동기화되어 사용자가 지운 내역이 다음 실행에 되살아난다.
+        // 같은 externalID는 앱 전체에서 "레코드 하나"를 가리키므로 전부 지우는 것이 사용자의 의도다.
+        for item in targets {
+            context.delete(item)
+        }
         // 저장 실패를 호출부에 전달한다 — 화면에서만 사라지고 다음 실행에 되살아나는 것을 알릴 수 있게
         return saveAndRefreshWidgets(context)
     }

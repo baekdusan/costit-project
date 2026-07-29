@@ -505,12 +505,22 @@ struct MainView: View {
     // ⚠️ 사본 하나만 고치면(profiles.first?.outLay = …) 즉시 이 불변식이 깨져
     //    사용자가 방금 입력한 값이 되돌아간다. 프로필·기간을 바꾸는 코드는 전부 여기로 모은다.
 
+    // @Query 결과는 이번 런루프에서 방금 insert한 행을 아직 반영하지 않는다. 온보딩 "완료"를
+    // 연타하면 두 번째 호출도 "프로필 없음"으로 판정해 사본을 하나 더 만든다 —
+    // CloudKit은 @Attribute(.unique)를 지원하지 않아 그 중복은 이후 계속 따라다닌다.
+    // 컨텍스트에서 직접 읽으면 pending insert까지 보이므로 같은 실행 안에서 두 번 만들지 않는다.
+    // (조회가 실패하면 @Query 결과로 폴백 — 기존 동작과 같다)
+    private func currentEntities<T: PersistentModel>(fallback: [T]) -> [T] {
+        (try? modelContext.fetch(FetchDescriptor<T>())) ?? fallback
+    }
+
     private func applyProfileToAllEntities(nickname: String, outLay: Int, period: String) {
-        guard !profiles.isEmpty else {
+        let existing = currentEntities(fallback: profiles)
+        guard !existing.isEmpty else {
             modelContext.insert(ProfileEntity(nickName: nickname, outLay: outLay, period: period))
             return
         }
-        for entity in profiles {
+        for entity in existing {
             entity.nickName = nickname
             entity.outLay = outLay
             entity.period = period
@@ -519,10 +529,11 @@ struct MainView: View {
 
     // save: false면 호출부가 저장을 책임진다(여러 엔티티를 한 번에 바꾸고 한 번만 저장하는 경우)
     private func applyPeriodToAllEntities(_ period: SalaryDate, save: Bool = true) {
-        if salaryPeriods.isEmpty {
+        let existing = currentEntities(fallback: salaryPeriods)
+        if existing.isEmpty {
             modelContext.insert(SalaryPeriodEntity(startDate: period.startDate, endDate: period.endDate))
         } else {
-            for entity in salaryPeriods {
+            for entity in existing {
                 entity.startDate = period.startDate
                 entity.endDate = period.endDate
             }

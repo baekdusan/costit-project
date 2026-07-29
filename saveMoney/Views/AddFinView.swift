@@ -275,7 +275,10 @@ struct AddFinView: View {
                 saveFailureMessage = "저장에 실패했어요. 잠시 후 다시 시도해주세요."
                 return
             }
-            guard let entity = found.first else {
+            // isDeleted도 함께 본다 — 편집 화면을 열어둔 사이 다른 기기의 삭제가 동기화되면
+            // 삭제 표시만 된 인스턴스가 조회될 수 있고, 그 속성을 고치면 이미 지워진 레코드를
+            // 되살리거나 컨텍스트를 오염시킨다 (PersistenceController.deleteFin과 같은 판정).
+            guard let entity = found.first(where: { !$0.isDeleted }) else {
                 // edit 도중 다른 기기에서 삭제된 경우 등. 과거엔 조용히 무시하고 화면을 닫아
                 // 사용자는 수정이 저장된 것으로 오인했다 → 입력을 유지한 채 사실을 알린다.
                 PersistenceController.logger.error("AddFinView edit 대상 미발견: externalID \(externalID, privacy: .public)")
