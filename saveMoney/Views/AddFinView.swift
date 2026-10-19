@@ -47,14 +47,6 @@ struct AddFinView: View {
 
     enum Field: Hashable { case towhat, how }
 
-    // 날짜 휠에서 고를 수 있는 범위 (MonthSelectorSheet의 연도 목록 클램프와 같은 구간)
-    private static var selectableDateRange: ClosedRange<Date> {
-        let calendar = Calendar(identifier: .gregorian)
-        let lower = calendar.date(from: DateComponents(year: 1900, month: 1, day: 1)) ?? .distantPast
-        let upper = calendar.date(from: DateComponents(year: 2200, month: 12, day: 31)) ?? .distantFuture
-        return lower...upper
-    }
-
     private var howInt: Int {
         howText.toInt()   // toInt()가 콤마 처리 포함
     }
@@ -194,7 +186,7 @@ struct AddFinView: View {
             NavigationStack {
                 // 연도 범위를 열어두면 휠을 0001년까지 돌려 저장할 수 있고, 그 내역은
                 // 월 선택 시트(MonthSelectorSheet)의 연도 목록을 수천 개로 불어나게 한다
-                DatePicker("날짜", selection: $when, in: Self.selectableDateRange, displayedComponents: .date)
+                DatePicker("날짜", selection: $when, in: AppYearBounds.selectableDateRange, displayedComponents: .date)
                     .datePickerStyle(.wheel)
                     .labelsHidden()
                     .environment(\.locale, Locale(identifier: "ko_KR"))
@@ -213,14 +205,7 @@ struct AddFinView: View {
             .presentationDetents([.fraction(0.4)])
         }
         // 저장 실패/대상 소실을 알린다 — 화면은 닫지 않으므로 입력값이 보존된다
-        .alert("알림", isPresented: Binding(
-            get: { saveFailureMessage != nil },
-            set: { if !$0 { saveFailureMessage = nil } }
-        )) {
-            Button("확인") { saveFailureMessage = nil }
-        } message: {
-            Text(saveFailureMessage ?? "")
-        }
+        .messageAlert(message: $saveFailureMessage)
     }
 
     // MARK: - 데이터 조작 / Dismiss
@@ -249,7 +234,7 @@ struct AddFinView: View {
         var editedEntity: FinDataEntity?
         var previousValues: (when: Date, towhat: String, how: Int)?
 
-        // 모든 present 경로가 .modelContainer(PersistenceController.shared)를 주입하므로
+        // 모든 present 경로가 withAppEnvironment()로 공용 ModelContainer를 주입하므로
         // 다른 화면들과 동일하게 environment context를 사용한다.
         switch mode {
         case .new:

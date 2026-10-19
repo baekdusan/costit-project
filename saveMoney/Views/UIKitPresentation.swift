@@ -1,5 +1,24 @@
 import SwiftUI
+import SwiftData
 import UIKit
+
+// MARK: - 앱 공통 루트 환경 주입
+// 새 UIHostingController는 부모의 SwiftUI environment를 상속하지 않으므로,
+// 공유 ModelContainer와 고정 Dynamic Type(.large — 1.7.2 UIKit 시절 레이아웃 유지)을
+// 빠짐없이 주입하기 위한 공통 경로.
+
+extension View {
+    func withAppEnvironment() -> some View {
+        self
+            .modelContainer(PersistenceController.shared)
+            .dynamicTypeSize(.large)
+    }
+}
+
+@MainActor
+func makeAppHostingController<Content: View>(rootView: Content) -> UIHostingController<some View> {
+    UIHostingController(rootView: rootView.withAppEnvironment())
+}
 
 // MARK: - UIKit 프레젠테이션 브리지
 // AddFinView(투명 배경 overFullScreen)는 SwiftUI fullScreenCover 대신 UIKit present를 쓴다:
@@ -56,8 +75,7 @@ func presentAddFin(source: AddFinView.Source, mode: AddFinView.Mode) {
         AddFinView(source: source, mode: mode, onDismiss: { [weak host] in
             host?.dismiss(animated: true)
         })
-        .modelContainer(PersistenceController.shared)
-        .dynamicTypeSize(.large)
+        .withAppEnvironment()
     )
     host.modalPresentationStyle = .overFullScreen
     host.view.backgroundColor = .clear

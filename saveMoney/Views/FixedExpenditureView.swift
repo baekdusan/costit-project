@@ -75,14 +75,7 @@ struct FixedExpenditureView: View {
         .deleteConfirmationAlert(item: $deleteTarget, message: "해당 고정 지출 내역을 삭제해요.") {
             deleteItem($0)
         }
-        .alert("알림", isPresented: Binding(
-            get: { addFailureMessage != nil },
-            set: { if !$0 { addFailureMessage = nil } }
-        )) {
-            Button("확인") { addFailureMessage = nil }
-        } message: {
-            Text(addFailureMessage ?? "")
-        }
+        .messageAlert(message: $addFailureMessage)
         .sheet(isPresented: $showDayPicker) {
             // 초기값만 넘기고 확정("설정") 시에만 부모 상태 갱신 — 시트를 스와이프로 닫으면
             // 휠 값이 버려진다 (과거 @Binding 공유로 표시값과 저장값이 어긋나던 버그 수정)
@@ -313,12 +306,10 @@ struct FixedExpenditureView: View {
         // 살아 있는 항목의 알림만 해제되어, 다음 달부터 알림이 오지 않는다.
         guard let found = try? modelContext.fetch(descriptor) else {
             PersistenceController.logger.error("고정 지출 삭제 대상 조회 실패: \(externalID, privacy: .public)")
-            // 값이 non-nil로 굳으면 재대입에 전이가 없어 알럿이 다시 뜨지 않는다 → 먼저 비운다
-            // (이 화면은 알럿 상태가 하나뿐이라, 굳으면 추가 실패·금액 검증 알럿까지 함께 무음이 된다)
-            addFailureMessage = nil
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.4) {
-                addFailureMessage = "삭제에 실패했어요. 잠시 후 다시 시도해주세요."
-            }
+            presentDeferredAlertMessage(
+                "삭제에 실패했어요. 잠시 후 다시 시도해주세요.",
+                to: $addFailureMessage
+            )
             return
         }
         guard let item = found.first, !item.isDeleted else {
@@ -342,13 +333,10 @@ struct FixedExpenditureView: View {
             try modelContext.save()
         } catch {
             PersistenceController.logger.error("고정 지출 삭제 저장 실패: \(String(describing: error), privacy: .public)")
-            // 삭제 확인 알럿이 닫히는 도중에 띄우면 표시 요청이 무시되므로 닫힌 뒤로 미룬다
-            // 값이 non-nil로 굳으면 재대입에 전이가 없어 알럿이 다시 뜨지 않는다 → 먼저 비운다
-            // (이 화면은 알럿 상태가 하나뿐이라, 굳으면 추가 실패·금액 검증 알럿까지 함께 무음이 된다)
-            addFailureMessage = nil
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.4) {
-                addFailureMessage = "삭제에 실패했어요. 잠시 후 다시 시도해주세요."
-            }
+            presentDeferredAlertMessage(
+                "삭제에 실패했어요. 잠시 후 다시 시도해주세요.",
+                to: $addFailureMessage
+            )
         }
     }
 
@@ -365,7 +353,7 @@ struct FixedExpenditureView: View {
         #endif
         notificationCenter.requestAuthorization(options: [.alert, .sound, .badge]) { granted, error in
             if let error = error {
-                print(error)
+                PersistenceController.logger.error("알림 권한 요청 오류: \(String(describing: error), privacy: .public)")
             }
             guard granted else { return }
             DispatchQueue.main.async { onGranted() }

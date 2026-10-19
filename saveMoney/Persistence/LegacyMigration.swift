@@ -2,6 +2,7 @@ import Foundation
 import SwiftData
 import CryptoKit
 import WidgetKit
+import os
 
 // UserDefaults(PropertyListEncoder 기반)에 저장되어 있던 기존 데이터를
 // SwiftData로 이전한다. 멱등(idempotent)하게 동작:
@@ -14,6 +15,8 @@ import WidgetKit
 // 복귀 후 데이터 추가 → 다시 업데이트" 시나리오에서 플래그가 이미 켜져 있어
 // 구버전에서 추가된 데이터가 영영 이전되지 않는 버그가 있었다.
 enum LegacyMigration {
+    private static let logger = Logger(subsystem: PersistenceController.cloudContainerID, category: "migration")
+
     private enum Keys {
         static let finList = "finlist"
         static let rFinList = "rfinList"
@@ -75,7 +78,7 @@ enum LegacyMigration {
             // 만족하는데, aborted만 이 불변식을 깨고 있었다.
             guard !outcome.aborted else {
                 context.rollback()
-                print("[LegacyMigration] 조회 실패로 중단 — 이번 이전 내용을 되돌리고 다음 실행에서 재시도")
+                logger.error("조회 실패로 중단 — 이번 이전 내용을 되돌리고 다음 실행에서 재시도")
                 return
             }
 
@@ -90,10 +93,10 @@ enum LegacyMigration {
             // 사용자가 지운 지출이 실행마다 되살아난다. 깨진 blob은 같은 코드로 다시 읽어도 결과가
             // 같으므로, 재시도는 디코더를 고친 버전에서 logicVersion을 올려 수행한다.
             if PersistenceController.isEphemeralFallback {
-                print("[LegacyMigration] in-memory 폴백 실행 — fingerprint 미기록(다음 정상 실행에서 재시도)")
+                logger.warning("in-memory 폴백 실행 — fingerprint 미기록(다음 정상 실행에서 재시도)")
             } else {
                 if outcome.decodeFailed {
-                    print("[LegacyMigration] 일부 blob 디코딩 실패 — 완료로 기록(재시도는 logicVersion 상향 시)")
+                    logger.warning("일부 blob 디코딩 실패 — 완료로 기록(재시도는 logicVersion 상향 시)")
                 }
                 defaults.set(current, forKey: Keys.fingerprint)
             }
@@ -102,7 +105,7 @@ enum LegacyMigration {
             WidgetCenter.shared.reloadAllTimelines()
         } catch {
             // 실패 시 컨텍스트만 폐기. UserDefaults는 그대로 → 다음 실행에서 재시도.
-            print("[LegacyMigration] 실패: \(error)")
+            logger.error("마이그레이션 실패: \(String(describing: error), privacy: .public)")
         }
     }
 
@@ -136,12 +139,12 @@ enum LegacyMigration {
     // 후자는 재시도해도 같은 결과라 건너뛴다.
     private static func decodeList<T: Decodable>(_ type: T.Type, from data: Data) -> (values: [T], failed: Bool) {
         guard let wrapped = try? PropertyListDecoder().decode([Failable<T>].self, from: data) else {
-            print("[LegacyMigration] \(T.self) 목록 전체 디코딩 실패 (\(data.count) bytes)")
+            logger.error("\(String(describing: T.self), privacy: .public) 목록 전체 디코딩 실패 (\(data.count) bytes)")
             return ([], true)
         }
         let values = wrapped.compactMap(\.value)
         if values.count < wrapped.count {
-            print("[LegacyMigration] 손상된 항목 \(wrapped.count - values.count)건 건너뜀 (\(T.self))")
+            logger.warning("손상된 항목 \(wrapped.count - values.count)건 건너뜀 (\(String(describing: T.self), privacy: .public))")
         }
         return (values, false)
     }
@@ -252,7 +255,7 @@ enum LegacyMigration {
         guard let existing = try? context.fetch(FetchDescriptor<FinDataEntity>(
             predicate: #Predicate { $0.isRevenue == isRevenue }
         )) else {
-            print("[LegacyMigration] 기존 \(isRevenue ? "수입" : "지출") 조회 실패 — 이번 이전 건너뜀")
+            logger.error("기존 \(isRevenue ? "수입" : "지출", privacy: .public) 조회 실패 — 이번 이전 건너뜀")
             return Outcome(decodeFailed: false, aborted: true)
         }
 
@@ -322,7 +325,7 @@ enum LegacyMigration {
         // 조회 실패를 빈 결과로 삼키면 dedup 근거를 잃고 고정지출 전량이 같은 externalID로
         // 다시 삽입되므로, 실패하면 이번 이전을 건너뛰고 다음 실행에서 재시도한다.
         guard let existingFixed = try? context.fetch(FetchDescriptor<FixedExpenditureEntity>()) else {
-            print("[LegacyMigration] 기존 고정지출 조회 실패 — 이번 이전 건너뜀")
+            logger.error("기존 고정지출 조회 실패 — 이번 이전 건너뜀")
             return Outcome(decodeFailed: false, aborted: true)
         }
         let existingIDs = Set(existingFixed.map(\.externalID))
@@ -354,7 +357,7 @@ enum LegacyMigration {
         var descriptor = FetchDescriptor<ProfileEntity>()
         descriptor.fetchLimit = 1
         guard let existing = try? context.fetch(descriptor) else {
-            print("[LegacyMigration] 기존 프로필 조회 실패 — 이번 이전 건너뜀")
+            logger.error("기존 프로필 조회 실패 — 이번 이전 건너뜀")
             return Outcome(decodeFailed: false, aborted: true)
         }
         if existing.first != nil { return Outcome() }
@@ -366,7 +369,7 @@ enum LegacyMigration {
         //      더미를 골라 사용자의 목표 지출액·급여일이 사라진 것처럼 보였다.
         guard let data = defaults.data(forKey: Keys.profile) else { return Outcome() }
         guard let legacy = try? PropertyListDecoder().decode(LegacyProfile.self, from: data) else {
-            print("[LegacyMigration] 프로필 디코딩 실패 (\(data.count) bytes)")
+            logger.error("프로필 디코딩 실패 (\(data.count) bytes)")
             return Outcome(decodeFailed: true, aborted: false)
         }
 
@@ -383,7 +386,7 @@ enum LegacyMigration {
         var descriptor = FetchDescriptor<SalaryPeriodEntity>()
         descriptor.fetchLimit = 1
         guard let existing = try? context.fetch(descriptor) else {
-            print("[LegacyMigration] 기존 정산 기간 조회 실패 — 이번 이전 건너뜀")
+            logger.error("기존 정산 기간 조회 실패 — 이번 이전 건너뜀")
             return Outcome(decodeFailed: false, aborted: true)
         }
         if existing.first != nil { return Outcome() }
@@ -395,7 +398,7 @@ enum LegacyMigration {
         // 실제 생성은 온보딩 완료 시 MainView.handleProfileInput이 한다.
         guard let data = defaults.data(forKey: Keys.salaryData) else { return Outcome() }
         guard let decoded = try? PropertyListDecoder().decode(LegacySalary.self, from: data) else {
-            print("[LegacyMigration] 정산 기간 디코딩 실패 (\(data.count) bytes)")
+            logger.error("정산 기간 디코딩 실패 (\(data.count) bytes)")
             return Outcome(decodeFailed: true, aborted: false)
         }
 

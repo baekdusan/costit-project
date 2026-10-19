@@ -123,14 +123,7 @@ struct RevenueView: View {
         .deleteConfirmationAlert(item: $deleteTarget, message: "해당 수입 내역을 삭제해요.") {
             deleteItem($0)
         }
-        .alert("삭제 실패", isPresented: Binding(
-            get: { deleteFailureMessage != nil },
-            set: { if !$0 { deleteFailureMessage = nil } }
-        )) {
-            Button("확인") { deleteFailureMessage = nil }
-        } message: {
-            Text(deleteFailureMessage ?? "")
-        }
+        .messageAlert("삭제 실패", message: $deleteFailureMessage)
     }
 
     // MARK: - 화면 전환 (UIKit present)
@@ -147,25 +140,22 @@ struct RevenueView: View {
             root.topMostPresentedViewController.dismiss(animated: true)
         }
 
-        let host = UIHostingController(rootView: MonthSelectorSheet(
-            onSelect: { newStart, newEnd, label in
-                start = newStart
-                end = newEnd
-                customTitle = label
-                dismissSheet()
-            },
-            onReset: {
-                start = initialStart
-                end = initialEnd
-                customTitle = nil
-                dismissSheet()
-            }
+        let host = makeAppHostingController(
+            rootView: MonthSelectorSheet(
+                onSelect: { newStart, newEnd, label in
+                    start = newStart
+                    end = newEnd
+                    customTitle = label
+                    dismissSheet()
+                },
+                onReset: {
+                    start = initialStart
+                    end = initialEnd
+                    customTitle = nil
+                    dismissSheet()
+                }
+            )
         )
-        // MonthSelectorSheet는 @Query로 저장된 내역의 연도 범위를 읽는다.
-        // 새 UIHostingController는 environment를 상속하지 않으므로 컨테이너를 직접 주입해야 한다
-        // (없으면 @Query가 활성 컨테이너를 찾지 못해 크래시).
-        .modelContainer(PersistenceController.shared)
-        .dynamicTypeSize(.large))
         if let sheet = host.sheetPresentationController {
             sheet.detents = [.custom { $0.maximumDetentValue * 0.45 }]
             sheet.prefersGrabberVisible = false
@@ -258,91 +248,10 @@ struct RevenueView: View {
         // 저장에 실패하면 화면에서만 사라지고 다음 실행에 되살아난다 → 사실을 알린다.
         // 삭제 확인 알럿이 닫히는 도중에 띄우면 표시 요청이 무시되므로 닫힌 뒤로 미룬다.
         if !PersistenceController.deleteFin(externalID: externalID, in: modelContext) {
-            // 값이 non-nil로 굳으면 재대입에 전이가 없어 알럿이 다시 뜨지 않는다 → 먼저 비운다
-            deleteFailureMessage = nil
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.4) {
-                deleteFailureMessage = "삭제를 저장하지 못했어요. 잠시 후 다시 시도해주세요."
-            }
-        }
-    }
-}
-
-// MARK: - Supporting Types
-
-struct MonthSelectorSheet: View {
-    let onSelect: (Date, Date, String) -> Void
-    let onReset: () -> Void
-
-    // 실제로 저장된 내역의 연도 범위를 함께 보여준다 — 목록에 없는 연도는 조회 자체가 불가능해
-    // "저장은 됐는데 어디서도 볼 수 없는" 데이터가 생긴다 (입력 화면의 DatePicker에는 연도 제한이 없다).
-    // 필요한 건 최초/최종 1건뿐이라 @Query로 전 내역을 메모리에 올리지 않고 fetchLimit 1로 양 끝만 읽는다.
-    @Environment(\.modelContext) private var modelContext
-
-    // 날짜 산술은 프로젝트 전체가 gregorian 고정 — 여기만 Calendar.current를 쓰면
-    // 비양력 기기(불교력 등)에서 선택한 연도가 전혀 다른 절대 날짜로 해석되어
-    // 해당 기간 내역이 통째로 사라진다.
-    // static let이 아닌 computed인 이유는 Date 확장과 동일: Calendar는 생성 시점의 타임존을
-    // 스냅샷하므로, 캐시해두면 기기 타임존이 바뀐 뒤 라벨과 실제 필터 기간이 어긋난다.
-    private static var gregorian: Calendar { Calendar(identifier: .gregorian) }
-
-    @State private var selectedYear: Int = Calendar(identifier: .gregorian).component(.year, from: Date())
-    @State private var selectedMonth: Int = Calendar(identifier: .gregorian).component(.month, from: Date())
-
-    private var years: [Int] {
-        let calendar = Self.gregorian
-        let current = calendar.component(.year, from: Date())
-
-        var oldest = FetchDescriptor<FinDataEntity>(sortBy: [SortDescriptor(\.when)])
-        oldest.fetchLimit = 1
-        var newest = FetchDescriptor<FinDataEntity>(sortBy: [SortDescriptor(\.when, order: .reverse)])
-        newest.fetchLimit = 1
-        let storedMin = (try? modelContext.fetch(oldest))?.first.map { calendar.component(.year, from: $0.when) }
-        let storedMax = (try? modelContext.fetch(newest))?.first.map { calendar.component(.year, from: $0.when) }
-
-        // 디바이스 시계가 2021 이전으로 설정돼 있어도 빈 Range 크래시가 나지 않도록 가드.
-        // 상·하한을 두는 이유: 입력 화면 DatePicker에 연도 제한이 없어 실수로 0001년 내역이
-        // 하나라도 저장되면 wheel Picker 항목이 수천 개로 불어난다.
-        let lower = max(1900, min(2021, storedMin ?? 2021))
-        let upper = min(2200, max(current, storedMax ?? current))
-        return Array(lower...max(lower, upper))
-    }
-
-    var body: some View {
-        // NavigationStack의 toolbar 버튼은 UIKit present된 UIHostingController 위에서 띄운
-        // sheet에서는 탭이 먹지 않는 경우가 있어(수입 화면) 일반 버튼 헤더로 구성한다.
-        VStack(spacing: 0) {
-            HStack {
-                Button("Reset", action: onReset)
-                Spacer()
-                Button("설정") {
-                    let comps = DateComponents(year: selectedYear, month: selectedMonth)
-                    guard let date = Self.gregorian.date(from: comps) else { return }
-                    let label = "🗓 \(selectedYear)년 \(selectedMonth)월"
-                    onSelect(date.startOfThisMonth, date.endOfThisMonth, label)
-                }
-            }
-            .font(.system(size: 17, weight: .semibold))
-            .tint(Color(.customLabel))
-            .padding(.horizontal, 20)
-            .padding(.top, 16)
-            .padding(.bottom, 4)
-
-            HStack(spacing: 0) {
-                Picker("년", selection: $selectedYear) {
-                    ForEach(years, id: \.self) { year in
-                        // Text("\(year)년")은 LocalizedStringKey 보간이라 "2,026년"처럼 천 단위 콤마가 붙음 → verbatim 사용
-                        Text(verbatim: "\(year)년").tag(year)
-                    }
-                }
-                .pickerStyle(.wheel)
-
-                Picker("월", selection: $selectedMonth) {
-                    ForEach(1...12, id: \.self) { month in
-                        Text(verbatim: "\(month)월").tag(month)
-                    }
-                }
-                .pickerStyle(.wheel)
-            }
+            presentDeferredAlertMessage(
+                "삭제를 저장하지 못했어요. 잠시 후 다시 시도해주세요.",
+                to: $deleteFailureMessage
+            )
         }
     }
 }

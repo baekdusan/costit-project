@@ -137,31 +137,53 @@ struct Provider: TimelineProvider {
 struct CostItWidgetEntryView: View {
     var entry: CostEntry
 
-    @ViewBuilder
+    private static let dangerColor = Color(red: 0.9464814067, green: 0.240496546, blue: 0.2090002298)
+    private static let neutralColor = Color(red: 0.6862745285, green: 0.6862745285, blue: 0.6862745285)
+    private static let safeColor = Color(red: 0.3518846035, green: 0.6747873425, blue: 0.622913003)
+    private static let warningColor = Color(red: 0.9529411793, green: 0.6862745285, blue: 0.1333333403)
+
+    // 예산이 0원이라 "몇 % 남았는가"를 못 구해도, 지출이 있으면 초과인 것은 확실하다.
+    // 그 경우까지 중립으로 두면 문구는 "망했어요"인데 이모지는 🙂, 게이지는 회색이라
+    // 한 화면 안에서 서로 반대를 말하게 된다.
+    // (예산이 있는 초과 사용자는 percent가 0이라 아래 비율 분기에서 이미 같은 결과가 나온다)
+    private var isDefinitelyOver: Bool {
+        entry.state == .normal && entry.isOver
+    }
+
+    // 예산 미설정 상태에서는 게이지·이모지도 중립으로 둔다. percent가 0이라는 이유로
+    // 빨간 게이지와 😱를 쓰면, 데이터가 멀쩡한데 최악 상태인 것처럼 보인다.
+    private var statusColor: Color {
+        if isDefinitelyOver { return Self.dangerColor }
+        if entry.ratioUnknown { return Self.neutralColor }
+        switch entry.percent {
+        case 51...: return Self.safeColor
+        case 21...50: return Self.warningColor
+        default: return Self.dangerColor
+        }
+    }
+
+    private var statusEmoji: String {
+        if isDefinitelyOver { return "😱" }
+        if entry.ratioUnknown { return "🙂" }
+        switch entry.percent {
+        case 80...: return "🤑"
+        case 60..<80: return "😊"
+        case 40..<60: return "🙂"
+        case 20..<40: return "🤔"
+        default: return "😱"
+        }
+    }
+
+    private var statusSubtitle: String {
+        switch entry.state {
+        case .needsSetup: return "예산을 설정해주세요"
+        case .unavailable: return "잠시 후 다시 볼게요"
+        case .normal: return entry.isOver ? "망했어요" : "남았어요"
+        }
+    }
+
     var body: some View {
         let percent = entry.percent
-        // 예산이 0원이라 "몇 % 남았는가"를 못 구해도, 지출이 있으면 초과인 것은 확실하다.
-        // 그 경우까지 중립으로 두면 문구는 "망했어요"인데 이모지는 🙂, 게이지는 회색이라
-        // 한 화면 안에서 서로 반대를 말하게 된다.
-        // (예산이 있는 초과 사용자는 percent가 0이라 아래 비율 분기에서 이미 같은 결과가 나온다)
-        let isDefinitelyOver = entry.state == .normal && entry.isOver
-        // 예산 미설정 상태에서는 게이지·이모지도 중립으로 둔다. percent가 0이라는 이유로
-        // 빨간 게이지와 😱를 쓰면, 데이터가 멀쩡한데 최악 상태인 것처럼 보인다.
-        let color: Color = isDefinitelyOver
-            ? Color(#colorLiteral(red: 0.9464814067, green: 0.240496546, blue: 0.2090002298, alpha: 1))
-            : (entry.ratioUnknown
-                ? Color(#colorLiteral(red: 0.6862745285, green: 0.6862745285, blue: 0.6862745285, alpha: 1))
-                : (percent > 50
-                    ? Color(#colorLiteral(red: 0.3518846035, green: 0.6747873425, blue: 0.622913003, alpha: 1))
-                    : (percent > 20
-                        ? Color(#colorLiteral(red: 0.9529411793, green: 0.6862745285, blue: 0.1333333403, alpha: 1))
-                        : Color(#colorLiteral(red: 0.9464814067, green: 0.240496546, blue: 0.2090002298, alpha: 1)))))
-        let emoji: String = isDefinitelyOver ? "😱"
-            : entry.ratioUnknown ? "🙂"
-            : percent >= 80 ? "🤑"
-            : percent >= 60 ? "😊"
-            : percent >= 40 ? "🙂"
-            : percent >= 20 ? "🤔" : "😱"
 
         GeometryReader { geometry in
             VStack(alignment: .trailing, spacing: 0) {
@@ -180,9 +202,7 @@ struct CostItWidgetEntryView: View {
                     .opacity(0.84)
                     .minimumScaleFactor(0.72)
 
-                Text(entry.state == .needsSetup ? "예산을 설정해주세요"
-                     : entry.state == .unavailable ? "잠시 후 다시 볼게요"
-                     : (entry.isOver ? "망했어요" : "남았어요"))
+                Text(statusSubtitle)
                     .font(.system(size: 12, weight: .bold))
                     .frame(height: geometry.size.height * 0.1)
                     .opacity(0.72)
@@ -195,7 +215,7 @@ struct CostItWidgetEntryView: View {
                         .frame(width: geometry.size.width * 0.45, alignment: .leading)
                         .opacity(0.84)
                         .minimumScaleFactor(0.72)
-                    Text(emoji)
+                    Text(statusEmoji)
                         .font(.system(size: 30))
                         .frame(width: geometry.size.width * 0.45, alignment: .trailing)
                 }
@@ -210,7 +230,7 @@ struct CostItWidgetEntryView: View {
             ZStack(alignment: .leading) {
                 Color(.widgetStatusBarBackground)
                     .frame(width: geometry.size.width, height: geometry.size.height * 0.08)
-                color
+                statusColor
                     // 판단 불가 상태에서 percent(= remaining/outLay)는 조회 실패로 100이 될 수 있다.
                     // 금액·비율을 "-"로 가려놓고 게이지만 만수위로 그리면 자기모순이 된다.
                     .frame(width: entry.ratioUnknown ? 0 : geometry.size.width * CGFloat(percent) / 100,

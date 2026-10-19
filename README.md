@@ -65,7 +65,7 @@ saveMoney/
 │  ├─ Models              # @Model 4종
 │  ├─ PersistenceController # App Group + CloudKit 컨테이너
 │  └─ LegacyMigration     # UserDefaults → SwiftData 이전
-├─ struct.swift           # 공용 모델·Date/String/Int 확장
+├─ AppSupport.swift           # 공용 모델·Date/String/Int 확장
 ├─ AppDelegate / SceneDelegate
 widget/                   # 홈 화면 위젯
 ```

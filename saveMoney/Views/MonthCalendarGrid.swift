@@ -17,16 +17,6 @@ struct MonthCalendarGrid: View {
     let revenueDays: Set<Date>
     let dailyBudget: Int
 
-    private static let headerFormatter: DateFormatter = {
-        let f = DateFormatter()
-        // 그리드 숫자는 gregorian 산술로 만들므로 헤더도 같은 캘린더로 고정한다 —
-        // 미지정이면 불교력 기기에서 헤더만 "2569년 7월"로 나온다
-        f.calendar = Calendar(identifier: .gregorian)
-        f.dateFormat = "yyyy년 M월"
-        f.locale = Locale(identifier: "ko_KR")
-        return f
-    }()
-
     private let weekdaySymbols = ["일", "월", "화", "수", "목", "금", "토"]
 
     // 수입 점 파란색 / 기간 밖 지출 점 회색 (기존 colorLiteral과 동일 값)
@@ -79,7 +69,7 @@ struct MonthCalendarGrid: View {
     private var gridContent: some View {
         VStack(spacing: 4) {
             // 헤더: yyyy년 M월
-            Text(Self.headerFormatter.string(from: displayedMonth))
+            Text(AppDateFormatters.yearMonth.string(from: displayedMonth))
                 .font(.system(size: 16, weight: .medium))
                 .foregroundStyle(Color(.customLabel))
                 .frame(height: 36)

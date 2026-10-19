@@ -6,17 +6,14 @@ import UserNotifications
 class SceneDelegate: UIResponder, UIWindowSceneDelegate {
 
     var window: UIWindow?
-
+    private weak var privacyOverlayView: UIView?
 
     func scene(_ scene: UIScene, willConnectTo session: UISceneSession, options connectionOptions: UIScene.ConnectionOptions) {
         guard let windowScene = scene as? UIWindowScene else { return }
 
         // 스토리보드(mainVC) 대신 SwiftUI MainView를 루트로 사용
         let window = UIWindow(windowScene: windowScene)
-        window.rootViewController = UIHostingController(rootView: MainView()
-            .modelContainer(PersistenceController.shared)
-            .dynamicTypeSize(.large)   // 1.7.2(UIKit)처럼 폰트 크기 고정 (시스템 Dynamic Type 무시)
-        )
+        window.rootViewController = makeAppHostingController(rootView: MainView())
         self.window = window
         window.makeKeyAndVisible()
 
@@ -38,22 +35,16 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate {
 
         switch env[LaunchEnvKeys.showScreen] {
         case "calendar":
-            window.rootViewController = UIHostingController(rootView:
-                CalendarView(start: Date().startOfThisMonth, end: Date().endOfThisMonth)
-                    .modelContainer(PersistenceController.shared)
-                    .dynamicTypeSize(.large)
+            window.rootViewController = makeAppHostingController(
+                rootView: CalendarView(start: Date().startOfThisMonth, end: Date().endOfThisMonth)
             )
         case "fixed":
-            window.rootViewController = UIHostingController(rootView:
-                FixedExpenditureView()
-                    .modelContainer(PersistenceController.shared)
-                    .dynamicTypeSize(.large)
+            window.rootViewController = makeAppHostingController(
+                rootView: FixedExpenditureView()
             )
         case "revenue":
-            window.rootViewController = UIHostingController(rootView:
-                RevenueView(start: Date().startOfThisMonth, end: Date().endOfThisMonth)
-                    .modelContainer(PersistenceController.shared)
-                    .dynamicTypeSize(.large)
+            window.rootViewController = makeAppHostingController(
+                rootView: RevenueView(start: Date().startOfThisMonth, end: Date().endOfThisMonth)
             )
         default:
             break
@@ -69,52 +60,49 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate {
         #endif
     }
     #endif
-    
+
     // 액티브 상태가 되었을 경우
     func sceneDidBecomeActive(_ scene: UIScene) {
-        callBackgroundImage(false)
+        setPrivacyOverlayVisible(false)
         // iOS 17+: applicationIconBadgeNumber(get/set) deprecated → UNUserNotificationCenter 사용
         UNUserNotificationCenter.current().setBadgeCount(0)
     }
 
     // 백그라운드 상태였다가 돌아왔을 때
     func sceneWillEnterForeground(_ scene: UIScene) {
-        callBackgroundImage(false)
+        setPrivacyOverlayVisible(false)
     }
-    
+
     // 백그라운드 상태로 갔을 때
     func sceneDidEnterBackground(_ scene: UIScene) {
-        callBackgroundImage(true)
+        setPrivacyOverlayVisible(true)
     }
-    
-    func callBackgroundImage(_ bShow: Bool) {
-        
-        let TAG_BG_IMG = -101
-        let backgroundView = window?.viewWithTag(TAG_BG_IMG)
-        
-        if bShow {
-            
-            if backgroundView == nil {
-                
-                //여기서 보여주고 싶은 뷰 자유롭게 생성
-                let bgView = UIView()
-                bgView.frame = UIScreen.main.bounds
-                bgView.tag = TAG_BG_IMG
-                bgView.backgroundColor = .secondarySystemBackground
-                
-                let appIcon = UIImageView()
-                appIcon.frame = CGRect(x: bgView.layer.bounds.width / 2 - 64, y: bgView.layer.bounds.height / 2 - 64, width: 128, height: 128)
-                appIcon.image = UIImage(named: "bgView")
-                bgView.addSubview(appIcon)
-                
-                window?.addSubview(bgView)
-            }
-        } else {
-            
-            if let backgroundView = backgroundView {
-                backgroundView.removeFromSuperview()
-            }
+
+    private func setPrivacyOverlayVisible(_ show: Bool) {
+        guard show else {
+            privacyOverlayView?.removeFromSuperview()
+            privacyOverlayView = nil
+            return
         }
+        guard privacyOverlayView == nil, let window else { return }
+
+        let bgView = UIView(frame: window.bounds)
+        bgView.autoresizingMask = [.flexibleWidth, .flexibleHeight]
+        bgView.backgroundColor = .secondarySystemBackground
+
+        let appIcon = UIImageView(image: UIImage(named: "bgView"))
+        appIcon.translatesAutoresizingMaskIntoConstraints = false
+        bgView.addSubview(appIcon)
+
+        NSLayoutConstraint.activate([
+            appIcon.centerXAnchor.constraint(equalTo: bgView.centerXAnchor),
+            appIcon.centerYAnchor.constraint(equalTo: bgView.centerYAnchor),
+            appIcon.widthAnchor.constraint(equalToConstant: 128),
+            appIcon.heightAnchor.constraint(equalToConstant: 128)
+        ])
+
+        window.addSubview(bgView)
+        privacyOverlayView = bgView
     }
 }
 

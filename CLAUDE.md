@@ -3,10 +3,10 @@
 ## Project Overview
 iOS 개인 가계부 앱. 지출/수입 관리, 캘린더 조회, 고정 지출 알림, 홈 화면 위젯 제공.
 
-**UIKit/Storyboard → SwiftUI 전환 완료** (모든 화면 SwiftUI, legacy VC·Main.storyboard 삭제됨. UIKit 잔여는 `struct.swift`의 데이터 모델/확장과 위젯 호스팅뿐). 데이터는 **UserDefaults → SwiftData (CloudKit 동기화)** 마이그레이션 완료.
+**UIKit/Storyboard → SwiftUI 전환 완료** (모든 화면 SwiftUI, legacy VC·Main.storyboard 삭제됨. UIKit 잔여는 `AppSupport.swift`의 데이터 모델/확장과 위젯 호스팅뿐). 데이터는 **UserDefaults → SwiftData (CloudKit 동기화)** 마이그레이션 완료.
 
 ## Tech Stack
-- Swift / SwiftUI (앱 루트가 SwiftUI MainView. `struct.swift`의 모델·확장만 UIKit 시절 코드로 잔존)
+- Swift / SwiftUI (앱 루트가 SwiftUI MainView. `AppSupport.swift`의 모델·확장만 UIKit 시절 코드로 잔존)
 - WidgetKit (SwiftUI) — SwiftData 직접 쿼리
 - SwiftData + CloudKit (App Group: `group.costit`, CloudKit 컨테이너: `iCloud.kr.co.saveMoney`)
 - **CocoaPods 의존성 없음** (FSCalendar 제거 완료, 자체 `MonthCalendarGrid` 사용 → `.xcodeproj` 직접 빌드, `.xcworkspace` 없음)
@@ -39,14 +39,14 @@ xcodebuild -project saveMoney.xcodeproj -scheme saveMoney \
 | `saveMoney/Views/CalendarView.swift` | 캘린더 (MainView에서 fullScreenCover). 일 단위 집계는 `Date`(그 날 00:00) 키 딕셔너리. SearchView push / FixedExpenditureView cover 연결 |
 | `saveMoney/Views/MonthCalendarGrid.swift` | 월 달력 그리드 (FSCalendar 대체). CalendarView에서 분리 |
 | `saveMoney/Views/MainView.swift` | 메인 대시보드 — 앱 루트 (SceneDelegate에서 UIHostingController로 설정). 잔액 헤더, 메모지 그리드, 년/월 필터, 온보딩(FirstOpenView push) |
-| `saveMoney/Views/Components.swift` | 공용 컴포넌트: `CircleActionButton`, `HairlineDivider`, `paperShadow(y:)`, `deleteConfirmationAlert`, 금액 입력 포맷 `currencyInputFormatted(limit:onParseFailure:)` |
-| `saveMoney/Views/UIKitPresentation.swift` | UIKit 프레젠테이션 브리지: `UIApplication.appKeyWindow/appRootViewController`, `topMostPresentedViewController`, 공용 `presentAddFin(source:mode:)` |
+| `saveMoney/Views/Components.swift` | 공용 컴포넌트: `CircleActionButton`, `HairlineDivider`, `MonthSelectorSheet`, `paperShadow(y:)`, `deleteConfirmationAlert`, `messageAlert`, `presentDeferredAlertMessage`, 금액 입력 포맷 `currencyInputFormatted(limit:)` |
+| `saveMoney/Views/UIKitPresentation.swift` | UIKit 프레젠테이션 브리지 및 환경 주입: `withAppEnvironment()`, `makeAppHostingController(rootView:)`, `UIApplication.appKeyWindow/appRootViewController`, `topMostPresentedViewController`, 공용 `presentAddFin(source:mode:)` |
 | `saveMoney/Theme.swift` | `Font.pretendard(_:size:)` 폰트 토큰 (색상은 asset catalog 자동 생성 심볼 `Color(.customLabel)` 등 직접 사용) |
 
 ### 공용 유틸 / 진입점
 | 파일 | 역할 |
 |------|------|
-| `saveMoney/struct.swift` | 값 모델 (`FixedExpenditureItem`, `Profile`, `SalaryDate`+`period(forSalaryDay:)`) + Date 확장(gregorian 고정) + `AppDateFormatters`(포매터 캐시) + `AppKeys`/`LaunchEnvKeys`/`SalaryDay` 상수 + 고정 지출 알림 확장. **앱+위젯 양 타겟 멤버** |
+| `saveMoney/AppSupport.swift` | 값 모델 (`FixedExpenditureItem`, `Profile`, `SalaryDate`+`period(forSalaryDay:)`) + Date 확장(gregorian 고정) + `AppDateFormatters`(포매터 캐시) + `AppYearBounds`/`AppKeys`/`LaunchEnvKeys`/`SalaryDay` 상수 + 고정 지출 알림 확장. **앱+위젯 양 타겟 멤버** |
 | `saveMoney/AppDelegate.swift` / `SceneDelegate.swift` | 앱 부팅 + LegacyMigration 트리거 + SwiftUI MainView 루트 설정 |
 | `widget/widget.swift` | 홈 화면 위젯 (`CostItWidget`). SwiftData 직접 쿼리 (CloudKit 동기화 데이터 반영). kind 문자열 `"widget"`은 배치된 위젯의 영속 식별자 — 변경 금지 |
 
@@ -98,7 +98,7 @@ xcodebuild -project saveMoney.xcodeproj -scheme saveMoney \
 - **DONE (Step 2, 2026-06-13)**: FSCalendar pod deintegrate + Podfile/`Podfile.lock`/`saveMoney.xcworkspace` 삭제 → `.xcodeproj` 직접 빌드 전환. 캘린더 화면 런타임 검증 완료
 - **DONE (Step 3, 2026-06-14, 브랜치 `refactor/phase4-naming`)**: 네이밍 컨벤션 정리. `finData` dead code 삭제(사용처 0), `FixedExpenditure`(struct)→`FixedExpenditureItem`(SwiftData `FixedExpenditureEntity`와 구분), `profile`→`Profile`, `salaryDate`→`SalaryDate`. CodingKeys 호환 불필요(저장은 SwiftData Entity, 레거시 디코딩은 LegacyMigration의 자체 `Legacy*` 타입)했고 빌드 통과
 - **DONE (Step 4 라운드, 2026-07-10, 브랜치 `refactor/phase4-cleanup`)**: 멀티에이전트 분석(56건 검증) 기반 정리 라운드.
-  ① dead code 일괄 삭제(struct.swift 확장 5종, ClearBackground/AddFinSheet 등) ② DateFormatter/NumberFormatter 캐시 통일(`AppDateFormatters`) ③ CalendarView 일 단위 집계를 Date 키로 일원화 + MonthCalendarGrid 파일 분리 ④ 저장+위젯 리로드 헬퍼(`saveAndRefreshWidgets`) + AddFinView environment context 통일 ⑤ 급여 기간 로직 `SalaryDate.period` 이동 + 엔티티 fallback(`asProfile`/`asSalaryDate`)/상수(`SalaryDay`/`AppKeys`) 집약 ⑥ Color asset 심볼(59곳)/Font 토큰(25곳) ⑦ 공용 컴포넌트 추출(Components.swift) ⑧ UIKit 브리지 통합(UIKitPresentation.swift) ⑨ 버그 4건 fix: 월급날 당일 지출 누락 / ddayTitle 오표시 / 금액 오버플로 0 저장 / 고정지출 날짜 표시·저장 불일치 ⑩ 위젯 타입 리네임(`CostItWidget`)
+  ① dead code 일괄 삭제(AppSupport.swift 확장 5종, ClearBackground/AddFinSheet 등) ② DateFormatter/NumberFormatter 캐시 통일(`AppDateFormatters`) ③ CalendarView 일 단위 집계를 Date 키로 일원화 + MonthCalendarGrid 파일 분리 ④ 저장+위젯 리로드 헬퍼(`saveAndRefreshWidgets`) + AddFinView environment context 통일 ⑤ 급여 기간 로직 `SalaryDate.period` 이동 + 엔티티 fallback(`asProfile`/`asSalaryDate`)/상수(`SalaryDay`/`AppKeys`) 집약 ⑥ Color asset 심볼(59곳)/Font 토큰(25곳) ⑦ 공용 컴포넌트 추출(Components.swift) ⑧ UIKit 브리지 통합(UIKitPresentation.swift) ⑨ 버그 4건 fix: 월급날 당일 지출 누락 / ddayTitle 오표시 / 금액 오버플로 0 저장 / 고정지출 날짜 표시·저장 불일치 ⑩ 위젯 타입 리네임(`CostItWidget`)
 - **DONE (2026-07-11)**: AddFinView 50ms dismiss 폴백 → onDismiss 클로저 교체 (시뮬레이터 탭 자동화로 X 버튼/배경 탭/스와이프/저장 dismiss 4경로 + RevenueView 위 present 회귀 검증)
 - **DONE (리뷰 라운드 1~11, 2026-07-28~29)**: 리뷰어(코덱스/Claude 병렬 에이전트/Gemini-Antigravity)를 돌려 나온 지적을 검증 후 수정하는 반복 라운드. **최우선 제약은 "기존 사용자 데이터 유실 금지"** — `@Model` 스키마는 전 라운드 무변경(CloudKit 마이그레이션 위험 회피), 삭제 경로 신규 추가 없음, 레거시 UserDefaults 보존.
   - **핵심 수정**: ① 정산 기간 계산(`salaryDayStart` 클램프 + `SalaryDate.period` 시각 비교) — 급여일 29~31일 사용자가 짧은 달을 지날 때 기간에 빈틈이 생겨 그 날 지출이 어느 기간에도 안 잡히던 P0. 46,752 케이스 하네스로 수정 전 실패(기간 실종 3·빈틈/겹침 17) → 수정 후 0 확인 ② LegacyMigration `Outcome`(decodeFailed/aborted 분리) + fingerprint에 `logicVersion` 혼합 + 메모리 dedup(`claim`/`uniqueID`) ③ 온보딩 판정을 "엔티티 존재"가 아닌 `hasUserEnteredProfile`로, `ProfileRoute` 단일 navigationDestination ④ 싱글턴 쓰기를 `applyProfileToAllEntities`/`applyPeriodToAllEntities`로 통일(사본 전체 동일 값 — 삭제로 정리하지 않음) ⑤ 위젯 `CostEntry.State`(normal/needsSetup/unavailable) + `ratioUnknown` ⑥ 반열린 구간 필터(`start <= when < end+1s`) 전 화면 통일 ⑦ `PrivacyInfo.xcprivacy` 추가(앱·위젯 양 타겟 — 없으면 ITMS-91053으로 업로드 거부)
@@ -122,4 +122,4 @@ xcodebuild -project saveMoney.xcodeproj -scheme saveMoney \
 - 빌드 대상: iPhone 17e Simulator (OS 26.5) / 실기기 iOS 17+
 - 사용자 언어: 한국어
 - 색상은 asset 심볼 `Color(.customLabel)`, UIKit 색은 `Color(uiColor:)`, 커스텀 폰트는 `Font.pretendard(_:size:)`
-- 새 Swift 파일 추가 시 pbxproj 수동 등록 필요 (구식 그룹 방식 — 파일시스템 동기화 그룹 아님). struct.swift/Models/Persistence/LegacyMigration은 위젯 타겟에도 등록
+- 새 Swift 파일 추가 시 pbxproj 수동 등록 필요 (구식 그룹 방식 — 파일시스템 동기화 그룹 아님). AppSupport.swift/Models/Persistence/LegacyMigration은 위젯 타겟에도 등록

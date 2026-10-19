@@ -57,11 +57,11 @@ enum PersistenceController {
                 // 마지막 후보가 in-memory 안전망 — 여기까지 왔다면 저장이 휘발성이다
                 if index == candidates.count - 1 {
                     isEphemeralFallback = true
-                    print("[PersistenceController] 영속 스토어를 열지 못해 in-memory로 폴백 (이번 실행 데이터는 저장되지 않음)")
+                    logger.error("영속 스토어를 열지 못해 in-memory로 폴백 (이번 실행 데이터는 저장되지 않음)")
                 }
                 return container
             } catch {
-                print("[PersistenceController] 컨테이너 생성 실패, 다음 후보로 폴백: \(error)")
+                logger.error("컨테이너 생성 실패, 다음 후보로 폴백: \(String(describing: error), privacy: .public)")
             }
         }
         // in-memory까지 실패하는 경우는 사실상 없음 (스키마 자체 결함뿐)

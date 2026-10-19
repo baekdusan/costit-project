@@ -254,14 +254,7 @@ struct MainView: View {
             .deleteConfirmationAlert(item: $deleteTarget, message: "해당 지출 내역을 삭제해요.") {
                 deleteExpense($0)
             }
-            .alert("삭제 실패", isPresented: Binding(
-                get: { deleteFailureMessage != nil },
-                set: { if !$0 { deleteFailureMessage = nil } }
-            )) {
-                Button("확인") { deleteFailureMessage = nil }
-            } message: {
-                Text(deleteFailureMessage ?? "")
-            }
+            .messageAlert("삭제 실패", message: $deleteFailureMessage)
             .alert("프로필 저장 실패", isPresented: $showProfileSaveFailure) {
                 Button("확인", role: .cancel) { }
             } message: {
@@ -367,10 +360,9 @@ struct MainView: View {
     // AddFinView는 공용 presentAddFin(source:mode:) 경로 사용 (UIKitPresentation.swift)
 
     private func presentRevenue() {
-        let view = RevenueView(start: salaryData.startDate, end: salaryData.endDate)
-            .modelContainer(PersistenceController.shared)
-            .dynamicTypeSize(.large)
-        let host = UIHostingController(rootView: view)
+        let host = makeAppHostingController(
+            rootView: RevenueView(start: salaryData.startDate, end: salaryData.endDate)
+        )
         host.modalPresentationStyle = .fullScreen
         UIApplication.shared.appRootViewController?.present(host, animated: false)
     }
@@ -382,12 +374,10 @@ struct MainView: View {
         // 이 함수는 삭제 확인 알럿의 "확인" 액션에서 호출되므로, 그 알럿이 닫히는 도중에
         // 곧바로 다음 알럿을 띄우면 표시 요청이 통째로 무시된다 → 닫힌 뒤로 미룬다.
         if !PersistenceController.deleteFin(externalID: externalID, in: modelContext) {
-            // 이전 표시 요청이 무시돼 값이 non-nil로 굳어 있으면, 같은 문자열을 다시 넣어도
-            // isPresented 전이가 없어 알럿이 영영 뜨지 않는다 → 먼저 비운 뒤 다시 채운다
-            deleteFailureMessage = nil
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.4) {
-                deleteFailureMessage = "삭제를 저장하지 못했어요. 잠시 후 다시 시도해주세요."
-            }
+            presentDeferredAlertMessage(
+                "삭제를 저장하지 못했어요. 잠시 후 다시 시도해주세요.",
+                to: $deleteFailureMessage
+            )
         }
     }
 

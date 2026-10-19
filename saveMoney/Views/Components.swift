@@ -1,4 +1,5 @@
 import SwiftUI
+import SwiftData
 
 // MARK: - 하단 원형 액션 버튼 (메인/수입 화면 공통)
 
@@ -56,6 +57,111 @@ extension View {
             }
         } message: {
             Text(message)
+        }
+    }
+
+    // 단일 확인 버튼만 있는 안내/오류 알럿 공통 패턴 — message가 non-nil이면 표시
+    func messageAlert(
+        _ title: String = "알림",
+        message: Binding<String?>
+    ) -> some View {
+        alert(title, isPresented: Binding(
+            get: { message.wrappedValue != nil },
+            set: { if !$0 { message.wrappedValue = nil } }
+        )) {
+            Button("확인") { message.wrappedValue = nil }
+        } message: {
+            Text(message.wrappedValue ?? "")
+        }
+    }
+}
+
+// 직전 알럿(예: 삭제 확인 알럿)이 닫히는 도중에 곧바로 다음 알럿을 띄우면 표시 요청이 무시된다.
+// 또한 이전 요청이 무시돼 값이 non-nil로 굳어 있으면 재대입에 전이가 없어 알럿이 뜨지 않으므로,
+// 먼저 nil로 비운 뒤 닫힘 애니메이션 이후(0.4s)에 메시지를 채운다.
+func presentDeferredAlertMessage(_ text: String, to binding: Binding<String?>) {
+    binding.wrappedValue = nil
+    DispatchQueue.main.asyncAfter(deadline: .now() + 0.4) {
+        binding.wrappedValue = text
+    }
+}
+
+// MARK: - 년/월 선택 시트 (MainView / RevenueView 공통)
+
+struct MonthSelectorSheet: View {
+    let onSelect: (Date, Date, String) -> Void
+    let onReset: () -> Void
+
+    // 실제로 저장된 내역의 연도 범위를 함께 보여준다 — 목록에 없는 연도는 조회 자체가 불가능해
+    // "저장은 됐는데 어디서도 볼 수 없는" 데이터가 생긴다 (입력 화면의 DatePicker에는 연도 제한이 없다).
+    // 필요한 건 최초/최종 1건뿐이라 @Query로 전 내역을 메모리에 올리지 않고 fetchLimit 1로 양 끝만 읽는다.
+    @Environment(\.modelContext) private var modelContext
+
+    // 날짜 산술은 프로젝트 전체가 gregorian 고정 — 여기만 Calendar.current를 쓰면
+    // 비양력 기기(불교력 등)에서 선택한 연도가 전혀 다른 절대 날짜로 해석되어
+    // 해당 기간 내역이 통째로 사라진다.
+    // static let이 아닌 computed인 이유는 Date 확장과 동일: Calendar는 생성 시점의 타임존을
+    // 스냅샷하므로, 캐시해두면 기기 타임존이 바뀐 뒤 라벨과 실제 필터 기간이 어긋난다.
+    private static var gregorian: Calendar { Calendar(identifier: .gregorian) }
+
+    @State private var selectedYear: Int = Calendar(identifier: .gregorian).component(.year, from: Date())
+    @State private var selectedMonth: Int = Calendar(identifier: .gregorian).component(.month, from: Date())
+
+    private var years: [Int] {
+        let calendar = Self.gregorian
+        let current = calendar.component(.year, from: Date())
+
+        var oldest = FetchDescriptor<FinDataEntity>(sortBy: [SortDescriptor(\.when)])
+        oldest.fetchLimit = 1
+        var newest = FetchDescriptor<FinDataEntity>(sortBy: [SortDescriptor(\.when, order: .reverse)])
+        newest.fetchLimit = 1
+        let storedMin = (try? modelContext.fetch(oldest))?.first.map { calendar.component(.year, from: $0.when) }
+        let storedMax = (try? modelContext.fetch(newest))?.first.map { calendar.component(.year, from: $0.when) }
+
+        // 디바이스 시계가 2021 이전으로 설정돼 있어도 빈 Range 크래시가 나지 않도록 가드.
+        // 상·하한을 두는 이유: 입력 화면 DatePicker에 연도 제한이 없어 실수로 0001년 내역이
+        // 하나라도 저장되면 wheel Picker 항목이 수천 개로 불어난다.
+        let lower = max(AppYearBounds.minYear, min(AppYearBounds.defaultMinYear, storedMin ?? AppYearBounds.defaultMinYear))
+        let upper = min(AppYearBounds.maxYear, max(current, storedMax ?? current))
+        return Array(lower...max(lower, upper))
+    }
+
+    var body: some View {
+        // NavigationStack의 toolbar 버튼은 UIKit present된 UIHostingController 위에서 띄운
+        // sheet에서는 탭이 먹지 않는 경우가 있어(수입 화면) 일반 버튼 헤더로 구성한다.
+        VStack(spacing: 0) {
+            HStack {
+                Button("Reset", action: onReset)
+                Spacer()
+                Button("설정") {
+                    let comps = DateComponents(year: selectedYear, month: selectedMonth)
+                    guard let date = Self.gregorian.date(from: comps) else { return }
+                    let label = "🗓 \(selectedYear)년 \(selectedMonth)월"
+                    onSelect(date.startOfThisMonth, date.endOfThisMonth, label)
+                }
+            }
+            .font(.system(size: 17, weight: .semibold))
+            .tint(Color(.customLabel))
+            .padding(.horizontal, 20)
+            .padding(.top, 16)
+            .padding(.bottom, 4)
+
+            HStack(spacing: 0) {
+                Picker("년", selection: $selectedYear) {
+                    ForEach(years, id: \.self) { year in
+                        // Text("\(year)년")은 LocalizedStringKey 보간이라 "2,026년"처럼 천 단위 콤마가 붙음 → verbatim 사용
+                        Text(verbatim: "\(year)년").tag(year)
+                    }
+                }
+                .pickerStyle(.wheel)
+
+                Picker("월", selection: $selectedMonth) {
+                    ForEach(1...12, id: \.self) { month in
+                        Text(verbatim: "\(month)월").tag(month)
+                    }
+                }
+                .pickerStyle(.wheel)
+            }
         }
     }
 }

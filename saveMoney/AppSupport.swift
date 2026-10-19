@@ -76,6 +76,7 @@ enum AppDateFormatters {
     static let dayOnly = make("d")                // Date.onlydate
     static let shortDate = make("yy. MM. dd")     // SearchView 셀
     static let editDate = make("yy. M. d.")       // AddFinView 날짜 버튼
+    static let yearMonth = make("yyyy년 M월")      // MonthCalendarGrid 헤더
     // (급여 기간 계산은 문자열 파싱 대신 Calendar 산술을 쓰도록 바뀌어 "dd" 포매터는 제거됨 —
     //  날짜 산술을 문자열 왕복으로 하던 것 자체가 문제였다. 참고: timeZone을 대입하지 않은
     //  DateFormatter는 캐시해도 시스템 타임존 변경을 따라가므로 캐시 자체는 안전하다.
@@ -88,6 +89,21 @@ enum AppDateFormatters {
         formatter.dateFormat = format
         return formatter
     }
+}
+
+// 날짜 선택/조회 연도 상·하한 (AddFinView DatePicker & MonthSelectorSheet 공통)
+enum AppYearBounds {
+    static let minYear = 1900
+    static let defaultMinYear = 2021
+    static let maxYear = 2200
+
+    // DatePicker에서 여러 번 참조해도 경계 날짜를 매번 다시 만들지 않도록 한 번 계산한다.
+    static let selectableDateRange: ClosedRange<Date> = {
+        let calendar = Calendar(identifier: .gregorian)
+        let lower = calendar.date(from: DateComponents(year: minYear, month: 1, day: 1)) ?? .distantPast
+        let upper = calendar.date(from: DateComponents(year: maxYear, month: 12, day: 31)) ?? .distantFuture
+        return lower...upper
+    }()
 }
 
 // UserDefaults 키 (레거시 데이터 키는 LegacyMigration.Keys가 별도 관리)
